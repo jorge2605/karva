@@ -1,0 +1,6 @@
+
+Relacion de material
+Plano | Material | Requisicion
+
+500 103 | 1 | 3194
+194

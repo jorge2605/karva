@@ -1,0 +1,3 @@
+ruta:\\serverdell\04 Individual\61 Jorge Santacruz\respaldos
+estado:Carpeta seleccionda
+cancelar:false
