@@ -9,20 +9,26 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
+import jdk.internal.org.jline.reader.Parser;
 
 public class HorarioEmpleado extends javax.swing.JDialog {
 
     private GuardarEmpleados empleados;
     private String inicio;
+    public String numEmpleado;
 
     public String calcularTiempo(String horaInicio, String horaFin) {
         if (horaInicio != null & horaFin != null & !horaInicio.equals("") & !horaFin.equals("")) {
+            if (horaInicio.equals("00:01"))
+                return "00:01";
             DateTimeFormatter formato = DateTimeFormatter.ofPattern("HH:mm");
             LocalTime inicio = LocalTime.parse(horaInicio, formato);
             LocalTime fin = LocalTime.parse(horaFin, formato);
@@ -34,10 +40,24 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         return null;
     }
 
+    public boolean evaluarDia(JTextField txt1, JTextField txt2) {
+        return (txt1.getText().equals("") || txt1.getText().equals("00:00"))  && (txt2.getText().equals("") || txt2.getText().equals("00:00"));
+    }
+
+    public final void esconderDias() {
+        btnVL.setVisible(false);
+        btnVM.setVisible(false);
+        btnVX.setVisible(false);
+        btnVJ.setVisible(false);
+        btnVV.setVisible(false);
+        btnVS.setVisible(false);
+    }
+
     public final void verHorario(String numEmpleado, String inicio, GuardarEmpleados empleado) {
         try {
             this.empleados = empleado;
             this.inicio = inicio;
+            esconderDias();
             txtEntrada.setText(empleados.getEntrada());
             txtSalida.setText(empleados.getSalida());
             txtSabado.setText(empleados.getEntradaSabado());
@@ -47,11 +67,15 @@ public class HorarioEmpleado extends javax.swing.JDialog {
             String sql = "select * from dias where numEmpleado like '" + numEmpleado + "' and Inicio like '" + inicio + "'";
             ResultSet rs = st.executeQuery(sql);
             while (rs.next()) {
+                lblId.setText(rs.getString("id"));
                 try {
                     el.setText(rs.getString("lunes").substring(0, 5));
                     sl.setText(rs.getString("slunes").substring(0, 5));
                     tl.setText(calcularTiempo(el.getText(), sl.getText()));
                 } catch (Exception e) {
+                    if (evaluarDia(el, sl)) {
+                        btnVL.setVisible(true);
+                    }
                 }
 
                 try {
@@ -59,6 +83,9 @@ public class HorarioEmpleado extends javax.swing.JDialog {
                     sm.setText(rs.getString("smartes").substring(0, 5));
                     tm.setText(calcularTiempo(em.getText(), sm.getText()));
                 } catch (Exception e) {
+                    if (evaluarDia(em, sm)) {
+                        btnVM.setVisible(true);
+                    }
                 }
 
                 try {
@@ -66,6 +93,9 @@ public class HorarioEmpleado extends javax.swing.JDialog {
                     sx.setText(rs.getString("smiercoles").substring(0, 5));
                     tx.setText(calcularTiempo(ex.getText(), sx.getText()));
                 } catch (Exception e) {
+                    if (evaluarDia(ex, sx)) {
+                        btnVX.setVisible(true);
+                    }
                 }
 
                 try {
@@ -73,6 +103,9 @@ public class HorarioEmpleado extends javax.swing.JDialog {
                     sj.setText(rs.getString("sjueves").substring(0, 5));
                     tj.setText(calcularTiempo(ej.getText(), sj.getText()));
                 } catch (Exception e) {
+                    if (evaluarDia(ej, sj)) {
+                        btnVJ.setVisible(true);
+                    }
                 }
 
                 try {
@@ -80,6 +113,9 @@ public class HorarioEmpleado extends javax.swing.JDialog {
                     sv.setText(rs.getString("sviernes").substring(0, 5));
                     tv.setText(calcularTiempo(ev.getText(), sv.getText()));
                 } catch (Exception e) {
+                    if (evaluarDia(ev, sv)) {
+                        btnVV.setVisible(true);
+                    }
                 }
 
                 try {
@@ -87,6 +123,10 @@ public class HorarioEmpleado extends javax.swing.JDialog {
                     ss.setText(rs.getString("ssabado").substring(0, 5));
                     ts.setText(calcularTiempo(es.getText(), ss.getText()));
                 } catch (Exception e) {
+                    if (evaluarDia(es, ss)) {
+                        if (!txtSabado.getText().equals("00:00:00"))
+                            btnVS.setVisible(true);
+                    }
                 }
 
                 try {
@@ -125,7 +165,7 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         textos[18] = ed;
         textos[19] = sd;
         textos[20] = td;
-        
+
         for (int i = 0; i < textos.length; i++) {
             int in = i;
             textos[i].addFocusListener(new java.awt.event.FocusAdapter() {
@@ -136,7 +176,7 @@ public class HorarioEmpleado extends javax.swing.JDialog {
                         inicio = textos[in].getText();
                         fin = textos[in + 1].getText();
                         textos[in + 2].setText(calcularTiempo(inicio, fin));
-                    } else if (in % 3 == 1){
+                    } else if (in % 3 == 1) {
                         inicio = textos[in - 1].getText();
                         fin = textos[in].getText();
                         textos[in + 1].setText(calcularTiempo(inicio, fin));
@@ -146,41 +186,75 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         }
     }
 
-    public final void actualizarDatos() {
+    public String formatoCeldasHorario(JTextField txt1) {
+        try {
+            LocalTime d1 = LocalTime.parse(txt1.getText());
+            return txt1.getText().equals("") ? null : txt1.getText();
+        } catch (Exception e) {
+        }
+        return null;
+    }
+    
+    public final void asignarVacaciones(String dia, JTextField txt1, JTextField txt2) {
         try {
             Connection con = new Conexion().getConnection();
-            String sql = "update dias set lunes = ?, slunes = ?, martes = ?, smartes = ?, miercoles = ?, smiercoles = ?, jueves = ?, "
-                    + "sjueves = ?, viernes = ?, sviernes = ?, sabado = ?, ssabado = ?, domingo = ?, sdomingo = ? where numSemana = ? and Inicio = ?";
+            String sql = "insert into vacacionestomadas (NumEmpleado, idDia, dia) values(?,?,?)";
             PreparedStatement pst = con.prepareStatement(sql);
             
-            pst.setString(1, el.getText());
-            pst.setString(2, sl.getText());
-            pst.setString(3, em.getText());
-            pst.setString(4, sm.getText());
-            pst.setString(5, ex.getText());
-            pst.setString(6, sx.getText());
-            pst.setString(7, ej.getText());
-            pst.setString(8, sj.getText());
-            pst.setString(9, ev.getText());
-            pst.setString(10, sv.getText());
-            pst.setString(11, es.getText());
-            pst.setString(12, ss.getText());
-            pst.setString(13, ed.getText());
-            pst.setString(14, sd.getText());
-            pst.setString(15, lblSemana.getText());
-            pst.setString(16, this.inicio);
+            pst.setString(1, numEmpleado);
+            pst.setString(2, lblId.getText());
+            pst.setString(3, dia);
             
             int n = pst.executeUpdate();
             
             if (n > 0) {
                 verGuardado();
+                txt1.setText("00:01");
+                txt2.setText("00:01");
+                actualizarDatos();
             }
             
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al guardar vacaciones: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    public final void actualizarDatos() {
+        try {
+            esconderDias();
+            Connection con = new Conexion().getConnection();
+            String sql = "update dias set lunes = ?, slunes = ?, martes = ?, smartes = ?, miercoles = ?, smiercoles = ?, jueves = ?, "
+                    + "sjueves = ?, viernes = ?, sviernes = ?, sabado = ?, ssabado = ?, domingo = ?, sdomingo = ? where numSemana = ? and Inicio = ?";
+            PreparedStatement pst = con.prepareStatement(sql);
+
+            pst.setString(1, formatoCeldasHorario(el));
+            pst.setString(2, formatoCeldasHorario(sl));
+            pst.setString(3, formatoCeldasHorario(em));
+            pst.setString(4, formatoCeldasHorario(sm));
+            pst.setString(5, formatoCeldasHorario(ex));
+            pst.setString(6, formatoCeldasHorario(sx));
+            pst.setString(7, formatoCeldasHorario(ej));
+            pst.setString(8, formatoCeldasHorario(sj));
+            pst.setString(9, formatoCeldasHorario(ev));
+            pst.setString(10, formatoCeldasHorario(sv));
+            pst.setString(11, formatoCeldasHorario(es));
+            pst.setString(12, formatoCeldasHorario(ss));
+            pst.setString(13, formatoCeldasHorario(ed));
+            pst.setString(14, formatoCeldasHorario(sd));
+            pst.setString(15, lblSemana.getText());
+            pst.setString(16, this.inicio);
+
+            int n = pst.executeUpdate();
+
+            if (n > 0) {
+                verGuardado();
+            }
+
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al actualizar datos: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     public final void verGuardado() {
         Thread hilo = new Thread(() -> {
             try {
@@ -194,7 +268,7 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         });
         hilo.start();
     }
-    
+
     public HorarioEmpleado(java.awt.Frame parent, boolean modal, String numEmpleado) {
         super(parent, modal);
         initComponents();
@@ -224,6 +298,8 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         lblSemana = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         lblEmpleado = new javax.swing.JLabel();
+        jLabel17 = new javax.swing.JLabel();
+        lblId = new javax.swing.JLabel();
         el = new javax.swing.JTextField();
         sl = new javax.swing.JTextField();
         tl = new javax.swing.JTextField();
@@ -254,18 +330,23 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         txtSSabado = new javax.swing.JTextField();
         txtEntrada = new javax.swing.JTextField();
         lblguardado = new javax.swing.JLabel();
+        btnVL = new javax.swing.JButton();
+        btnVM = new javax.swing.JButton();
+        btnVX = new javax.swing.JButton();
+        btnVJ = new javax.swing.JButton();
+        btnVS = new javax.swing.JButton();
+        btnVV = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(800, 300));
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setLayout(new java.awt.BorderLayout());
 
         jLabel12.setFont(new java.awt.Font("Lexend", 1, 14)); // NOI18N
         jLabel12.setForeground(new java.awt.Color(0, 165, 252));
-        jLabel12.setText("Editar horario");
+        jLabel12.setText("                 Editar horario");
         jPanel1.add(jLabel12, java.awt.BorderLayout.NORTH);
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
@@ -375,6 +456,20 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 1;
         jPanel3.add(lblEmpleado, gridBagConstraints);
+
+        jLabel17.setFont(new java.awt.Font("Trebuchet MS", 1, 14)); // NOI18N
+        jLabel17.setText("Id:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        jPanel3.add(jLabel17, gridBagConstraints);
+
+        lblId.setFont(new java.awt.Font("Trebuchet MS", 0, 14)); // NOI18N
+        lblId.setText("empleado");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 1;
+        jPanel3.add(lblId, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
@@ -717,6 +812,78 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         gridBagConstraints.anchor = java.awt.GridBagConstraints.PAGE_END;
         jPanel2.add(lblguardado, gridBagConstraints);
 
+        btnVL.setBackground(new java.awt.Color(255, 255, 255));
+        btnVL.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/add.png"))); // NOI18N
+        btnVL.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVLActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 1;
+        jPanel2.add(btnVL, gridBagConstraints);
+
+        btnVM.setBackground(new java.awt.Color(255, 255, 255));
+        btnVM.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/add.png"))); // NOI18N
+        btnVM.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVMActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.gridy = 1;
+        jPanel2.add(btnVM, gridBagConstraints);
+
+        btnVX.setBackground(new java.awt.Color(255, 255, 255));
+        btnVX.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/add.png"))); // NOI18N
+        btnVX.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVXActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 8;
+        gridBagConstraints.gridy = 1;
+        jPanel2.add(btnVX, gridBagConstraints);
+
+        btnVJ.setBackground(new java.awt.Color(255, 255, 255));
+        btnVJ.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/add.png"))); // NOI18N
+        btnVJ.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVJActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 11;
+        gridBagConstraints.gridy = 1;
+        jPanel2.add(btnVJ, gridBagConstraints);
+
+        btnVS.setBackground(new java.awt.Color(255, 255, 255));
+        btnVS.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/add.png"))); // NOI18N
+        btnVS.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVSActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.gridy = 3;
+        jPanel2.add(btnVS, gridBagConstraints);
+
+        btnVV.setBackground(new java.awt.Color(255, 255, 255));
+        btnVV.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/add.png"))); // NOI18N
+        btnVV.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVVActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 3;
+        jPanel2.add(btnVV, gridBagConstraints);
+
         jPanel1.add(jPanel2, java.awt.BorderLayout.CENTER);
 
         jPanel4.setBackground(new java.awt.Color(255, 255, 255));
@@ -763,6 +930,30 @@ public class HorarioEmpleado extends javax.swing.JDialog {
         actualizarDatos();
     }//GEN-LAST:event_jButton1ActionPerformed
 
+    private void btnVLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVLActionPerformed
+        asignarVacaciones("1", el, sl);
+    }//GEN-LAST:event_btnVLActionPerformed
+
+    private void btnVMActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVMActionPerformed
+        asignarVacaciones("2", em, sm);
+    }//GEN-LAST:event_btnVMActionPerformed
+
+    private void btnVXActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVXActionPerformed
+        asignarVacaciones("3", ex, sx);
+    }//GEN-LAST:event_btnVXActionPerformed
+
+    private void btnVJActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVJActionPerformed
+        asignarVacaciones("4", ej, sj);
+    }//GEN-LAST:event_btnVJActionPerformed
+
+    private void btnVSActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVSActionPerformed
+        asignarVacaciones("6", es, ss);
+    }//GEN-LAST:event_btnVSActionPerformed
+
+    private void btnVVActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVVActionPerformed
+        asignarVacaciones("5", ev, sv);
+    }//GEN-LAST:event_btnVVActionPerformed
+
     public static void main(String args[]) {
 
         java.awt.EventQueue.invokeLater(new Runnable() {
@@ -780,6 +971,12 @@ public class HorarioEmpleado extends javax.swing.JDialog {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnVJ;
+    private javax.swing.JButton btnVL;
+    private javax.swing.JButton btnVM;
+    private javax.swing.JButton btnVS;
+    private javax.swing.JButton btnVV;
+    private javax.swing.JButton btnVX;
     private javax.swing.JTextField ed;
     private javax.swing.JTextField ej;
     private javax.swing.JTextField el;
@@ -796,6 +993,7 @@ public class HorarioEmpleado extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
+    private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -808,6 +1006,7 @@ public class HorarioEmpleado extends javax.swing.JDialog {
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     public javax.swing.JLabel lblEmpleado;
+    public javax.swing.JLabel lblId;
     public javax.swing.JLabel lblPeriodo;
     public javax.swing.JLabel lblSemana;
     private javax.swing.JLabel lblguardado;

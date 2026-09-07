@@ -1,30 +1,45 @@
 package pruebas;
 
 import Conexiones.Conexion;
+import Controlador.Configuracion;
+import VentanaEmergente.Costos.TablaNominas;
 import VentanaEmergente.Inicio1.Espera;
 import VentanaEmergente.Rh.EditarEmpleado;
 import VentanaEmergente.Rh.GuardarEmpleados;
 import VentanaEmergente.Rh.HorarioEmpleado;
+import VentanaEmergente.Rh.ReciboNominaPDF;
 import VentanaEmergente.Rh.Semanas;
+import VentanaEmergente.Rh.Vacaciones;
+import VentanaEmergente.Rh.VaciadoNomina;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.AbstractCellEditor;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -38,9 +53,10 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
 
     public String numEmpleado;
     public Stack<Semanas> semanas;
+    public Stack<Semanas> semanasHistorial;
     private HashMap<String, GuardarEmpleados> empleados;
-    private String deducciones;
-    private String extra;
+    private String deducciones = "";
+    private String extra = "";
 
     public final void verEmpleado() {
         try {
@@ -92,22 +108,28 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
             LocalTime horaInicio = LocalTime.parse(entrada);
             LocalTime horaFin = LocalTime.parse(hora);
             long minutosTotales = ChronoUnit.MINUTES.between(horaInicio, horaFin);
+
             if (minutosTotales > 0) {
                 long horas = minutosTotales / 60;
                 long minutos = minutosTotales % 60;
                 String res = String.format("%02d:%02d", horas, minutos);
-                if (!anterior.equals("")) {
-                    LocalTime ant = LocalTime.parse(anterior);
-                    LocalTime nuevo = LocalTime.parse(res);
-                    int totalMinutos = ant.getHour() * 60 + ant.getMinute() + nuevo.getHour() * 60 + nuevo.getMinute();
-                    horas = totalMinutos / 60;
-                    minutos = totalMinutos % 60;
-                    return String.format("%02d:%02d", horas, minutos);
+
+                if (anterior != null && !anterior.isEmpty() && !anterior.equals("00:00")) {
+                    String[] partesAnt = anterior.split(":");
+                    int antHoras = Integer.parseInt(partesAnt[0]);
+                    int antMinutos = Integer.parseInt(partesAnt[1]);
+
+                    int totalMinutos = (antHoras * 60 + antMinutos) + (int) minutosTotales;
+
+                    long horasTotales = totalMinutos / 60;
+                    long minutosRestantes = totalMinutos % 60;
+
+                    return String.format("%d:%02d", horasTotales, minutosRestantes);
                 }
                 return res;
             }
         }
-        return anterior;
+        return (anterior != null && !anterior.isEmpty()) ? anterior : "00:00";
     }
 
     public String over(String entrada, String hora, String anterior, int numeroDia) {
@@ -142,9 +164,10 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         }
     }
 
-    public String[] analizarEmpleado(String numSemana, String numEmpleado, GuardarEmpleados empleado, Connection con) throws SQLException {
+    public String[] analizarEmpleado(String numSemana, String numEmpleado, GuardarEmpleados empleado, Connection con, String inicio) throws SQLException {
         Statement st = con.createStatement();
-        String sql = "select * from dias where Inicio = (select max(Inicio) from dias where NumSemana like '" + numSemana + "') and NumEmpleado like '" + numEmpleado + "' ORDER BY ID DESC";
+        String sql = "select * from dias where "
+                + "inicio = '" + inicio + "' and NumEmpleado like '" + numEmpleado + "' ORDER BY ID DESC";
         ResultSet rs = st.executeQuery(sql);
         String entrada = empleado.getEntrada();
         String salida = empleado.getSalida();
@@ -153,81 +176,105 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         while (rs.next()) {
             String lunes = rs.getString("lunes");
             try {
-                retraso = retraso(entrada, lunes, retraso, 0);
+                if (lunes == null || !lunes.equals("00:01")) {
+                    retraso = retraso(entrada, lunes, retraso, 0);
+                }
             } catch (Exception e) {
             }
             String martes = rs.getString("martes");
             try {
-                retraso = retraso(entrada, martes, retraso, 1);
+                if (martes == null || !martes.equals("00:01")) {
+                    retraso = retraso(entrada, martes, retraso, 1);
+                }
             } catch (Exception e) {
             }
             String miercoles = rs.getString("miercoles");
             try {
-                retraso = retraso(entrada, miercoles, retraso, 2);
+                if (miercoles == null || !miercoles.equals("00:01")) {
+                    retraso = retraso(entrada, miercoles, retraso, 2);
+                }
             } catch (Exception e) {
             }
             String jueves = rs.getString("jueves");
             try {
-                retraso = retraso(entrada, jueves, retraso, 3);
+                if (jueves == null || !jueves.equals("00:01")) {
+                    retraso = retraso(entrada, jueves, retraso, 3);
+                }
             } catch (Exception e) {
             }
             String viernes = rs.getString("viernes");
             try {
-                retraso = retraso(entrada, viernes, retraso, 4);
+                if (viernes == null || !viernes.equals("00:01")) {
+                    retraso = retraso(entrada, viernes, retraso, 4);
+                }
             } catch (Exception e) {
             }
             String sabado = rs.getString("sabado");
             try {
-                retraso = retraso(entrada, sabado, retraso, 5);
+                if (sabado == null || !sabado.equals("00:01")) {
+                    retraso = retraso(entrada, sabado, retraso, 5);
+                }
             } catch (Exception e) {
             }
             String domingo = rs.getString("domingo");
             try {
-                retraso = retraso(entrada, domingo, retraso, 6);
+                if (domingo == null || !domingo.equals("00:01")) {
+                    retraso = retraso(entrada, domingo, retraso, 6);
+                }
             } catch (Exception e) {
             }
             String slunes = rs.getString("slunes");
             try {
-                over = over(salida, slunes, over, 0);
-                if (slunes == null || lunes == null) {
-                    retraso = retraso(entrada, salida, retraso, 0);
-                    empleado.setFaltas("lunes\n");
+                if (slunes == null || !slunes.equals("00:01")) {
+                    if (slunes == null || lunes == null) {
+                        retraso = retraso(entrada, salida, retraso, 0);
+                        empleado.setFaltas("lunes\n");
+                    }
+                    over = over(salida, slunes, over, 0);
                 }
             } catch (Exception e) {
             }
             String smartes = rs.getString("smartes");
             try {
-                over = over(salida, smartes, over, 1);
-                if (smartes == null || martes == null) {
-                    retraso = retraso(entrada, salida, retraso, 1);
-                    empleado.setFaltas("martes\n");
+                if (smartes == null || !smartes.equals("00:01")) {
+                    if (smartes == null || martes == null) {
+                        retraso = retraso(entrada, salida, retraso, 1);
+                        empleado.setFaltas("martes\n");
+                    }
+                    over = over(salida, smartes, over, 1);
                 }
             } catch (Exception e) {
             }
             String smiercoles = rs.getString("smiercoles");
             try {
-                over = over(salida, smiercoles, over, 2);
-                if (smiercoles == null || miercoles == null) {
-                    retraso = retraso(entrada, salida, retraso, 2);
-                    empleado.setFaltas("miercoles\n");
+                if (smiercoles == null || !smiercoles.equals("00:01")) {
+                    if (smiercoles == null || miercoles == null) {
+                        retraso = retraso(entrada, salida, retraso, 2);
+                        empleado.setFaltas("miercoles\n");
+                    }
+                    over = over(salida, smiercoles, over, 2);
                 }
             } catch (Exception e) {
             }
             String sjueves = rs.getString("sjueves");
             try {
-                over = over(salida, sjueves, over, 3);
-                if (sjueves == null || jueves == null) {
-                    retraso = retraso(entrada, salida, retraso, 3);
-                    empleado.setFaltas("jueves\n");
+                if (sjueves == null || !sjueves.equals("00:01")) {
+                    if (sjueves == null || jueves == null) {
+                        retraso = retraso(entrada, salida, retraso, 3);
+                        empleado.setFaltas("jueves\n");
+                    }
+                    over = over(salida, sjueves, over, 3);
                 }
             } catch (Exception e) {
             }
             String sviernes = rs.getString("sviernes");
             try {
-                over = over(salida, sviernes, over, 4);
-                if (sviernes == null || viernes == null) {
-                    retraso = retraso(entrada, salida, retraso, 4);
-                    empleado.setFaltas("viernes\n");
+                if (sviernes == null || !sviernes.equals("00:01")) {
+                    if (sviernes == null || viernes == null) {
+                        retraso = retraso(entrada, salida, retraso, 4);
+                        empleado.setFaltas("viernes\n");
+                    }
+                    over = over(salida, sviernes, over, 4);
                 }
             } catch (Exception e) {
             }
@@ -236,10 +283,12 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
                 over = over(sabado, ssabado, over, 5);
             } else {
                 try {
-                    over = over(salida, ssabado, over, 5);
-                    if (ssabado == null || sabado == null) {
-                        retraso = retraso(empleado.getEntradaSabado(), empleado.getSalidaSabado(), retraso, 5);
-                        empleado.setFaltas("sabado\n");
+                    if (ssabado == null || !ssabado.equals("00:01")) {
+                        if (ssabado == null || sabado == null) {
+                            retraso = retraso(empleado.getEntradaSabado(), empleado.getSalidaSabado(), retraso, 5);
+                            empleado.setFaltas("sabado\n");
+                        }
+                        over = over(salida, ssabado, over, 5);
                     }
                 } catch (Exception e) {
                 }
@@ -330,20 +379,20 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         }
     }
 
-    public final void verSemanas() {
+    public final void verSemanas(JComboBox jsem) {
         try {
             Connection con = new Conexion().getConnection();
             Statement st = con.createStatement();
             String sql = "select * from semanas order by id desc";
             ResultSet rs = st.executeQuery(sql);
-            jcmSemana.removeAllItems();
+            jsem.removeAllItems();
             semanas = new Stack<>();
             while (rs.next()) {
                 String sem = rs.getString("NumSemana");
                 LocalDate inicio = rs.getDate("Inicio").toLocalDate();
                 Semanas semana = new Semanas(sem, inicio);
                 semanas.add(semana);
-                jcmSemana.addItem(sem);
+                jsem.addItem(sem);
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al ver semanas: " + e, "Error", JOptionPane.ERROR_MESSAGE);
@@ -355,11 +404,11 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         TablaPagos.setModel(new javax.swing.table.DefaultTableModel(
                 new Object[][]{},
                 new String[]{
-                    "Nombre", "# de empleado", "Pago semanal", "Retardos", "Horas extra", "Total", "Detalles"
+                    "Nombre", "# de empleado", "Pago semanal", "Retardos", "Horas extra", "Total", "Detalles", "Vacaciones", "Id"
                 }
         ) {
             boolean[] canEdit = new boolean[]{
-                false, false, false, false, false, false, false
+                false, false, false, false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -387,7 +436,7 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         return BigDecimal.valueOf(horas).add(BigDecimal.valueOf(minutos).divide(BigDecimal.valueOf(60), 10, RoundingMode.HALF_UP));
     }
 
-    public BigDecimal calcularPagoSemanal(String salarioStr, String deduccionesStr, String tiempoExtraStr, GuardarEmpleados empleado) {
+    public BigDecimal calcularPagoSemanal(String salarioStr, String deduccionesStr, String tiempoExtraStr, GuardarEmpleados empleado, int vacaciones) {
         BigDecimal horasSemana = new BigDecimal(empleado.getTotalHoras());
         String salarioLimpio = salarioStr.replace("$", "").replace(",", "").trim();
         BigDecimal salario = new BigDecimal(salarioLimpio);
@@ -402,9 +451,17 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         BigDecimal pagoHorasDobles = valorDoble.multiply(horasDobles);
         BigDecimal pagoHorasTriples = valorTriple.multiply(horasTriples);
         BigDecimal pagoExtra = pagoHorasDobles.add(pagoHorasTriples);
-        BigDecimal total = salario.subtract(descuento).add(pagoExtra);
+        // Prima vacacional
+        BigDecimal salarioDiario = salario.divide(new BigDecimal("7"), 10, RoundingMode.HALF_UP);
+        BigDecimal porcentajePrima = new BigDecimal("0.25");
+        BigDecimal primaVacacional = salarioDiario.multiply(new BigDecimal(vacaciones)).multiply(porcentajePrima);
+
+        BigDecimal total = salario.subtract(descuento).add(pagoExtra).add(primaVacacional);
         this.deducciones = "-" + descuento.setScale(2, RoundingMode.HALF_UP).toString();
         this.extra = "+" + pagoExtra.setScale(2, RoundingMode.HALF_UP).toString();
+        if (vacaciones > 0) {
+            this.extra += " ++" + primaVacacional.setScale(2, RoundingMode.HALF_UP).toString();
+        }
         return total.setScale(2, RoundingMode.HALF_UP);
     }
 
@@ -416,20 +473,24 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
             limpiarTablaPagos();
             verEmpleado();
             Connection con = new Conexion().getConnection();
-            String sql = "select d.numEmpleado, em.Nombre, em.nombre, em.salario from dias as d "
+            String inicio = (semanas.get(jcmSemana.getSelectedIndex()).getInicio()).toString();
+            String sql = "select d.numEmpleado, em.Nombre, em.nombre, em.salario, count(vt.dia), d.id from dias as d "
                     + "inner join empleadoscheck as em on d.numEmpleado = em.numEmpleado "
+                    + "left join vacacionestomadas as vt on vt.idDia = d.id "
                     + "where d.NumSemana like '" + jcmSemana.getSelectedItem().toString() + "' "
-                    + "and d.inicio like '" + (semanas.get(jcmSemana.getSelectedIndex()).getInicio()) + "' "
-                    + "order by d.numEmpleado";
+                    + "and d.inicio like '" + inicio + "' "
+                    + "group by d.id, em.nombre, em.salario order by d.numEmpleado";
             Statement st = con.createStatement();
             ResultSet rs = st.executeQuery(sql);
             DefaultTableModel miModelo = (DefaultTableModel) TablaPagos.getModel();
             while (rs.next()) {
-                String datos[] = new String[15];
+                Object datos[] = new Object[15];
                 datos[0] = rs.getString("Nombre");
                 datos[1] = rs.getString("NumEmpleado");
                 datos[2] = rs.getString("Salario");
-                String ana[] = analizarEmpleado(jcmSemana.getSelectedItem().toString(), datos[1], empleados.get(datos[1]), con);
+                datos[7] = rs.getInt("count(vt.dia)");
+                datos[8] = rs.getInt("id");
+                String ana[] = analizarEmpleado(jcmSemana.getSelectedItem().toString(), (String) datos[1], empleados.get((String) datos[1]), con, inicio);
                 try {
                     datos[3] = ana[0];
                 } catch (Exception e) {
@@ -439,16 +500,18 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
                 } catch (Exception e) {
                 }
                 try {
-                    datos[5] = calcularPagoSemanal(datos[2], datos[3], datos[4], empleados.get(datos[1])).toEngineeringString();
+                    datos[5] = calcularPagoSemanal((String) datos[2], (String) datos[3], (String) datos[4], empleados.get((String) datos[1]), (int) datos[7]);
                 } catch (Exception e) {
 //                    System.out.println(e);
                 }
-                datos[6] = this.extra + this.deducciones;
+                datos[6] = this.deducciones + " " + this.extra;
                 this.extra = "";
                 this.deducciones = "";
                 miModelo.addRow(datos);
             }
             espera.setVisible(false);
+            btnNomina.setEnabled(true);
+            btnVaciado.setEnabled(true);
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al ver datos de pago: " + e, "Error", JOptionPane.ERROR_MESSAGE);
             espera.setVisible(false);
@@ -461,6 +524,7 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         HorarioEmpleado horario = new HorarioEmpleado(f, true, numEmpleado);
         horario.setLocationRelativeTo(f);
         horario.lblEmpleado.setText((String) TablaPagos.getValueAt(TablaPagos.getSelectedRow(), 0));
+        horario.numEmpleado = ((String) TablaPagos.getValueAt(TablaPagos.getSelectedRow(), 1));
         horario.lblPeriodo.setText(txtPeriodo.getText());
         horario.lblSemana.setText(jcmSemana.getSelectedItem().toString());
         horario.verHorario(TablaPagos.getValueAt(TablaPagos.getSelectedRow(), 1).toString(), txtPeriodo.getText().split(" ")[1], empleados.get(TablaPagos.getValueAt(TablaPagos.getSelectedRow(), 1).toString()));
@@ -479,13 +543,224 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         return 20 + ((años - 5) / 5) * 2;
     }
 
-    public final void verVacaciones() {
+    public int buscarEnTabla(JTable tabla, String texto, int columna) {
+        DefaultTableModel modelo = (DefaultTableModel) tabla.getModel();
+        for (int fila = 0; fila < modelo.getRowCount(); fila++) {
+            Object valor = modelo.getValueAt(fila, columna);
+            if (valor != null && valor.toString().equalsIgnoreCase(texto.trim())) {
+                tabla.setRowSelectionInterval(fila, fila);
+                tabla.scrollRectToVisible(tabla.getCellRect(fila, columna, true));
+
+                return fila;
+            }
+        }
+        tabla.clearSelection();
+        JOptionPane.showMessageDialog(this, "No se encontró: " + texto, "Error", JOptionPane.ERROR_MESSAGE);
+        return -1;
+    }
+
+    public String getAntiguedad(String antiguedad) {
+        LocalDate fechaIngreso = LocalDate.parse(antiguedad);
+        if (fechaIngreso != null) {
+            LocalDate fechaActual = LocalDate.now();
+            Period periodo = Period.between(fechaIngreso, fechaActual);
+            double anos = periodo.getYears();
+            double dias = periodo.getMonths();
+            double ant = anos + (dias / 100);
+            return (String.format("%.2f", ant));
+        }
+        return null;
+    }
+
+    public String getRuta() {
+        JFileChooser selector = new JFileChooser();
+        selector.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int resultado = selector.showOpenDialog(this);
+        if (resultado == JFileChooser.APPROVE_OPTION) {
+            File carpeta = selector.getSelectedFile();
+            String ruta = carpeta.getAbsolutePath();
+            return ruta;
+        }
+        return null;
+    }
+
+    public final void agregarConfiguracion() {
+        try {
+            Configuracion conf = new Configuracion();
+            txtIndividual.setText(conf.leer("NominaIndividual"));
+            txtVaciado.setText(conf.leer("VaciadoNomina"));
+        } catch (IOException ex) {
+            Logger.getLogger(RH.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public final void guardarHistorialNomina(String numEmpleado, String idDia, String pago, String deducciones, String extra, String total, String detalles, String vacaciones) {
         try {
             Connection con = new Conexion().getConnection();
+            String sql = "insert into historialnominas (NumEmpleado, IdDia, PagoSemanal, Deducciones, HorasExtra, Total, Detalles, Vacaciones) values(?,?,?,?,?,?,?,?)";
+            PreparedStatement pst = con.prepareStatement(sql);
+
+            pst.setString(1, numEmpleado);
+            pst.setString(2, idDia);
+            pst.setString(3, pago);
+            pst.setString(4, deducciones);
+            pst.setString(5, extra);
+            pst.setString(6, total);
+            pst.setString(7, detalles);
+            pst.setString(8, vacaciones);
+
+            int n = pst.executeUpdate();
+
+            if (n < 1) {
+                JOptionPane.showMessageDialog(this, "Error al guardar historial de " + numEmpleado);
+            }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error al ver vacaciones: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al guardar historial: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public final void limpiarTablaNominas() {
+        TablaNomina.setModel(new javax.swing.table.DefaultTableModel(
+                new Object[][]{},
+                new String[]{
+                    "# empleado", "Semana", "Pago Semanal", "Retardos", "Horas extra", "Total", "Detalles", "Vacaciones"
+                }
+        ));
+        TablaNomina.getTableHeader().setFont(new Font("Roboto", java.awt.Font.BOLD, 12));
+        TablaNomina.setRowHeight(25);
+        jScrollPane3.setViewportView(TablaNomina);
+    }
+
+    public final void calcularDouble() {
+        double semanal = 0;
+        double ded = 0;
+        double ext = 0;
+        double total = 0;
+        double vacaciones = 0;
+        for (int i = 0; i < TablaNomina.getRowCount(); i++) {
+            String detalles[] = null;
+            try {
+                detalles = TablaNomina.getValueAt(i, 6).toString().split(" ");
+            } catch (Exception e) {
+            }
+            try {
+                semanal += Double.parseDouble(TablaNomina.getValueAt(i, 2).toString());
+            } catch (Exception e) {
+            }
+            try {
+                ded += Double.parseDouble(detalles[0].replace("-", ""));
+            } catch (Exception e) {
+            }
+            try {
+                ext += Double.parseDouble(detalles[1].replace("+", ""));
+            } catch (Exception e) {
+            }
+            try {
+                total += Double.parseDouble(TablaNomina.getValueAt(i, 5).toString());
+            } catch (Exception e) {
+            }
+            try {
+                vacaciones += Double.parseDouble(detalles[2].replace("++", ""));
+            } catch (Exception e) {
+            }
+        }
+        lblSemanal.setText(String.valueOf(semanal));
+        lblRetardos.setText(String.valueOf(ded));
+        lblExtra.setText(String.valueOf(ext));
+        lblTotal.setText(String.valueOf(total));
+        lblVacaciones.setText(String.valueOf(vacaciones));
+    }
+
+    public final void verHistorial(String semana) {
+        try {
+            limpiarTablaNominas();
+            Connection con = new Conexion().getConnection();
+            String sql = "SELECT h.idnominas, h.numempleado, h.pagosemanal, h.deducciones, h.horasextra, h.total, h.detalles, h.vacaciones, d.NumSemana, d.inicio "
+                    + "FROM towi.historialnominas AS h "
+                    + "INNER JOIN dias AS d ON h.IdDia = d.id "
+                    + "WHERE h.idnominas IN ( SELECT MAX(h2.idnominas) FROM towi.historialnominas AS h2 INNER JOIN dias AS d2 ON h2.IdDia = d2.id "
+                    + "where numsemana like '" + semana + "' and inicio like '" + semanas.get(jcbSemanaHistorial.getSelectedIndex()).getInicio() + "' GROUP BY h2.numempleado, d2.NumSemana) "
+                    + "ORDER BY d.NumSemana;";
+            Statement st = con.createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            String datos[] = new String[15];
+            DefaultTableModel miModelo = (DefaultTableModel) TablaNomina.getModel();
+            while (rs.next()) {
+                datos[0] = rs.getString("numempleado");
+                datos[1] = rs.getString("numsemana");
+                datos[2] = rs.getString("pagosemanal");
+                datos[3] = rs.getString("deducciones");
+                datos[4] = rs.getString("horasextra");
+                datos[5] = rs.getString("total");
+                datos[6] = rs.getString("detalles");
+                datos[7] = rs.getString("vacaciones");
+                miModelo.addRow(datos);
+            }
+            calcularDouble();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al ver historial: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public final void guardarNominaEmpleado() {
+        try {
+            ReciboNominaPDF nomina = new ReciboNominaPDF();
+            int row = TablaPagos.getSelectedRow();
+            int buscar = buscarEnTabla(Tabla1, TablaPagos.getValueAt(row, 1).toString(), 1);
+            Configuracion conf = new Configuracion();
+            String fec = txtPeriodo.getText().split(" ")[1];
+            String ano = fec.split("-")[0];
+            String sem = jcmSemana.getSelectedItem().toString();
+            String nombre = (String) Tabla1.getValueAt(buscar, 0);
+            String ruta = conf.leer("NominaIndividual") + "\\" + ano + "\\" + sem + "\\nomina individual " + nombre + ".pdf";
+            String rfc = (String) Tabla1.getValueAt(buscar, 3);
+            String curp = (String) Tabla1.getValueAt(buscar, 2);
+            String relacionLaborarl = (String) Tabla1.getValueAt(buscar, 5);
+            String nss = (String) Tabla1.getValueAt(buscar, 4);
+            String periodo = txtPeriodo.getText();
+            String fechaPago = "hoy()";
+            String puesto = "Admin";
+            String semana = jcmSemana.getSelectedItem().toString();
+            String sueldo = (String) TablaPagos.getValueAt(row, 2);
+            String empleado = (String) TablaPagos.getValueAt(row, 1);
+            String detalles[] = ((String) TablaPagos.getValueAt(row, 6)).split(" ");
+            String horasDobles = detalles[1].replace("+", "");
+            String horasTriples = "0";
+            String faltas = detalles[0].replace("-", "");
+            String prima = detalles.length > 2 ? detalles[2].replace("++", "") : "";
+            nomina.generarPDF(ruta, nombre, rfc, curp, relacionLaborarl, nss, periodo, fechaPago, puesto, semana, sueldo, horasDobles, horasTriples, faltas, prima, empleado);
+            Desktop.getDesktop().open(new File(conf.leer("NominaIndividual") + "\\" + ano + "\\" + sem + "\\nomina individual " + nombre + ".pdf"));
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error al guardar nomina de empleado: " + ex, "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            Logger.getLogger(RH.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public final void guardarHistorial() {
+        Configuracion conf = new Configuracion();
+        String fec = txtPeriodo.getText().split(" ")[1];
+        String ano = fec.split("-")[0];
+        String sem = jcmSemana.getSelectedItem().toString();
+        for (int i = 0; i < TablaPagos.getRowCount(); i++) {
+            try {
+                if (!TablaPagos.getValueAt(i, 5).toString().equals("")) {
+                    String empleado = (String) TablaPagos.getValueAt(i, 1);
+                    guardarHistorialNomina(empleado, formatearTabla(TablaPagos.getValueAt(i, 8)),
+                            formatearTabla(TablaPagos.getValueAt(i, 2)), formatearTabla(TablaPagos.getValueAt(i, 3)),
+                            formatearTabla(TablaPagos.getValueAt(i, 4)), formatearTabla(TablaPagos.getValueAt(i, 5)),
+                            formatearTabla(TablaPagos.getValueAt(i, 6)), formatearTabla(TablaPagos.getValueAt(i, 7)));
+                }
+            } catch (Exception e) {
+            }
+        }
+        try {
+            Desktop.getDesktop().open(new File(conf.leer("NominaIndividual") + "\\" + ano + "\\" + sem));
+        } catch (IOException ex) {
+            Logger.getLogger(RH.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
     }
 
     public RH(String numEmpleado) {
@@ -494,8 +769,11 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         this.numEmpleado = numEmpleado;
         limpiarTabla();
         verDatos(false);
-        verSemanas();
+        verSemanas(jcmSemana);
+        verSemanas(jcbSemanaHistorial);
         limpiarTablaPagos();
+        limpiarTablaNominas();
+        agregarConfiguracion();
     }
 
     @SuppressWarnings("unchecked")
@@ -507,6 +785,7 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         verEmpleado = new javax.swing.JMenuItem();
         btnVacaciones = new javax.swing.JMenuItem();
         btnFaltas = new javax.swing.JMenuItem();
+        btnNominaEmpleado = new javax.swing.JMenuItem();
         jPanel1 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
@@ -534,8 +813,32 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         jScrollPane2 = new javax.swing.JScrollPane();
         TablaPagos = new javax.swing.JTable();
         jPanel11 = new javax.swing.JPanel();
-        jButton3 = new javax.swing.JButton();
+        btnNomina = new javax.swing.JButton();
+        btnVaciado = new javax.swing.JButton();
+        btnGuardar = new javax.swing.JButton();
         jPanel9 = new javax.swing.JPanel();
+        jPanel13 = new javax.swing.JPanel();
+        jLabel6 = new javax.swing.JLabel();
+        jcbSemanaHistorial = new javax.swing.JComboBox<>();
+        jButton3 = new javax.swing.JButton();
+        jPanel14 = new javax.swing.JPanel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        TablaNomina = new javax.swing.JTable();
+        jPanel15 = new javax.swing.JPanel();
+        jLabel7 = new javax.swing.JLabel();
+        lblSemanal = new javax.swing.JLabel();
+        lblRetardos = new javax.swing.JLabel();
+        lblExtra = new javax.swing.JLabel();
+        lblTotal = new javax.swing.JLabel();
+        lblDetalles = new javax.swing.JLabel();
+        lblVacaciones = new javax.swing.JLabel();
+        jPanel12 = new javax.swing.JPanel();
+        jLabel4 = new javax.swing.JLabel();
+        txtVaciado = new javax.swing.JTextField();
+        jButton1 = new javax.swing.JButton();
+        jLabel5 = new javax.swing.JLabel();
+        txtIndividual = new javax.swing.JTextField();
+        jButton2 = new javax.swing.JButton();
 
         verEmpleado.setText("Ver datos de empleado      ");
         verEmpleado.addActionListener(new java.awt.event.ActionListener() {
@@ -546,6 +849,11 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         jPopupMenu1.add(verEmpleado);
 
         btnVacaciones.setText("Ver vacaciones de empleado                   ");
+        btnVacaciones.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVacacionesActionPerformed(evt);
+            }
+        });
         jPopupMenu1.add(btnVacaciones);
 
         btnFaltas.setText("Ver faltas de empleado");
@@ -555,6 +863,14 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
             }
         });
         jPopupMenu1.add(btnFaltas);
+
+        btnNominaEmpleado.setText("Guardar nomina de empleado");
+        btnNominaEmpleado.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnNominaEmpleadoActionPerformed(evt);
+            }
+        });
+        jPopupMenu1.add(btnNominaEmpleado);
 
         setBorder(null);
 
@@ -756,17 +1072,17 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
 
         TablaPagos.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null}
+                {null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null}
             },
             new String [] {
-                "Nombre", "# de empleado", "Pago semanal", "Deducciones", "Horas extra", "Total", "Detalles"
+                "Nombre", "# de empleado", "Pago semanal", "Deducciones", "Horas extra", "Total", "Detalles", "Vacaciones"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, false, true
+                false, false, false, false, false, false, true, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -780,27 +1096,190 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
 
         jPanel11.setBackground(new java.awt.Color(250, 250, 250));
 
-        jButton3.setText("Imprimir");
-        jPanel11.add(jButton3);
+        btnNomina.setBackground(new java.awt.Color(0, 102, 204));
+        btnNomina.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnNomina.setForeground(new java.awt.Color(255, 255, 255));
+        btnNomina.setText("Imprimir nomina");
+        btnNomina.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnNominaActionPerformed(evt);
+            }
+        });
+        jPanel11.add(btnNomina);
+
+        btnVaciado.setBackground(new java.awt.Color(255, 51, 51));
+        btnVaciado.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnVaciado.setForeground(new java.awt.Color(255, 255, 255));
+        btnVaciado.setText("Imprimir vaciado nomina");
+        btnVaciado.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnVaciadoActionPerformed(evt);
+            }
+        });
+        jPanel11.add(btnVaciado);
+
+        btnGuardar.setBackground(new java.awt.Color(0, 153, 0));
+        btnGuardar.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnGuardar.setForeground(new java.awt.Color(255, 255, 255));
+        btnGuardar.setText("Guardar historial de pago");
+        btnGuardar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnGuardarActionPerformed(evt);
+            }
+        });
+        jPanel11.add(btnGuardar);
 
         jPanel7.add(jPanel11, java.awt.BorderLayout.PAGE_END);
 
         jTabbedPane1.addTab("Pagos", jPanel7);
 
         jPanel9.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel9.setLayout(new java.awt.BorderLayout());
 
-        javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
-        jPanel9.setLayout(jPanel9Layout);
-        jPanel9Layout.setHorizontalGroup(
-            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1027, Short.MAX_VALUE)
-        );
-        jPanel9Layout.setVerticalGroup(
-            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 532, Short.MAX_VALUE)
-        );
+        jPanel13.setBackground(new java.awt.Color(255, 255, 255));
+
+        jLabel6.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel6.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel6.setText("Ver historial de pagos nomina");
+        jPanel13.add(jLabel6);
+
+        jcbSemanaHistorial.setBackground(new java.awt.Color(255, 255, 255));
+        jcbSemanaHistorial.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
+        jcbSemanaHistorial.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Seleccionar Semana" }));
+        jPanel13.add(jcbSemanaHistorial);
+
+        jButton3.setBackground(new java.awt.Color(0, 102, 255));
+        jButton3.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jButton3.setForeground(new java.awt.Color(255, 255, 255));
+        jButton3.setText("Buscar");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton3ActionPerformed(evt);
+            }
+        });
+        jPanel13.add(jButton3);
+
+        jPanel9.add(jPanel13, java.awt.BorderLayout.PAGE_START);
+
+        jPanel14.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel14.setLayout(new java.awt.BorderLayout());
+
+        TablaNomina.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+                "# empleado", "Semana", "Pago Semanal", "Retardos", "Horas extra", "Total", "Detalles", "Vacaciones"
+            }
+        ));
+        jScrollPane3.setViewportView(TablaNomina);
+
+        jPanel14.add(jScrollPane3, java.awt.BorderLayout.CENTER);
+
+        jPanel15.setBackground(new java.awt.Color(255, 255, 255));
+        java.awt.GridBagLayout jPanel15Layout = new java.awt.GridBagLayout();
+        jPanel15Layout.columnWeights = new double[] {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+        jPanel15.setLayout(jPanel15Layout);
+
+        jLabel7.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel7.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel7.setText("Total:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridwidth = 2;
+        jPanel15.add(jLabel7, gridBagConstraints);
+
+        lblSemanal.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblSemanal.setForeground(new java.awt.Color(51, 51, 51));
+        jPanel15.add(lblSemanal, new java.awt.GridBagConstraints());
+
+        lblRetardos.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblRetardos.setForeground(new java.awt.Color(51, 51, 51));
+        jPanel15.add(lblRetardos, new java.awt.GridBagConstraints());
+
+        lblExtra.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblExtra.setForeground(new java.awt.Color(51, 51, 51));
+        jPanel15.add(lblExtra, new java.awt.GridBagConstraints());
+
+        lblTotal.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblTotal.setForeground(new java.awt.Color(51, 51, 51));
+        jPanel15.add(lblTotal, new java.awt.GridBagConstraints());
+
+        lblDetalles.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblDetalles.setForeground(new java.awt.Color(51, 51, 51));
+        jPanel15.add(lblDetalles, new java.awt.GridBagConstraints());
+
+        lblVacaciones.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblVacaciones.setForeground(new java.awt.Color(51, 51, 51));
+        jPanel15.add(lblVacaciones, new java.awt.GridBagConstraints());
+
+        jPanel14.add(jPanel15, java.awt.BorderLayout.PAGE_END);
+
+        jPanel9.add(jPanel14, java.awt.BorderLayout.CENTER);
 
         jTabbedPane1.addTab("Historial de pagos", jPanel9);
+
+        jPanel12.setBackground(new java.awt.Color(255, 255, 255));
+        java.awt.GridBagLayout jPanel12Layout = new java.awt.GridBagLayout();
+        jPanel12Layout.columnWeights = new double[] {0.0, 1.0, 0.0};
+        jPanel12.setLayout(jPanel12Layout);
+
+        jLabel4.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel4.setText("Ruta vaciado nomina: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.insets = new java.awt.Insets(20, 50, 0, 0);
+        jPanel12.add(jLabel4, gridBagConstraints);
+
+        txtVaciado.setBackground(new java.awt.Color(255, 255, 255));
+        txtVaciado.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(20, 0, 0, 0);
+        jPanel12.add(txtVaciado, gridBagConstraints);
+
+        jButton1.setBackground(new java.awt.Color(255, 255, 255));
+        jButton1.setText("...");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.insets = new java.awt.Insets(20, 0, 0, 50);
+        jPanel12.add(jButton1, gridBagConstraints);
+
+        jLabel5.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel5.setText("Ruta nomina individual: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.insets = new java.awt.Insets(20, 50, 0, 0);
+        jPanel12.add(jLabel5, gridBagConstraints);
+
+        txtIndividual.setBackground(new java.awt.Color(255, 255, 255));
+        txtIndividual.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(20, 0, 0, 0);
+        jPanel12.add(txtIndividual, gridBagConstraints);
+
+        jButton2.setBackground(new java.awt.Color(255, 255, 255));
+        jButton2.setText("...");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.insets = new java.awt.Insets(20, 0, 0, 50);
+        jPanel12.add(jButton2, gridBagConstraints);
+
+        jTabbedPane1.addTab("Configuracion", jPanel12);
 
         jPanel2.add(jTabbedPane1, java.awt.BorderLayout.CENTER);
 
@@ -836,6 +1315,8 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
     private void jcmSemanaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcmSemanaActionPerformed
         if (semanas != null && !semanas.isEmpty()) {
             txtPeriodo.setText(semanas.get(jcmSemana.getSelectedIndex()).toString());
+            btnVaciado.setEnabled(false);
+            btnNomina.setEnabled(false);
         }
     }//GEN-LAST:event_jcmSemanaActionPerformed
 
@@ -852,22 +1333,194 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
         System.out.println(empleados.get(TablaPagos.getValueAt(TablaPagos.getSelectedRow(), 1).toString()).getFaltas());
     }//GEN-LAST:event_btnFaltasActionPerformed
 
+    private void btnVaciadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVaciadoActionPerformed
+        try {
+            VaciadoNomina vaciado = new VaciadoNomina();
+            Configuracion conf = new Configuracion();
+            vaciado.generarNomina(jcmSemana.getSelectedItem().toString(), txtPeriodo.getText(), conf.leer("VaciadoNomina"));
+            boolean band = false;
+            int opc = JOptionPane.showConfirmDialog(this, "Deseas guardar los datos para historial de nomina?");
+            for (int i = 0; i < TablaPagos.getRowCount(); i++) {
+                try {
+                    if (TablaPagos.getValueAt(i, 5) != null && !TablaPagos.getValueAt(i, 5).toString().equals("")) {
+                        String pagos[] = ((String) TablaPagos.getValueAt(i, 6)).split(" ");
+                        String nombre = (String) TablaPagos.getValueAt(i, 0);
+                        String puesto = (String) TablaPagos.getValueAt(i, 1);
+                        String sueldo = (String) TablaPagos.getValueAt(i, 2);
+                        String ded = pagos[0].replace("-", "");
+                        String horasDobles = pagos[1].replace("+", "");
+                        String total = TablaPagos.getValueAt(i, 5) != null ? TablaPagos.getValueAt(i, 5).toString() : "0";
+                        vaciado.agregarEmpleado(vaciado.tabla, nombre, puesto, sueldo, ded, horasDobles, "", "", total, band);
+                        band = !band;
+                        if (opc == JOptionPane.OK_OPTION) {
+                            guardarHistorialNomina(formatearTabla(TablaPagos.getValueAt(i, 1)), formatearTabla(TablaPagos.getValueAt(i, 8)),
+                                    formatearTabla(TablaPagos.getValueAt(i, 2)), formatearTabla(TablaPagos.getValueAt(i, 3)),
+                                    formatearTabla(TablaPagos.getValueAt(i, 4)), formatearTabla(TablaPagos.getValueAt(i, 5)),
+                                    formatearTabla(TablaPagos.getValueAt(i, 6)), formatearTabla(TablaPagos.getValueAt(i, 7)));
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+            }
+            vaciado.imprimirNomina();
+            Desktop.getDesktop().open(new File(conf.leer("VaciadoNomina")));
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error al guardar vaciado de nomina: " + ex, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_btnVaciadoActionPerformed
+
+    public String formatearTabla(Object obj) {
+        try {
+            return obj.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private void btnNominaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNominaActionPerformed
+        ReciboNominaPDF nomina = new ReciboNominaPDF();
+        Configuracion conf = new Configuracion();
+        String fec = txtPeriodo.getText().split(" ")[1];
+        String ano = fec.split("-")[0];
+        String sem = jcmSemana.getSelectedItem().toString();
+        try {
+            int opc = JOptionPane.showConfirmDialog(this, "Deseas guardar los datos para historial de nomina?");
+            for (int i = 0; i < TablaPagos.getRowCount(); i++) {
+                try {
+                    if (!TablaPagos.getValueAt(i, 5).toString().equals("")) {
+                        int buscar = buscarEnTabla(Tabla1, TablaPagos.getValueAt(i, 1).toString(), 1);
+                        String nombre = (String) Tabla1.getValueAt(buscar, 0);
+                        String ruta = conf.leer("NominaIndividual") + "\\" + ano + "\\" + sem + "\\nomina individual " + nombre + ".pdf";
+                        String rfc = (String) Tabla1.getValueAt(buscar, 3);
+                        String curp = (String) Tabla1.getValueAt(buscar, 2);
+                        String relacionLaborarl = (String) Tabla1.getValueAt(buscar, 5);
+                        String nss = (String) Tabla1.getValueAt(buscar, 4);
+                        String periodo = txtPeriodo.getText();
+                        String fechaPago = "hoy()";
+                        String puesto = "Admin";
+                        String semana = jcmSemana.getSelectedItem().toString();
+                        String sueldo = (String) TablaPagos.getValueAt(i, 2);
+                        String empleado = (String) TablaPagos.getValueAt(i, 1);
+                        String detalles[] = ((String) TablaPagos.getValueAt(i, 6)).split(" ");
+                        String horasDobles = detalles[1].replace("+", "");
+                        String horasTriples = "0";
+                        String faltas = detalles[0].replace("-", "");
+                        String prima = detalles.length > 2 ? detalles[2].replace("++", "") : "";
+                        nomina.generarPDF(ruta, nombre, rfc, curp, relacionLaborarl, nss, periodo, fechaPago, puesto, semana, sueldo, horasDobles, horasTriples, faltas, prima, empleado);
+                        if (opc == JOptionPane.OK_OPTION) {
+                            guardarHistorialNomina(empleado, formatearTabla(TablaPagos.getValueAt(i, 8)),
+                                    formatearTabla(TablaPagos.getValueAt(i, 2)), formatearTabla(TablaPagos.getValueAt(i, 3)),
+                                    formatearTabla(TablaPagos.getValueAt(i, 4)), formatearTabla(TablaPagos.getValueAt(i, 5)),
+                                    formatearTabla(TablaPagos.getValueAt(i, 6)), formatearTabla(TablaPagos.getValueAt(i, 7)));
+                        }
+                    }
+                } catch (Exception e) {
+
+                }
+
+            }
+            Desktop.getDesktop().open(new File(conf.leer("NominaIndividual")));
+        } catch (Exception ex) {
+            Logger.getLogger(RH.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_btnNominaActionPerformed
+
+    private void btnVacacionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVacacionesActionPerformed
+        if (TablaPagos.getSelectedRow() >= 0) {
+            int fila = buscarEnTabla(Tabla1, (String) TablaPagos.getValueAt(TablaPagos.getSelectedRow(), 1), 1);
+            String fechaIngreso = (String) Tabla1.getValueAt(fila, 5);
+            String nombre = (String) Tabla1.getValueAt(fila, 0);
+            String numero = (String) Tabla1.getValueAt(fila, 1);
+            Date d = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            String fecha = sdf.format(d);
+            JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+            Vacaciones vac = new Vacaciones(f, true);
+            vac.setLocationRelativeTo(f);
+            vac.lblAntiguedad.setText(getAntiguedad(fechaIngreso));
+            vac.lblEmpleado.setText(nombre);
+            vac.lblFecha.setText(fechaIngreso);
+            vac.lblFechaActual.setText(fecha);
+            vac.verVacaciones(numero);
+            vac.calcularVacaciones(fechaIngreso);
+            vac.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(this, "Debes seleccionar una fila", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        }
+    }//GEN-LAST:event_btnVacacionesActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        String ruta = getRuta();
+        if (ruta != null) {
+            try {
+                Configuracion conf = new Configuracion();
+                conf.guardar("VaciadoNomina", ruta);
+                txtVaciado.setText(ruta);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error al guardar ruta de vaciado: " + ex);
+            }
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        String ruta = getRuta();
+        if (ruta != null) {
+            try {
+                Configuracion conf = new Configuracion();
+                conf.guardar("NominaIndividual", ruta);
+                txtIndividual.setText(ruta);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, "Error al guardar ruta de nomina individual: " + ex);
+            }
+        }
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+        verHistorial((String) jcbSemanaHistorial.getSelectedItem());
+    }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
+        for (int i = 0; i < TablaPagos.getRowCount(); i++) {
+
+        }
+    }//GEN-LAST:event_btnGuardarActionPerformed
+
+    private void btnNominaEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNominaEmpleadoActionPerformed
+        guardarNominaEmpleado();
+    }//GEN-LAST:event_btnNominaEmpleadoActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable Tabla1;
+    private javax.swing.JTable TablaNomina;
     private javax.swing.JTable TablaPagos;
     private javax.swing.JButton btnBuscar;
     private javax.swing.JButton btnCalcular;
     private javax.swing.JMenuItem btnFaltas;
+    private javax.swing.JButton btnGuardar;
+    private javax.swing.JButton btnNomina;
+    private javax.swing.JMenuItem btnNominaEmpleado;
     private javax.swing.JMenuItem btnVacaciones;
+    private javax.swing.JButton btnVaciado;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel10;
     private javax.swing.JPanel jPanel11;
+    private javax.swing.JPanel jPanel12;
+    private javax.swing.JPanel jPanel13;
+    private javax.swing.JPanel jPanel14;
+    private javax.swing.JPanel jPanel15;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
@@ -879,13 +1532,23 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
     private javax.swing.JPopupMenu jPopupMenu1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JComboBox<String> jcbSemanaHistorial;
     private javax.swing.JComboBox<String> jcmSemana;
+    private javax.swing.JLabel lblDetalles;
+    private javax.swing.JLabel lblExtra;
+    private javax.swing.JLabel lblRetardos;
     private javax.swing.JLabel lblSalir;
+    private javax.swing.JLabel lblSemanal;
+    private javax.swing.JLabel lblTotal;
+    private javax.swing.JLabel lblVacaciones;
     private javax.swing.JPanel pan;
     private javax.swing.JPanel panelSalir;
     private javax.swing.JTextField txtBuscar;
+    private javax.swing.JTextField txtIndividual;
     private javax.swing.JTextField txtPeriodo;
+    private javax.swing.JTextField txtVaciado;
     private javax.swing.JMenuItem verEmpleado;
     // End of variables declaration//GEN-END:variables
 
@@ -962,7 +1625,10 @@ public class RH extends javax.swing.JInternalFrame implements ActionListener {
                 editar.txtHorasDobles.setText(extraerDatos(tabla1.getValueAt(tabla1.getSelectedRow(), 12)));
                 editar.txtHorasTriples.setText(extraerDatos(tabla1.getValueAt(tabla1.getSelectedRow(), 13)));
                 editar.jcbPeriodicidad.setSelectedItem(extraerDatos(tabla1.getValueAt(tabla1.getSelectedRow(), 9)));
+                editar.getAntiguedad(extraerDatos(tabla1.getValueAt(tabla1.getSelectedRow(), 5)));
                 editar.setVisible(true);
+//                if (editar.fecha != null) {
+//                }
                 cxp.limpiarTabla();
                 cxp.verDatos(false);
             } else if (tabla1 == TablaPagos) {

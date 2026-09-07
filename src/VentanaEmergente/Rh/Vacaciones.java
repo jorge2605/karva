@@ -1,6 +1,70 @@
 package VentanaEmergente.Rh;
 
+import Conexiones.Conexion;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.Period;
+import javax.swing.JOptionPane;
+
 public class Vacaciones extends javax.swing.JDialog {
+
+    public final void verVacaciones(String numEmpleado) {
+        try {
+            Connection con = new Conexion().getConnection();
+            String sql = "select count(idvacaciones) from vacacionestomadas where numEmpleado like '" + numEmpleado + "'";
+            Statement st = con.createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            if (rs.next()) {
+                lblVacacionesTomadas.setText(String.valueOf(rs.getInt(1)));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e);
+        }
+    }
+
+    private int calcularDiasPorAntiguedad(int anos) {
+        if (anos <= 0) {
+            return 0;
+        }
+        if (anos == 1) {
+            return 12;
+        }
+        if (anos == 2) {
+            return 14;
+        }
+        if (anos == 3) {
+            return 16;
+        }
+        if (anos == 4) {
+            return 18;
+        }
+        if (anos == 5) {
+            return 20;
+        }
+        return 20 + ((anos - 5) / 5) * 2;
+    }
+
+    public final void calcularVacaciones(String fechaIngreso) {
+        LocalDate ingreso = LocalDate.parse(fechaIngreso);
+        LocalDate actual = LocalDate.now();
+        Period periodo = Period.between(ingreso, actual);
+        int anos = periodo.getYears();
+        int meses = periodo.getMonths();
+        int diasVacaciones;
+        if (anos == 0) {
+            diasVacaciones = meses;
+        } else {
+            diasVacaciones = calcularDiasPorAntiguedad(anos);
+            int diasSiguienteAno = calcularDiasPorAntiguedad(anos + 1);
+            int diasAnteriores = calcularDiasPorAntiguedad(anos);
+            int incremento = diasSiguienteAno - diasAnteriores;
+            diasVacaciones += (((incremento * meses) / 12) + meses) - Integer.parseInt(lblVacacionesTomadas.getText());
+        }
+        lblVacacionesDisponibles.setText(String.valueOf(diasVacaciones));
+    }
 
     public Vacaciones(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
@@ -28,8 +92,6 @@ public class Vacaciones extends javax.swing.JDialog {
         lblAntiguedad = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         lblFechaActual = new javax.swing.JLabel();
-        jPanel3 = new javax.swing.JPanel();
-        jButton2 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -163,23 +225,13 @@ public class Vacaciones extends javax.swing.JDialog {
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.CENTER);
 
-        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
-
-        jButton2.setBackground(new java.awt.Color(0, 102, 204));
-        jButton2.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jButton2.setForeground(new java.awt.Color(255, 255, 255));
-        jButton2.setText("Asignar dia de vacaciones");
-        jPanel3.add(jButton2);
-
-        jPanel1.add(jPanel3, java.awt.BorderLayout.PAGE_END);
-
         getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     public static void main(String args[]) {
-        
+
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 Vacaciones dialog = new Vacaciones(new javax.swing.JFrame(), true);
@@ -196,7 +248,6 @@ public class Vacaciones extends javax.swing.JDialog {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel2;
@@ -206,7 +257,6 @@ public class Vacaciones extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
     public javax.swing.JLabel lblAntiguedad;
     public javax.swing.JLabel lblEmpleado;
     public javax.swing.JLabel lblFecha;

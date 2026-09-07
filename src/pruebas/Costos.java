@@ -138,7 +138,6 @@ public final class Costos extends javax.swing.JInternalFrame {
         
         int mesActual = LocalDate.now().getMonthValue();
 
-        // Insertar los nombres de los meses en inglés hasta el mes actual
         for (int i = mesActual; i >= 1; i--) {
             String nombreMes = Month.of(i).getDisplayName(TextStyle.FULL, Locale.ENGLISH);
             cmbMes.addItem(nombreMes);

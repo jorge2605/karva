@@ -3,6 +3,7 @@ import Conexiones.Conexion;
 import Conexiones.ConexionChat;
 import VentanaEmergente.CalidadNew.inicioCalidad;
 import VentanaEmergente.Costos.Costeo;
+import VentanaEmergente.Cotizacion.AgregarCotizacion;
 import VentanaEmergente.Diseño.InicioDiseño;
 import VentanaEmergente.Inicio1.Backups;
 import VentanaEmergente.Inicio1.Configuracion;
@@ -2515,7 +2516,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnVerMouseEntered
 
     private void btnCotizacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionActionPerformed
-        Cotizaciones c = new Cotizaciones(lblId.getText());
+        InicioCotizacion c = new InicioCotizacion(lblId.getText());
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);

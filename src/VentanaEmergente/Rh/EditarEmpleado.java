@@ -34,20 +34,23 @@ public class EditarEmpleado extends javax.swing.JDialog {
         fecha.setSettings(settings);
     }
 
+    public final void agregarListener() {
+        fecha.addDateChangeListener(event -> {
+            getAntiguedad(fecha.getDateStringOrEmptyString());
+        });
+    }
+
     public final void getAntiguedad(String antiguedad) {
-        LocalDate ingreso = LocalDate.parse(antiguedad);
-        LocalDate hoy = LocalDate.now();
-
-        Period periodo = Period.between(ingreso, hoy);
-
-        String fec = String.format(
-                "%d años, %d meses y %d días",
-                periodo.getYears(),
-                periodo.getMonths(),
-                periodo.getDays()
-        );
-
-        txtAntiguedad.setText(fec);
+        LocalDate fechaIngreso = fecha.getDate();
+        if (fechaIngreso != null) {
+            LocalDate fechaActual = LocalDate.now();
+            Period periodo = Period.between(fechaIngreso, fechaActual);
+            double anos = periodo.getYears();
+            double dias = periodo.getMonths();
+            double ant = anos + (dias / 10);
+            System.out.println(ant);
+            txtAntiguedad.setText(String.format("%.2f", ant));
+        }
     }
 
     public final void guardarDatos() {
@@ -96,6 +99,7 @@ public class EditarEmpleado extends javax.swing.JDialog {
         initComponents();
         formato();
         lblguardado.setVisible(false);
+        agregarListener();
     }
 
     @SuppressWarnings("unchecked")
