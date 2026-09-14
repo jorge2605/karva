@@ -26,6 +26,7 @@ import javax.swing.table.DefaultTableModel;
 public class InicioCotizacion extends javax.swing.JInternalFrame {
 
     public final String numEmpleado;
+    public Inicio1 inicio1;
 
     public final void insertarDatos(String cliente, String vendedor, String total, String estado) {
         String sql = "INSERT INTO cotizacion(fecha, cliente, vendedor, total, estado) VALUES (?,?,?,?,?)";
@@ -72,13 +73,13 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
     public final void verCotizacion() {
         Window ventana = SwingUtilities.getWindowAncestor(this);
         JFrame f = (JFrame) ventana;
-        AgregarCotizacion add = new AgregarCotizacion(f, true, numEmpleado, false);
+        AgregarCotizacion add = new AgregarCotizacion(f, true, numEmpleado, false, this, inicio1);
         add.limpiarTabla();
         int fila = Tabla1.getSelectedRow();
         add.verItems(Tabla1.getValueAt(fila, 0).toString());
         add.verCliente(Tabla1.getValueAt(fila, 2).toString());
         add.agregarClientes();
-        add.cmbIva.setSelectedItem(Tabla1.getValueAt(fila, 6).toString());
+        add.jcbIva.setSelectedItem(Tabla1.getValueAt(fila, 6).toString());
         add.txtCreacion.setText(Tabla1.getValueAt(fila, 1).toString());
         add.setVisible(true);
         limpiarTabla();
@@ -130,7 +131,7 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
         });
     }
 
-    public InicioCotizacion(String numEmpleado) {
+    public InicioCotizacion(String numEmpleado, Inicio1 inicio1) {
         initComponents();
         try {
             UIManager.setLookAndFeel(new FlatMacLightLaf());
@@ -141,6 +142,7 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
         ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
         limpiarTabla();
         buscarDatos();
+        this.inicio1 = inicio1;
         this.numEmpleado = numEmpleado;
     }
 
@@ -339,7 +341,7 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
 
     private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
         JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        AgregarCotizacion add = new AgregarCotizacion(f, true, numEmpleado, true);
+        AgregarCotizacion add = new AgregarCotizacion(f, true, numEmpleado, true, this, inicio1);
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
         add.txtCreacion.setText(sdf.format(new Date()));
         add.setVisible(true);

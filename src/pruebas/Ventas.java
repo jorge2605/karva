@@ -20,10 +20,12 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import Controlador.FileTransferHandler;
 import Modelo.javamail;
-import VentanaEmergente.Ventas.AgregarCliente;
+import VentanaEmergente.Cotizacion.AgregarCliente;
 import VentanaEmergente.Ventas.correos;
+import java.awt.Window;
 import java.util.Stack;
 import javax.swing.DropMode;
+import javax.swing.SwingUtilities;
 
 public class Ventas extends javax.swing.JInternalFrame{
 
@@ -35,7 +37,7 @@ public class Ventas extends javax.swing.JInternalFrame{
     File oc = null;
     FileTransferHandler trOC;
     FileTransferHandler trSpe;
-    FileTransferHandler trCot;
+    public FileTransferHandler trCot;
     
     public final String aumento(){
         int in = 0;
@@ -138,6 +140,26 @@ public class Ventas extends javax.swing.JInternalFrame{
         }
     }
     
+    public final void addCliente() {
+        try {
+            try (Connection con = new Conexion().getConnection()) {
+                Statement st = con.createStatement();
+                String sql = "select cl.domicilio, cl.rfc, cl.idcliente, cl.email, cl.nombre as nom, co.nombre as contacto from clientes_cotizacion as cl "
+                        + " inner join contacto_cotizacion as co"
+                        + " on cl.idCliente = co.idcliente";
+//                        + " where cl.nombre like '" + cliente + "'";
+                ResultSet rs = st.executeQuery(sql);
+                cmbCliente.removeAllItems();
+                cmbCliente.addItem("Seleccionar");
+                while (rs.next()) {
+                    cmbCliente.addItem(rs.getString("nom"));
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al ver cliente: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
     public Ventas() {
         initComponents();
         txtProyecto.setText(""+aumento());
@@ -145,7 +167,7 @@ public class Ventas extends javax.swing.JInternalFrame{
         addTransfer();
         agregarClientes();
         ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
-        
+        addCliente();
     }
 
     @SuppressWarnings("unchecked")
@@ -181,7 +203,7 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel11 = new javax.swing.JPanel();
         jLabel23 = new javax.swing.JLabel();
         cmbCliente = new javax.swing.JComboBox<>();
-        btnAgregar = new javax.swing.JButton();
+        jButton4 = new javax.swing.JButton();
         jLabel18 = new javax.swing.JLabel();
         jPanel13 = new javax.swing.JPanel();
         jPanel12 = new javax.swing.JPanel();
@@ -456,37 +478,45 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel20.setLayout(new java.awt.GridLayout(1, 2, 20, 0));
 
         jPanel11.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel11.setLayout(new java.awt.BorderLayout(10, 0));
+        java.awt.GridBagLayout jPanel11Layout = new java.awt.GridBagLayout();
+        jPanel11Layout.columnWeights = new double[] {0.0, 2.0, 1.0};
+        jPanel11Layout.rowWeights = new double[] {0.0};
+        jPanel11.setLayout(jPanel11Layout);
 
         jLabel23.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
         jLabel23.setForeground(new java.awt.Color(204, 0, 0));
         jLabel23.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel23.setText("*");
-        jPanel11.add(jLabel23, java.awt.BorderLayout.WEST);
+        jPanel11.add(jLabel23, new java.awt.GridBagConstraints());
 
         cmbCliente.setBackground(new java.awt.Color(255, 255, 255));
         cmbCliente.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
         cmbCliente.setForeground(new java.awt.Color(51, 51, 51));
         cmbCliente.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Seleccionar" }));
         cmbCliente.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(204, 204, 204)));
-        jPanel11.add(cmbCliente, java.awt.BorderLayout.CENTER);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.ipady = 10;
+        jPanel11.add(cmbCliente, gridBagConstraints);
 
-        btnAgregar.setBackground(new java.awt.Color(204, 51, 0));
-        btnAgregar.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        btnAgregar.setForeground(new java.awt.Color(255, 255, 255));
-        btnAgregar.setText("Agregar");
-        btnAgregar.addActionListener(new java.awt.event.ActionListener() {
+        jButton4.setBackground(new java.awt.Color(51, 51, 51));
+        jButton4.setFont(new java.awt.Font("Trebuchet MS", 1, 14)); // NOI18N
+        jButton4.setForeground(new java.awt.Color(255, 255, 255));
+        jButton4.setText("+");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnAgregarActionPerformed(evt);
+                jButton4ActionPerformed(evt);
             }
         });
-        jPanel11.add(btnAgregar, java.awt.BorderLayout.LINE_END);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        jPanel11.add(jButton4, gridBagConstraints);
 
         jLabel18.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
         jLabel18.setForeground(new java.awt.Color(51, 153, 255));
         jLabel18.setText("Cliente");
         jLabel18.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
-        jPanel11.add(jLabel18, java.awt.BorderLayout.NORTH);
+        jPanel11.add(jLabel18, new java.awt.GridBagConstraints());
 
         jPanel20.add(jPanel11);
 
@@ -560,7 +590,7 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         jPanel16.add(jPanel15, java.awt.BorderLayout.NORTH);
 
-        jcbMoneda.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "SELECCIONAR", "MXN", "DLLS" }));
+        jcbMoneda.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Seleccionar", "MXN", "USD" }));
         jPanel16.add(jcbMoneda, java.awt.BorderLayout.CENTER);
 
         jPanel19.add(jPanel16);
@@ -1093,24 +1123,25 @@ public class Ventas extends javax.swing.JInternalFrame{
         lblSalir.setForeground(Color.black);
     }//GEN-LAST:event_lblSalirMouseExited
 
-    private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
-        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        AgregarCliente agregar = new AgregarCliente(f, true);
-        agregar.setLocationRelativeTo(f);
-        boolean guardados = agregar.abrirClientes();
-        if (guardados) {
-            agregarClientes();
-        }
-    }//GEN-LAST:event_btnAgregarActionPerformed
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        Window ventana = SwingUtilities.getWindowAncestor(this);
+        JFrame f = (JFrame) ventana;
+        AgregarCliente add = new AgregarCliente(f, true);
+        add.setLocationRelativeTo(f);
+        add.verCliente(cmbCliente.getSelectedItem().toString());
+        add.verContactos();
+        add.setVisible(true);
+        addCliente();
+    }//GEN-LAST:event_jButton4ActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnAgregar;
     private javax.swing.JButton btnCoti;
     private javax.swing.JPanel btnGuardar;
     private javax.swing.JButton btnOC;
     private javax.swing.JButton btnSubir;
-    private javax.swing.JComboBox<String> cmbCliente;
+    public javax.swing.JComboBox<String> cmbCliente;
+    private javax.swing.JButton jButton4;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
@@ -1156,19 +1187,19 @@ public class Ventas extends javax.swing.JInternalFrame{
     private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
-    private RSMaterialComponent.RSComboBoxMaterial jcbMoneda;
+    public RSMaterialComponent.RSComboBoxMaterial jcbMoneda;
     private javax.swing.JLabel lblGuardar;
     private javax.swing.JLabel lblSalir;
     private javax.swing.JPanel pan;
     private javax.swing.JPanel panelSalir;
-    private RSMaterialComponent.RSTextFieldMaterial txtCoti;
-    private RSMaterialComponent.RSTextFieldMaterial txtCotizacion;
+    public RSMaterialComponent.RSTextFieldMaterial txtCoti;
+    public RSMaterialComponent.RSTextFieldMaterial txtCotizacion;
     private javax.swing.JTextArea txtDescripcion;
     private rojeru_san.rsdate.RSDateChooser txtFecha;
     private RSMaterialComponent.RSTextFieldMaterial txtOC;
     private RSMaterialComponent.RSTextFieldMaterial txtOrden;
     private RSMaterialComponent.RSTextFieldMaterial txtProyecto;
     private RSMaterialComponent.RSTextFieldMaterial txtSpec;
-    private RSComponentShade.RSFormatFieldShade txtValor;
+    public RSComponentShade.RSFormatFieldShade txtValor;
     // End of variables declaration//GEN-END:variables
 }

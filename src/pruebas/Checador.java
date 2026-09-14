@@ -46,7 +46,7 @@ import javax.swing.JViewport;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 
-public final class Checador extends javax.swing.JInternalFrame implements ActionListener{
+public final class Checador extends javax.swing.JInternalFrame implements ActionListener {
 
     Connection con;
     Conexion con1 = new Conexion();
@@ -60,21 +60,23 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
     Object matrizTabla[][];
     Object matrizIncidencias[][][];
     JFrame frame;
-    
-    public int buscarFilaEmpleado(String numEmpelado){
+    public boolean admin;
+    public String supervisor;
+
+    public int buscarFilaEmpleado(String numEmpelado) {
         for (int i = 0; i < Tabla1.getRowCount(); i++) {
-            if(Tabla1.getValueAt(i, 0).toString().equals(numEmpelado)){
+            if (Tabla1.getValueAt(i, 0).toString().equals(numEmpelado)) {
                 return i;
             }
         }
         return -1;
     }
-    
-    public void crearMatrizIncidencias(Connection con, String inicio, String numSemana) throws SQLException{
+
+    public void crearMatrizIncidencias(Connection con, String inicio, String numSemana) throws SQLException {
         Statement st = con.createStatement();
         String sql = "select * from incidencias_checador where NumSemana like '" + numSemana + "' and Inicio like '" + inicio + "'";
         ResultSet rs = st.executeQuery(sql);
-        while(rs.next()){
+        while (rs.next()) {
             int X = rs.getInt("X");
             String empleado = rs.getString("NumEmpleado");
             String comentario = rs.getString("comentario");
@@ -89,8 +91,8 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
         }
         color.setMatriz(matrizIncidencias);
     }
-    
-    public void crearMatriz(){
+
+    public void crearMatriz() {
         matrizTabla = new Object[Tabla1.getRowCount()][Tabla1.getColumnCount()];
         matrizIncidencias = new Object[Tabla1.getRowCount()][Tabla1.getColumnCount()][3];
         for (int i = 0; i < Tabla1.getRowCount(); i++) {
@@ -99,264 +101,263 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             }
         }
     }
-    
-    public int buscarNumero(String numero){
+
+    public int buscarNumero(String numero) {
         int num = 0;
         for (int i = 0; i < config.length; i++) {
-            if(config[i].getNumEmpleado().equals(numero)){
+            if (config[i].getNumEmpleado().equals(numero)) {
                 num = i;
             }
         }
         return num;
     }
-    
-    public String redondear(String tiempo, String num){
+
+    public String redondear(String tiempo, String num) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
         SimpleDateFormat mm = new SimpleDateFormat("mm");
-        
+
         String redondeo = null;
-        if(tiempo == null){
+        if (tiempo == null) {
             redondeo = "";
-        }else if(tiempo.equals("")){
+        } else if (tiempo.equals("")) {
             redondeo = "";
-        }else{
-        try {
-            Date time = sdf.parse(tiempo);
-            Date entrada = sdf.parse(config[buscarNumero(num)].getEntrada());
-            Date salida = sdf.parse(config[buscarNumero(num)].getSalida());
-            Date entradaSa = sdf.parse(config[buscarNumero(num)].getEntradaSabado());
-            Date salidaSa = sdf.parse(config[buscarNumero(num)].getSalidaSabado());
-            
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTime(entrada); 
-            calendar.add(Calendar.MINUTE, 30);
-            long entMas = calendar.getTime().getTime();
-            
-            calendar.setTime(salida);
-            calendar.add(Calendar.MINUTE, -30);
-            long salMen = calendar.getTime().getTime();
-            
-            calendar.setTime(entradaSa);
-            calendar.add(Calendar.MINUTE, 30);
-            long entSabMas = calendar.getTime().getTime();
-            
-            calendar.setTime(salidaSa);
-            calendar.add(Calendar.MINUTE, -30);
-            long salSabMen = calendar.getTime().getTime();
-            if((time.getTime() > entrada.getTime()) && (time.getTime() < entMas)){
-                redondeo = tiempo;
-            }else if((time.getTime() < salida.getTime()) && (time.getTime() > salMen)){
-                redondeo = tiempo;
-            }else if((time.getTime() > entradaSa.getTime()) && (time.getTime() < entSabMas)){
-                redondeo = tiempo;
-            }else if((time.getTime() < salidaSa.getTime()) && (time.getTime() > salSabMen)){
-                redondeo = tiempo;
-            }else{
-                String d = mm.format(time);
-                int re = Integer.parseInt(d);
-                
-                if(re < 30){
-                    redondeo = sdf.format(time);
-                    redondeo = redondeo.substring(0,2)+":00";
-                }else{
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTime(time);
-                    cal.add(Calendar.HOUR, 1);
-                    redondeo = sdf.format(cal.getTime());
-                    redondeo = redondeo.substring(0,2)+":00";
+        } else {
+            try {
+                Date time = sdf.parse(tiempo);
+                Date entrada = sdf.parse(config[buscarNumero(num)].getEntrada());
+                Date salida = sdf.parse(config[buscarNumero(num)].getSalida());
+                Date entradaSa = sdf.parse(config[buscarNumero(num)].getEntradaSabado());
+                Date salidaSa = sdf.parse(config[buscarNumero(num)].getSalidaSabado());
+
+                Calendar calendar = Calendar.getInstance();
+                calendar.setTime(entrada);
+                calendar.add(Calendar.MINUTE, 30);
+                long entMas = calendar.getTime().getTime();
+
+                calendar.setTime(salida);
+                calendar.add(Calendar.MINUTE, -30);
+                long salMen = calendar.getTime().getTime();
+
+                calendar.setTime(entradaSa);
+                calendar.add(Calendar.MINUTE, 30);
+                long entSabMas = calendar.getTime().getTime();
+
+                calendar.setTime(salidaSa);
+                calendar.add(Calendar.MINUTE, -30);
+                long salSabMen = calendar.getTime().getTime();
+                if ((time.getTime() > entrada.getTime()) && (time.getTime() < entMas)) {
+                    redondeo = tiempo;
+                } else if ((time.getTime() < salida.getTime()) && (time.getTime() > salMen)) {
+                    redondeo = tiempo;
+                } else if ((time.getTime() > entradaSa.getTime()) && (time.getTime() < entSabMas)) {
+                    redondeo = tiempo;
+                } else if ((time.getTime() < salidaSa.getTime()) && (time.getTime() > salSabMen)) {
+                    redondeo = tiempo;
+                } else {
+                    String d = mm.format(time);
+                    int re = Integer.parseInt(d);
+
+                    if (re < 30) {
+                        redondeo = sdf.format(time);
+                        redondeo = redondeo.substring(0, 2) + ":00";
+                    } else {
+                        Calendar cal = Calendar.getInstance();
+                        cal.setTime(time);
+                        cal.add(Calendar.HOUR, 1);
+                        redondeo = sdf.format(cal.getTime());
+                        redondeo = redondeo.substring(0, 2) + ":00";
+                    }
                 }
+
+            } catch (ParseException ex) {
+                Logger.getLogger(Checador.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
-        } catch (ParseException ex) {
-            Logger.getLogger(Checador.class.getName()).log(Level.SEVERE, null, ex);
-        }
         }
         return redondeo;
     }
-    
-    public String getTiempo(String time){
-        if(time == null){
+
+    public String getTiempo(String time) {
+        if (time == null) {
             return "";
-        }else{
-            if(time.equals("")){
+        } else {
+            if (time.equals("")) {
                 return "";
-            }else{
-            return time.substring(0,5);
+            } else {
+                return time.substring(0, 5);
             }
         }
     }
-    
-    public String getNombre(){
+
+    public String getNombre() {
         String nombre = "";
-        try{
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
             Statement st = con.createStatement();
-            String sql = "select * from registroempleados where NumEmpleado like '"+numEmpleado+"'";
+            String sql = "select * from registroempleados where NumEmpleado like '" + numEmpleado + "'";
             ResultSet rs = st.executeQuery(sql);
-            while(rs.next()){
-                nombre = rs.getString("Nombre")+" "+rs.getString("Apellido");
+            while (rs.next()) {
+                nombre = rs.getString("Nombre") + " " + rs.getString("Apellido");
                 departamento = rs.getString("Supervisor");
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         return nombre;
     }
-    
-    public PdfPCell border(PdfPCell celda, float top, float bot, float left, float rig){
-            celda.setBorderWidthBottom(bot);
-            celda.setBorderWidthTop(top);
-            celda.setBorderWidthRight(rig);
-            celda.setBorderWidthLeft(left);
+
+    public PdfPCell border(PdfPCell celda, float top, float bot, float left, float rig) {
+        celda.setBorderWidthBottom(bot);
+        celda.setBorderWidthTop(top);
+        celda.setBorderWidthRight(rig);
+        celda.setBorderWidthLeft(left);
         return celda;
     }
-    
-    public void crearPdf(){
-        try{
+
+    public void crearPdf() {
+        try {
             JFileChooser fc = new JFileChooser();
             File archivo = null;
             fc.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)", "pdf"));
             int n = fc.showSaveDialog(this);
 
-            if(n == JFileChooser.APPROVE_OPTION){
-            archivo = fc.getSelectedFile();
+            if (n == JFileChooser.APPROVE_OPTION) {
+                archivo = fc.getSelectedFile();
             }
-            String ruta = archivo.getAbsolutePath()+".pdf";
+            String ruta = archivo.getAbsolutePath() + ".pdf";
             Document document = new Document(PageSize.A4.rotate(), 10, 10, 36, 36);
             PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(ruta));
             CabezeraChecador encabezado = new CabezeraChecador();
             encabezado.setEncabezado("ENCABEZADO DE REMISIONES");
             writer.setPageEvent(encabezado);
             document.open();
-            
+
             //---------------------------------FUENTES---------------------------------
             com.itextpdf.text.Font fuente1 = new com.itextpdf.text.Font();
             fuente1.setSize(48);
             fuente1.setFamily("Roboto");
             fuente1.setColor(BaseColor.BLACK);
             fuente1.setStyle(com.itextpdf.text.Font.NORMAL);
-            
+
             com.itextpdf.text.Font fuente2 = new com.itextpdf.text.Font();
             fuente2.setSize(14);
             fuente2.setFamily("Roboto");
             fuente2.setColor(BaseColor.BLACK);
             fuente2.setStyle(com.itextpdf.text.Font.NORMAL);
-            
+
             com.itextpdf.text.Font fuente3 = new com.itextpdf.text.Font();
             fuente3.setSize(14);
             fuente3.setFamily("Roboto");
             fuente3.setColor(BaseColor.RED);
             fuente3.setStyle(com.itextpdf.text.Font.BOLD);
-            
+
             com.itextpdf.text.Font fuente4 = new com.itextpdf.text.Font();
             fuente4.setSize(14);
             fuente4.setFamily("Roboto");
             fuente4.setColor(BaseColor.BLACK);
             fuente4.setStyle(com.itextpdf.text.Font.BOLD);
-            
+
             com.itextpdf.text.Font fuenteFecha = new com.itextpdf.text.Font();
             fuenteFecha.setSize(11);
             fuenteFecha.setFamily("Roboto");
             fuenteFecha.setColor(BaseColor.BLACK);
             fuenteFecha.setStyle(com.itextpdf.text.Font.NORMAL);
-            
+
             com.itextpdf.text.Font fuenteFecha2 = new com.itextpdf.text.Font();
             fuenteFecha2.setSize(11);
             fuenteFecha2.setFamily("Roboto");
             fuenteFecha2.setColor(BaseColor.BLACK);
             fuenteFecha2.setStyle(com.itextpdf.text.Font.BOLD);
-            
+
             com.itextpdf.text.Font fuenteFecha3 = new com.itextpdf.text.Font();
             fuenteFecha3.setSize(8);
             fuenteFecha3.setFamily("Roboto");
             fuenteFecha3.setColor(BaseColor.BLACK);
             fuenteFecha3.setStyle(com.itextpdf.text.Font.NORMAL);
-            
+
             com.itextpdf.text.Font fuenteCliente = new com.itextpdf.text.Font();
             fuenteCliente.setSize(12);
             fuenteCliente.setFamily("Roboto");
             fuenteCliente.setColor(BaseColor.BLACK);
             fuenteCliente.setStyle(com.itextpdf.text.Font.NORMAL);
-            
+
             com.itextpdf.text.Font fuenteArticulos = new com.itextpdf.text.Font();
             fuenteArticulos.setSize(9);
             fuenteArticulos.setFamily("Roboto");
             fuenteArticulos.setColor(BaseColor.BLACK);
             fuenteArticulos.setStyle(com.itextpdf.text.Font.NORMAL);
-            
+
             com.itextpdf.text.Font fuenteIncidenciasCabecera = new com.itextpdf.text.Font();
             fuenteIncidenciasCabecera.setSize(10);
             fuenteIncidenciasCabecera.setFamily("Roboto");
             fuenteIncidenciasCabecera.setColor(BaseColor.WHITE);
             fuenteIncidenciasCabecera.setStyle(com.itextpdf.text.Font.BOLD);
-            
+
             com.itextpdf.text.Font fuenteIncidenciasFila = new com.itextpdf.text.Font();
             fuenteIncidenciasFila.setSize(7);
             fuenteIncidenciasFila.setFamily("Roboto");
             fuenteIncidenciasFila.setColor(BaseColor.BLACK);
             fuenteIncidenciasFila.setStyle(com.itextpdf.text.Font.NORMAL);
-            
-            
+
             //------------------------------------------------------------------------------------------------
             //-----------------------------------PARTE 1, NOTA REMISION Y FECHAS-------------------------------
             PdfPTable tabla1 = new PdfPTable(1);
             tabla1.setWidthPercentage(100);
-            
-            PdfPCell co1 = new PdfPCell(new Paragraph("Reporte semanal de empleados",fuente4));
+
+            PdfPCell co1 = new PdfPCell(new Paragraph("Reporte semanal de empleados", fuente4));
             co1.setBorder(0);
             co1.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
-            PdfPCell bl = new PdfPCell(new Paragraph("\n",fuente4));
+
+            PdfPCell bl = new PdfPCell(new Paragraph("\n", fuente4));
             bl.setBorder(0);
             bl.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
+
             tabla1.addCell(co1);
             tabla1.addCell(bl);
             //------------------------------------------------------------------------------
             //----------------------------TABLA2 CLIENTE DATOS--------------------------------------------
             PdfPTable tablaCliente = new PdfPTable(4);
             tablaCliente.setWidthPercentage(100);
-            float medidas1[] = {300,400,150,150};
+            float medidas1[] = {300, 400, 150, 150};
             tablaCliente.setWidths(medidas1);
-            
-            PdfPCell cli = new PdfPCell(new Paragraph("Supervisor: ",fuenteFecha2));
-            border(cli,0f,0,0,0);
+
+            PdfPCell cli = new PdfPCell(new Paragraph("Supervisor: ", fuenteFecha2));
+            border(cli, 0f, 0, 0, 0);
             cli.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            
-            PdfPCell nom = new PdfPCell(new Paragraph(getNombre(),fuenteFecha));
-            border(nom,0,1f,0,0);
+
+            PdfPCell nom = new PdfPCell(new Paragraph(getNombre(), fuenteFecha));
+            border(nom, 0, 1f, 0, 0);
             nom.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
-            PdfPCell per = new PdfPCell(new Paragraph("Periodo: ",fuenteFecha2));
-            border(per,0,0f,0,0);
+
+            PdfPCell per = new PdfPCell(new Paragraph("Periodo: ", fuenteFecha2));
+            border(per, 0, 0f, 0, 0);
             per.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            
-            PdfPCell pe = new PdfPCell(new Paragraph(lblLunes.getText()+" - "+lbldomingo.getText(),fuenteFecha3));
-            border(pe,0,1,0,0);
+
+            PdfPCell pe = new PdfPCell(new Paragraph(lblLunes.getText() + " - " + lbldomingo.getText(), fuenteFecha3));
+            border(pe, 0, 1, 0, 0);
             pe.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
-            PdfPCell dep = new PdfPCell(new Paragraph("Departamento: ",fuenteFecha2));
-            border(dep,0,0f,0,0);
+
+            PdfPCell dep = new PdfPCell(new Paragraph("Departamento: ", fuenteFecha2));
+            border(dep, 0, 0f, 0, 0);
             dep.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            
-            PdfPCell de = new PdfPCell(new Paragraph(departamento,fuenteFecha));
-            border(de,0,1,0,0);
+
+            PdfPCell de = new PdfPCell(new Paragraph(departamento, fuenteFecha));
+            border(de, 0, 1, 0, 0);
             de.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
-            PdfPCell sem = new PdfPCell(new Paragraph("Semana: ",fuenteFecha2));
-            border(sem,0,0,0,0);
+
+            PdfPCell sem = new PdfPCell(new Paragraph("Semana: ", fuenteFecha2));
+            border(sem, 0, 0, 0, 0);
             sem.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            
-            PdfPCell se = new PdfPCell(new Paragraph(lblSemana.getText(),fuenteFecha));
-            border(se,0,1,0,0);
+
+            PdfPCell se = new PdfPCell(new Paragraph(lblSemana.getText(), fuenteFecha));
+            border(se, 0, 1, 0, 0);
             se.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
+
             PdfPCell blan = new PdfPCell(new Paragraph("\n"));
             blan.setBorder(0);
             blan.setHorizontalAlignment(Element.ALIGN_CENTER);
-            
+
             tablaCliente.addCell(cli);
             tablaCliente.addCell(nom);
             tablaCliente.addCell(per);
@@ -365,140 +366,137 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             tablaCliente.addCell(de);
             tablaCliente.addCell(sem);
             tablaCliente.addCell(se);
-            
+
             //----------------------TABLA DE FECHAS--------------------------------------------
-            
             PdfPTable tablaFechas = new PdfPTable(26);
             tablaFechas.setWidthPercentage(100);
-            float medidas2[] = {30,150,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40};
+            float medidas2[] = {30, 150, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40};
             tablaFechas.setWidths(medidas2);
-            
-            PdfPCell blanco = new PdfPCell(new Paragraph("\n",fuenteArticulos));
+
+            PdfPCell blanco = new PdfPCell(new Paragraph("\n", fuenteArticulos));
             blanco.setHorizontalAlignment(Element.ALIGN_CENTER);
             blanco.setBorderWidth(0);
-            
-            PdfPCell c1 = new PdfPCell(new Paragraph("#",fuenteArticulos));
+
+            PdfPCell c1 = new PdfPCell(new Paragraph("#", fuenteArticulos));
             c1.setHorizontalAlignment(Element.ALIGN_CENTER);
             c1.setRowspan(3);
             border(c1, 1.5f, 0, 1.5f, 1.5f);
-            
-            PdfPCell c2 = new PdfPCell(new Paragraph("Empleado",fuenteArticulos));
+
+            PdfPCell c2 = new PdfPCell(new Paragraph("Empleado", fuenteArticulos));
             c2.setHorizontalAlignment(Element.ALIGN_CENTER);
             c2.setRowspan(2);
             border(c2, 1.5f, 0, 0f, 1.5f);
-            
-            PdfPCell c3 = new PdfPCell(new Paragraph("Total",fuenteArticulos));
+
+            PdfPCell c3 = new PdfPCell(new Paragraph("Total", fuenteArticulos));
             c3.setHorizontalAlignment(Element.ALIGN_CENTER);
             c3.setColspan(3);
             border(c3, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell lunes = new PdfPCell(new Paragraph(lblLunes.getText(),fuenteArticulos));
+
+            PdfPCell lunes = new PdfPCell(new Paragraph(lblLunes.getText(), fuenteArticulos));
             lunes.setHorizontalAlignment(Element.ALIGN_CENTER);
             lunes.setColspan(3);
             border(lunes, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell martes = new PdfPCell(new Paragraph(lblMartes.getText(),fuenteArticulos));
+
+            PdfPCell martes = new PdfPCell(new Paragraph(lblMartes.getText(), fuenteArticulos));
             martes.setHorizontalAlignment(Element.ALIGN_CENTER);
             martes.setColspan(3);
             border(martes, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell miercoles = new PdfPCell(new Paragraph(lblMiercoles.getText(),fuenteArticulos));
+
+            PdfPCell miercoles = new PdfPCell(new Paragraph(lblMiercoles.getText(), fuenteArticulos));
             miercoles.setHorizontalAlignment(Element.ALIGN_CENTER);
             miercoles.setColspan(3);
             border(miercoles, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell jueves = new PdfPCell(new Paragraph(lblJueves.getText(),fuenteArticulos));
+
+            PdfPCell jueves = new PdfPCell(new Paragraph(lblJueves.getText(), fuenteArticulos));
             jueves.setHorizontalAlignment(Element.ALIGN_CENTER);
             jueves.setColspan(3);
             border(jueves, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell viernes = new PdfPCell(new Paragraph(lblViernes.getText(),fuenteArticulos));
+
+            PdfPCell viernes = new PdfPCell(new Paragraph(lblViernes.getText(), fuenteArticulos));
             viernes.setHorizontalAlignment(Element.ALIGN_CENTER);
             viernes.setColspan(3);
             border(viernes, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell sabado = new PdfPCell(new Paragraph(lblSabado.getText(),fuenteArticulos));
+
+            PdfPCell sabado = new PdfPCell(new Paragraph(lblSabado.getText(), fuenteArticulos));
             sabado.setHorizontalAlignment(Element.ALIGN_CENTER);
             sabado.setColspan(3);
             border(sabado, 1.5f, 1f, 0, 1.5f);
-            
-            PdfPCell domingo = new PdfPCell(new Paragraph(lbldomingo.getText(),fuenteArticulos));
+
+            PdfPCell domingo = new PdfPCell(new Paragraph(lbldomingo.getText(), fuenteArticulos));
             domingo.setHorizontalAlignment(Element.ALIGN_CENTER);
             domingo.setColspan(3);
             border(domingo, 1.5f, 1f, 0, 1.5f);
-            
+
             //-----------------------------------------------------------------------------------------------
-            
-            PdfPCell l = new PdfPCell(new Paragraph("Lunes",fuenteArticulos));
+            PdfPCell l = new PdfPCell(new Paragraph("Lunes", fuenteArticulos));
             l.setHorizontalAlignment(Element.ALIGN_CENTER);
             l.setColspan(3);
-            border(l, 0, 1f, 1 , 1.5f);
-            
-            PdfPCell ma = new PdfPCell(new Paragraph("Martes",fuenteArticulos));
+            border(l, 0, 1f, 1, 1.5f);
+
+            PdfPCell ma = new PdfPCell(new Paragraph("Martes", fuenteArticulos));
             ma.setHorizontalAlignment(Element.ALIGN_CENTER);
             ma.setColspan(3);
             border(ma, 0, 1f, 1, 1.5f);
-            
-            PdfPCell mi = new PdfPCell(new Paragraph("Miercoles",fuenteArticulos));
+
+            PdfPCell mi = new PdfPCell(new Paragraph("Miercoles", fuenteArticulos));
             mi.setHorizontalAlignment(Element.ALIGN_CENTER);
             mi.setColspan(3);
             border(mi, 0, 1f, 1, 1.5f);
-            
-            PdfPCell ju = new PdfPCell(new Paragraph("Jueves",fuenteArticulos));
+
+            PdfPCell ju = new PdfPCell(new Paragraph("Jueves", fuenteArticulos));
             ju.setHorizontalAlignment(Element.ALIGN_CENTER);
             ju.setColspan(3);
             border(ju, 0, 1f, 1, 1.5f);
-            
-            PdfPCell v = new PdfPCell(new Paragraph("Viernes",fuenteArticulos));
+
+            PdfPCell v = new PdfPCell(new Paragraph("Viernes", fuenteArticulos));
             v.setHorizontalAlignment(Element.ALIGN_CENTER);
             v.setColspan(3);
             border(v, 0, 1f, 1, 1.5f);
-            
-            PdfPCell s = new PdfPCell(new Paragraph("Sabado",fuenteArticulos));
+
+            PdfPCell s = new PdfPCell(new Paragraph("Sabado", fuenteArticulos));
             s.setHorizontalAlignment(Element.ALIGN_CENTER);
             s.setColspan(3);
             border(s, 0, 1f, 1, 1.5f);
-            
-            PdfPCell d = new PdfPCell(new Paragraph("Domingo",fuenteArticulos));
+
+            PdfPCell d = new PdfPCell(new Paragraph("Domingo", fuenteArticulos));
             d.setHorizontalAlignment(Element.ALIGN_CENTER);
             d.setColspan(3);
             border(d, 0, 1f, 1, 1.5f);
-            
-            PdfPCell c6 = new PdfPCell(new Paragraph("Horas",fuenteArticulos));
+
+            PdfPCell c6 = new PdfPCell(new Paragraph("Horas", fuenteArticulos));
             c6.setHorizontalAlignment(Element.ALIGN_CENTER);
             c6.setColspan(3);
             border(c6, 1f, 1f, 0, 1.5f);
-            
+
             /////////-----------------------------------------------------------------------------+
-            
-            PdfPCell c7 = new PdfPCell(new Paragraph("Nombre",fuenteArticulos));
+            PdfPCell c7 = new PdfPCell(new Paragraph("Nombre", fuenteArticulos));
             c7.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(c6, 0, 0, 1, 1.5f);
-            
-            PdfPCell entrada = new PdfPCell(new Paragraph("Ent.",fuenteArticulos));
+
+            PdfPCell entrada = new PdfPCell(new Paragraph("Ent.", fuenteArticulos));
             entrada.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(entrada, 0, 0, 0.5f, 0.5f);
-            
-            PdfPCell salida = new PdfPCell(new Paragraph("Sal.",fuenteArticulos));
+
+            PdfPCell salida = new PdfPCell(new Paragraph("Sal.", fuenteArticulos));
             salida.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(salida, 0, 0, 0.5f, .5f);
-            
-            PdfPCell horas = new PdfPCell(new Paragraph("Hrs.",fuenteArticulos));
+
+            PdfPCell horas = new PdfPCell(new Paragraph("Hrs.", fuenteArticulos));
             horas.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(horas, 0, 0, 0, 1.5f);
-            
-            PdfPCell tot = new PdfPCell(new Paragraph("Tot.",fuenteArticulos));
+
+            PdfPCell tot = new PdfPCell(new Paragraph("Tot.", fuenteArticulos));
             tot.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(tot, 1, 0, 0.5f, 0.5f);
-            
-            PdfPCell ret = new PdfPCell(new Paragraph("Ret.",fuenteArticulos));
+
+            PdfPCell ret = new PdfPCell(new Paragraph("Ret.", fuenteArticulos));
             ret.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(ret, 1, 0, 0.5f, .5f);
-            
-            PdfPCell sob = new PdfPCell(new Paragraph("Sob.",fuenteArticulos));
+
+            PdfPCell sob = new PdfPCell(new Paragraph("Sob.", fuenteArticulos));
             sob.setHorizontalAlignment(Element.ALIGN_CENTER);
             border(sob, 1, 0, 1, 1.5f);
-            
+
             tablaFechas.addCell(blanco);
             tablaFechas.addCell(blanco);
             tablaFechas.addCell(blanco);
@@ -525,7 +523,7 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             tablaFechas.addCell(blanco);
             tablaFechas.addCell(blanco);
             tablaFechas.addCell(blanco);
-            
+
             tablaFechas.addCell(c1);
             tablaFechas.addCell(c2);
             tablaFechas.addCell(lunes);
@@ -536,7 +534,7 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             tablaFechas.addCell(sabado);
             tablaFechas.addCell(domingo);
             tablaFechas.addCell(c3);
-            
+
             tablaFechas.addCell(l);
             tablaFechas.addCell(ma);
             tablaFechas.addCell(mi);
@@ -545,7 +543,7 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             tablaFechas.addCell(s);
             tablaFechas.addCell(d);
             tablaFechas.addCell(c6);
-            
+
             tablaFechas.addCell(c7);
             tablaFechas.addCell(entrada);
             tablaFechas.addCell(salida);
@@ -568,164 +566,161 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             tablaFechas.addCell(entrada);
             tablaFechas.addCell(salida);
             tablaFechas.addCell(horas);
-            
+
             tablaFechas.addCell(tot);
             tablaFechas.addCell(ret);
             tablaFechas.addCell(sob);
-            
+
             //-----------------------------------------------------------------------------------------------------
             //----------------------TABLA DE ARTICULOS------------------------------------------------------------
             PdfPTable tablaArticulos = new PdfPTable(26);
             tablaArticulos.setWidthPercentage(100);
-            float medidas3[] = {30,150,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40,40};
+            float medidas3[] = {30, 150, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40};
             tablaArticulos.setWidths(medidas3);
-            
-            PdfPCell bla = new PdfPCell(new Paragraph("\n",fuenteArticulos));
+
+            PdfPCell bla = new PdfPCell(new Paragraph("\n", fuenteArticulos));
             bla.setHorizontalAlignment(Element.ALIGN_CENTER);
             bla.setBorderWidth(0);
-            
-            
+
             int sobra = 0;
             for (int i = 0; i < Tabla1.getRowCount(); i++) {
                 for (int j = 0; j < Tabla1.getColumnCount(); j++) {
                     PdfPCell cel;
                     String valor;
-                    if(Tabla1.getValueAt(i, j) == null){
+                    if (Tabla1.getValueAt(i, j) == null) {
                         valor = "\n";
-                    }else{
-                    valor = Tabla1.getValueAt(i, j).toString();
+                    } else {
+                        valor = Tabla1.getValueAt(i, j).toString();
                     }
-                        cel = new PdfPCell(new Paragraph(valor,fuenteArticulos));
-                        cel.setBorderWidth(1f);
-                        if(j == 23 || j == 24 || j == 25){
-                            cel.setBackgroundColor(BaseColor.YELLOW);
+                    cel = new PdfPCell(new Paragraph(valor, fuenteArticulos));
+                    cel.setBorderWidth(1f);
+                    if (j == 23 || j == 24 || j == 25) {
+                        cel.setBackgroundColor(BaseColor.YELLOW);
+                    }
+                    if (j == 4 || j == 7 || j == 10 || j == 13 || j == 16 || j == 19 || j == 22) {
+                        cel.setBackgroundColor(BaseColor.LIGHT_GRAY);
+                        if (Tabla1.getValueAt(i, j - 2).toString().equals("") && Tabla1.getValueAt(i, j - 1).toString().equals("")) {
+                            cel.setBackgroundColor(BaseColor.RED);
                         }
-                        if(j == 4 || j == 7 || j == 10 || j == 13 || j == 16 || j == 19 || j == 22){
-                            cel.setBackgroundColor(BaseColor.LIGHT_GRAY);
-                            if(Tabla1.getValueAt(i, j-2).toString().equals("") && Tabla1.getValueAt(i, j-1).toString().equals("")){
-                                cel.setBackgroundColor(BaseColor.RED);
-                            }
+                    }
+                    if (j == 1) {
+                        cel.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    }
+                    if (matrizIncidencias[i][j][0] != null) {
+                        if (!matrizIncidencias[i][j][2].equals("")) {
+                            cel.setBackgroundColor(BaseColor.CYAN);
+                        } else {
+                            cel.setBackgroundColor(BaseColor.ORANGE);
                         }
-                        if(j == 1){
-                            cel.setHorizontalAlignment(Element.ALIGN_CENTER);
-                        }
-                        if(matrizIncidencias[i][j][0] != null){
-                            if(!matrizIncidencias[i][j][2].equals("")){
-                                cel.setBackgroundColor(BaseColor.CYAN);
-                            }else{
-                                cel.setBackgroundColor(BaseColor.ORANGE);
-                            }
-                        }
+                    }
                     tablaArticulos.addCell(cel);
                 }
                 sobra++;
             }
-            if(sobra < 14){
-            for (int i = 0; i < 15-sobra; i++) {
-                for (int j = 0; j < Tabla1.getColumnCount(); j++) {
-                    PdfPCell cel;
-                    String valor;
+            if (sobra < 14) {
+                for (int i = 0; i < 15 - sobra; i++) {
+                    for (int j = 0; j < Tabla1.getColumnCount(); j++) {
+                        PdfPCell cel;
+                        String valor;
                         valor = "\n";
-                    
-                        cel = new PdfPCell(new Paragraph(valor,fuenteArticulos));
+
+                        cel = new PdfPCell(new Paragraph(valor, fuenteArticulos));
                         cel.setBorderWidth(1f);
-                        
-                        if(j == 1){
+
+                        if (j == 1) {
                             cel.setHorizontalAlignment(Element.ALIGN_CENTER);
                         }
-                        if(j == 4 || j == 7 || j == 10 || j == 13 || j == 16 || j == 19 || j == 22){
+                        if (j == 4 || j == 7 || j == 10 || j == 13 || j == 16 || j == 19 || j == 22) {
                             cel.setBackgroundColor(BaseColor.LIGHT_GRAY);
                         }
-                    
-                    tablaArticulos.addCell(cel);
+
+                        tablaArticulos.addCell(cel);
+                    }
                 }
             }
-            }
             //----------------------------------------------------------------------------------------------------
-            
+
             //-------------------------------------Tabla firmas---------------------------------------------------
-            
             PdfPTable tablaFirmas = new PdfPTable(6);
             tablaFirmas.setWidthPercentage(100);
-            
+
             PdfPCell blank = new PdfPCell(new Paragraph("\n"));
             blank.setHorizontalAlignment(Element.ALIGN_CENTER);
-            border(blank,0,0,0,0);
-            
-            PdfPCell nota = new PdfPCell(new Paragraph("Nota:  El reporte debe ser enviado a mas tardar Martes a las 12:00 pm al correo: Contabilidad01@si3i.com en formato PDF\n" +
-                                                       "El responsable de la informacion presentada es el encargado",fuenteArticulos));
+            border(blank, 0, 0, 0, 0);
+
+            PdfPCell nota = new PdfPCell(new Paragraph("Nota:  El reporte debe ser enviado a mas tardar Martes a las 12:00 pm al correo: Contabilidad01@si3i.com en formato PDF\n"
+                    + "El responsable de la informacion presentada es el encargado", fuenteArticulos));
             nota.setHorizontalAlignment(Element.ALIGN_CENTER);
             nota.setVerticalAlignment(5);
-            border(nota,0,1.5f,1.5f,1.5f);
+            border(nota, 0, 1.5f, 1.5f, 1.5f);
             nota.setRowspan(4);
             nota.setColspan(3);
-            
-            PdfPCell firmaSuper = new PdfPCell(new Paragraph("Firma Supervisor",fuenteArticulos));
+
+            PdfPCell firmaSuper = new PdfPCell(new Paragraph("Firma Supervisor", fuenteArticulos));
             firmaSuper.setHorizontalAlignment(Element.ALIGN_CENTER);
-            border(firmaSuper,1f,1.5f,0,0);
-            
-            PdfPCell firmaGerente = new PdfPCell(new Paragraph("Firma Gerente",fuenteArticulos));
+            border(firmaSuper, 1f, 1.5f, 0, 0);
+
+            PdfPCell firmaGerente = new PdfPCell(new Paragraph("Firma Gerente", fuenteArticulos));
             firmaGerente.setHorizontalAlignment(Element.ALIGN_CENTER);
-            border(firmaGerente,1f,1.5f,0,0);
-            
-            border(blank,0,0,1.5f,0);
+            border(firmaGerente, 1f, 1.5f, 0, 0);
+
+            border(blank, 0, 0, 1.5f, 0);
             tablaFirmas.addCell(blank);
-            border(blank,0,0,0,0);
+            border(blank, 0, 0, 0, 0);
             tablaFirmas.addCell(blank);
             tablaFirmas.addCell(blank);
             tablaFirmas.addCell(nota);
-            
-            border(blank,0,1.5f,1.5f,0);
+
+            border(blank, 0, 1.5f, 1.5f, 0);
             tablaFirmas.addCell(blank);
             tablaFirmas.addCell(firmaSuper);
-            border(blank,0,1.5f,0,0);
+            border(blank, 0, 1.5f, 0, 0);
             tablaFirmas.addCell(blank);
-            
+
             //------------------------------------------------------------------------
-            
-            border(blank,0,0,1.5f,0);
+            border(blank, 0, 0, 1.5f, 0);
             tablaFirmas.addCell(blank);
-            border(blank,0,0,0,0);
+            border(blank, 0, 0, 0, 0);
             tablaFirmas.addCell(blank);
             tablaFirmas.addCell(blank);
-            
-            border(blank,0,1.5f,1.5f,0);
+
+            border(blank, 0, 1.5f, 1.5f, 0);
             tablaFirmas.addCell(blank);
             tablaFirmas.addCell(firmaGerente);
-            border(blank,0,1.5f,0,0f);
+            border(blank, 0, 1.5f, 0, 0f);
             tablaFirmas.addCell(blank);
-            
+
             //------------------------INCIDENCIAS-----------------------------------
             PdfPTable tablaIncidencias = new PdfPTable(4);
             tablaIncidencias.setWidthPercentage(100);
-            float med[] = {50,100,50,50};
+            float med[] = {50, 100, 50, 50};
             tablaIncidencias.setWidths(med);
             BaseColor naranja = new BaseColor(255, 94, 8);
-            
+
             PdfPCell nombre = new PdfPCell(new Phrase("Nombre", fuenteIncidenciasCabecera));
             nombre.setHorizontalAlignment(Element.ALIGN_CENTER);
             nombre.setBorder(0);
             nombre.setBackgroundColor(naranja);
-            
+
             PdfPCell incidencia = new PdfPCell(new Phrase("Incidencia", fuenteIncidenciasCabecera));
             incidencia.setHorizontalAlignment(Element.ALIGN_CENTER);
             incidencia.setBorder(0);
             incidencia.setBackgroundColor(naranja);
-            
+
             PdfPCell horaCambiada = new PdfPCell(new Phrase("Hora cambio", fuenteIncidenciasCabecera));
             horaCambiada.setHorizontalAlignment(Element.ALIGN_CENTER);
             horaCambiada.setBorder(0);
             horaCambiada.setBackgroundColor(naranja);
-            
+
             PdfPCell horaOriginal = new PdfPCell(new Phrase("Hora Original", fuenteIncidenciasCabecera));
             horaOriginal.setHorizontalAlignment(Element.ALIGN_CENTER);
             horaOriginal.setBorder(0);
             horaOriginal.setBackgroundColor(naranja);
-            
+
             blank = new PdfPCell(new Phrase(" "));
-            border(blank,0,0,0,0);
-            
-            co1 = new PdfPCell(new Paragraph("Reporte de incidencias",fuente4));
+            border(blank, 0, 0, 0, 0);
+
+            co1 = new PdfPCell(new Paragraph("Reporte de incidencias", fuente4));
             co1.setBorder(0);
             co1.setHorizontalAlignment(Element.ALIGN_CENTER);
             co1.setColspan(4);
@@ -738,42 +733,42 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             tablaIncidencias.addCell(incidencia);
             tablaIncidencias.addCell(horaCambiada);
             tablaIncidencias.addCell(horaOriginal);
-            
+
             boolean isTabled = false;
-            
+
             boolean band;
             for (int i = 0; i < matrizIncidencias.length; i++) {
                 band = true;
-                for (int j = 0; j < matrizIncidencias[i].length; j ++) {
+                for (int j = 0; j < matrizIncidencias[i].length; j++) {
                     if (matrizIncidencias[i][j][0] != null) {
                         String entrada1;
-                        if(matrizIncidencias[i][j][2].equals("")){
-                            if(j%3 == 0){
-                               entrada1 = "NCS"; 
-                            }else{
+                        if (matrizIncidencias[i][j][2].equals("")) {
+                            if (j % 3 == 0) {
+                                entrada1 = "NCS";
+                            } else {
                                 entrada1 = "NCE";
                             }
-                        }else{
+                        } else {
                             entrada1 = matrizIncidencias[i][j][2].toString();
                         }
                         isTabled = true;
                         String num = " ";
-                        if(band){
+                        if (band) {
                             num = Tabla1.getValueAt(i, 1).toString();
                             band = false;
                         }
                         String empleado = num;
                         PdfPCell cell = new PdfPCell(new Phrase(empleado, fuenteIncidenciasFila));
-                        border(cell,0,.5f,0,0);
+                        border(cell, 0, .5f, 0, 0);
                         PdfPCell cell2 = new PdfPCell(new Phrase(matrizIncidencias[i][j][0].toString(), fuenteIncidenciasFila));
-                        border(cell2,0,.5f,0,0);
+                        border(cell2, 0, .5f, 0, 0);
                         PdfPCell cell3 = new PdfPCell(new Phrase(matrizIncidencias[i][j][1].toString(), fuenteIncidenciasFila));
-                        border(cell3,0,.5f,0,0);
+                        border(cell3, 0, .5f, 0, 0);
                         cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
                         PdfPCell cell4 = new PdfPCell(new Phrase(entrada1, fuenteIncidenciasFila));
-                        border(cell4,0,.5f,0,0);
+                        border(cell4, 0, .5f, 0, 0);
                         cell4.setHorizontalAlignment(Element.ALIGN_CENTER);
-                        
+
                         tablaIncidencias.addCell(cell);
                         tablaIncidencias.addCell(cell2);
                         tablaIncidencias.addCell(cell3);
@@ -781,32 +776,32 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                     }
                 }
             }
-            
+
             //---------------------DOCUMENTOS PARA AGREGAR-----------------------------------
             Image img = Image.getInstance("C:\\Pruebas\\BD\\3i.png");
             img.setAbsolutePosition(25, 500);
-            img.scaleAbsolute(new Rectangle(140,50));
-            
+            img.scaleAbsolute(new Rectangle(140, 50));
+
             document.add(img);
             document.add(tabla1);
             document.add(tablaCliente);
             document.add(tablaFechas);
             document.add(tablaArticulos);
             document.add(tablaFirmas);
-            if(isTabled){
+            if (isTabled) {
                 document.newPage();
                 document.add(tablaIncidencias);
             }
             //-------------------------------------------------------------------------------
             document.close();
             Desktop.getDesktop().open(new File(ruta));
-            
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public void agregarDias(String date){
+
+    public void agregarDias(String date) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
         Date dat;
@@ -829,55 +824,58 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             lblSabado.setText(sdf2.format(calendar.getTime()));
             calendar.add(Calendar.DAY_OF_YEAR, 1);
             lbldomingo.setText(sdf2.format(calendar.getTime()));
-        
+
         } catch (ParseException ex) {
             Logger.getLogger(Checador.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    public String getSupervisor(){
+
+    public String getSupervisor() {
         String campo = null;
-        try{
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
-            Statement st =  con.createStatement();
-            String sql = "select * from registroempleados where NumEmpleado like '"+numEmpleado+"'";
+            Statement st = con.createStatement();
+            String sql = "select em.Administrador, reg.Supervisor from empleadoscheck as em "
+                    + "inner join registroempleados as reg "
+                    + "on em.numempleado = reg.numempleado "
+                    + "where em.NumEmpleado like '" + numEmpleado + "'";
             ResultSet rs = st.executeQuery(sql);
-            String supervisor = null;
-            while(rs.next()){
+            while (rs.next()) {
                 supervisor = rs.getString("Supervisor");
+                admin = rs.getBoolean("administrador");
             }
             campo = supervisor;
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: " + e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         return campo;
     }
-    
-    public void addConfig(){
-        try{
+
+    public void addConfig() {
+        try {
             Statement st = con.createStatement();
-            String sql = "select * from empleadoscheck where NumSupervisor like '"+numEmpleado+"'";
-            if(numEmpleado.equals("61") || getSupervisor().equals("GERENCIA")){
+            String sql = "select * from empleadoscheck where NumSupervisor like '" + numEmpleado + "'";
+            if (numEmpleado.equals("61") || getSupervisor().equals("GERENCIA")) {
                 sql = "select * from empleadoscheck WHERE Activo like true";
             }
             ResultSet rs = st.executeQuery(sql);
             int cont = 0;
-            while(rs.next()){
+            while (rs.next()) {
                 cont++;
             }
             config = new confEmpleado[cont];
             Statement st2 = con.createStatement();
-            String sql2 = "select * from empleadoscheck where NumSupervisor like '"+numEmpleado+"'";
+            String sql2 = "select * from empleadoscheck where NumSupervisor like '" + numEmpleado + "'";
             boolean redondeo = false;
-            if(numEmpleado.equals("61") || getSupervisor().equals("GERENCIA")){
+            if (numEmpleado.equals("61") || getSupervisor().equals("GERENCIA")) {
                 sql2 = "select * from empleadoscheck WHERE Activo like true";
                 redondeo = true;
             }
             ResultSet rs2 = st2.executeQuery(sql2);
             int i = 0;
-            while(rs2.next()){
+            while (rs2.next()) {
                 String nombre = rs2.getString("Nombre");
                 String numero = rs2.getString("NumEmpleado");
                 String entrada = rs2.getString("Entrada");
@@ -889,17 +887,17 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                 String salidasabado = rs2.getString("SalidaSabado");
                 String totalHoras = rs2.getString("totalHoras");
                 boolean automatico = rs2.getBoolean("Automatico");
-                config[i] = new confEmpleado(entrada, salida, horadiaria,turno,horasabado,numero, nombre, 
-                        entradasabado, salidasabado, redondeo,totalHoras, automatico);
+                config[i] = new confEmpleado(entrada, salida, horadiaria, turno, horasabado, numero, nombre,
+                        entradasabado, salidasabado, redondeo, totalHoras, automatico);
                 i++;
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public void addSemana(){
-        try{
+
+    public void addSemana() {
+        try {
             Statement st = con.createStatement();
             String sql = "select * from semanas order by Id desc";
             ResultSet rs = st.executeQuery(sql);
@@ -907,77 +905,76 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             cmbSemana.addItem("SEMANA NO.");
             fecha = new Stack<>();
             fecha.push("");
-            while(rs.next()){
+            while (rs.next()) {
                 cmbSemana.addItem(rs.getString("NumSemana"));
                 fecha.push(rs.getString("Inicio"));
             }
-        }catch(SQLException ex){
-            JOptionPane.showMessageDialog(this, "ERROR: "+ex,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + ex, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public boolean [] canEdit(){
-        boolean[] can1 = new boolean [] {
+
+    public boolean[] canEdit() {
+        boolean[] can1 = new boolean[]{
             false, false, true, true, false, true, true, false, true, true, false, true, true, false, true, true, false, true, true, false, true, true, false, false, false, false
         };
-        
-        boolean[] can2 = new boolean [] {
+
+        boolean[] can2 = new boolean[]{
             false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false
         };
-        
-        if(lblSemana.getText().equals("EDITADO")){
+
+        if (lblSemana.getText().equals("EDITADO")) {
             return can2;
-        }else{
+        } else {
             return can1;
         }
-        
+
     }
-    
-    public void limpiarTabla(){
+
+    public void limpiarTabla() {
         addConfig();
         color = new ColorChecador();
         color.setConfig(config);
         color.setMatriz(matrizIncidencias);
         Tabla1 = color;
         Tabla1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
+                new Object[][]{},
+                new String[]{
+                    "id", "numero", "entrada", "salida", "horas", "entrada", "salida", "horas", "entrada", "salida", "horas", "entrada", "salida", "horas", "entrada",
+                     "salida", "horas", "entrada", "salida", "horas", "entrada", "salida", "horas", "total", "retraso", "sobretrabajo"
+                }
+        ) {
+            boolean[] canEdit = canEdit();
 
-            },
-                new String [] {
-                    "id", "numero", "entrada", "salida", "horas", "entrada", "salida", "horas", "entrada", "salida", "horas", "entrada", "salida", "horas", "entrada"
-                        , "salida", "horas", "entrada", "salida", "horas", "entrada", "salida", "horas", "total", "retraso", "sobretrabajo"
-                }
-            ) {
-                boolean[] canEdit = canEdit();
-                public boolean isCellEditable(int rowIndex, int columnIndex) {
-                    return canEdit [columnIndex];
-                }
-            });
-            Tabla1.setComponentPopupMenu(jPopupMenu1);
-            Tabla1.setColorBorderRows(new java.awt.Color(255, 255, 255));
-            Tabla1.setTableHeader(null);
-            jScrollPane2.setViewportView(Tabla1);
-            JViewport scroll =  (JViewport) Tabla1.getParent();
-            int ancho = ((this.getWidth() - panelRound1.getWidth())/10);
-            if (Tabla1.getColumnModel().getColumnCount() > 0) {
-                Tabla1.getColumnModel().getColumn(0).setPreferredWidth(ancho);
-                Tabla1.getColumnModel().getColumn(0).setMinWidth(ancho);
-                Tabla1.getColumnModel().getColumn(0).setMaxWidth(ancho);
-                Tabla1.getColumnModel().getColumn(1).setPreferredWidth(ancho);
-                Tabla1.getColumnModel().getColumn(1).setMinWidth(ancho);
-                Tabla1.getColumnModel().getColumn(1).setMaxWidth(ancho);
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit[columnIndex];
             }
+        });
+        Tabla1.setComponentPopupMenu(jPopupMenu1);
+        Tabla1.setColorBorderRows(new java.awt.Color(255, 255, 255));
+        Tabla1.setTableHeader(null);
+        jScrollPane2.setViewportView(Tabla1);
+        JViewport scroll = (JViewport) Tabla1.getParent();
+        int ancho = ((this.getWidth() - panelRound1.getWidth()) / 10);
+        if (Tabla1.getColumnModel().getColumnCount() > 0) {
+            Tabla1.getColumnModel().getColumn(0).setPreferredWidth(ancho);
+            Tabla1.getColumnModel().getColumn(0).setMinWidth(ancho);
+            Tabla1.getColumnModel().getColumn(0).setMaxWidth(ancho);
+            Tabla1.getColumnModel().getColumn(1).setPreferredWidth(ancho);
+            Tabla1.getColumnModel().getColumn(1).setMinWidth(ancho);
+            Tabla1.getColumnModel().getColumn(1).setMaxWidth(ancho);
+        }
     }
-    
-    public void addKeyPressed(){
+
+    public void addKeyPressed() {
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
         manager.addKeyEventDispatcher(new KeyEventDispatcher() {
             @Override
             public boolean dispatchKeyEvent(KeyEvent e) {
-                if(Tabla1.isFocusOwner() || Tabla1.isEditing()){
+                if (Tabla1.isFocusOwner() || Tabla1.isEditing()) {
                     boolean band = Tabla1.isEditing();
                     if (e.getID() == KeyEvent.KEY_PRESSED && (e.getKeyCode() == KeyEvent.VK_ENTER || (e.getKeyCode() == KeyEvent.VK_UP) || (e.getKeyCode() == KeyEvent.VK_DOWN)
-                             || (e.getKeyCode() == KeyEvent.VK_LEFT && !band) || (e.getKeyCode() == KeyEvent.VK_RIGHT && !band))) {
+                            || (e.getKeyCode() == KeyEvent.VK_LEFT && !band) || (e.getKeyCode() == KeyEvent.VK_RIGHT && !band))) {
                         if (Tabla1.isEditing()) {
                             Tabla1.getCellEditor().stopCellEditing();
                         }
@@ -987,22 +984,30 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                         String hora;
                         String comentarios;
                         String horaVieja;
-                        try{hora = Tabla1.getValueAt(row, col).toString();}catch(Exception ex){hora = "00:00";}
-                        try{horaVieja = (String) matrizTabla[row][col];}catch(Exception ex){horaVieja = "00:00";}
+                        try {
+                            hora = Tabla1.getValueAt(row, col).toString();
+                        } catch (Exception ex) {
+                            hora = "00:00";
+                        }
+                        try {
+                            horaVieja = (String) matrizTabla[row][col];
+                        } catch (Exception ex) {
+                            horaVieja = "00:00";
+                        }
 
-                        if(!horaVieja.equals(hora)){
-                            incidencias = new Incidencias(frame,true,horaVieja,hora,nombre);
+                        if (!horaVieja.equals(hora)) {
+                            incidencias = new Incidencias(frame, true, horaVieja, hora, nombre);
                             incidencias.setLocationRelativeTo(null);
                             comentarios = incidencias.getIncidencia();
-                            if(!comentarios.equals("")){
+                            if (!comentarios.equals("")) {
                                 matrizIncidencias[row][col][0] = comentarios;
                                 matrizIncidencias[row][col][1] = hora;
                                 matrizIncidencias[row][col][2] = horaVieja;
-                                if(comentarios.equals("")){
+                                if (comentarios.equals("")) {
                                     Tabla1.setValueAt("", row, col);
                                 }
                                 color.setMatriz(matrizIncidencias);
-                            }else{
+                            } else {
                                 Tabla1.setValueAt(horaVieja, row, col);
                             }
                         }
@@ -1013,18 +1018,18 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             }
         });
     }
-    
-    public boolean verificarColumna(int col){
-        int numeros[] = {2 , 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 21};
+
+    public boolean verificarColumna(int col) {
+        int numeros[] = {2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18, 20, 21};
         boolean band = false;
         for (int i = 0; i < numeros.length; i++) {
-            if (numeros[i] == col){
+            if (numeros[i] == col) {
                 band = true;
             }
         }
         return band;
     }
-    
+
     public String evaluarNull(Object texto) {
         try {
             return String.valueOf(texto);
@@ -1032,25 +1037,26 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             return "";
         }
     }
-    
+
     public Checador(String numEmpleado) {
         initComponents();
         this.numEmpleado = numEmpleado;
-        try{
-        con = con1.getConnection();
-        addConfig();
-        ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
-        addSemana();
-            if(getSupervisor().equals("GERENCIA")){
+        try {
+            con = con1.getConnection();
+            addConfig();
+            ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
+            addSemana();
+            String sup = getSupervisor();
+            if (sup != null && sup.equals("GERENCIA")) {
                 btnSubir1.setEnabled(true);
                 tgIncidencias.setVisible(true);
                 lblIncidencias.setVisible(true);
-            }else{
+            } else {
                 tgIncidencias.setVisible(false);
                 lblIncidencias.setVisible(false);
             }
-        }catch(Exception ex){
-            JOptionPane.showMessageDialog(this, "No tienes acceso para ingresar a este modulo", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "No tienes acceso para ingresar a este modulo " + ex, "Error", JOptionPane.ERROR_MESSAGE);
             this.dispose();
         }
         limpiarTabla();
@@ -1772,209 +1778,209 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
     }//GEN-LAST:event_jLabel1MouseExited
 
     private void btnVerMisEmpleadosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerMisEmpleadosActionPerformed
-        if(cmbSemana.getSelectedIndex() == 0){
-            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR UN NUMERO DE SEMANA","ADVERTENCIA",JOptionPane.WARNING_MESSAGE);
-        }else{
-        try{
-            limpiarTabla();
-            Connection con;
-            Conexion con1 = new Conexion();
-            con = con1.getConnection();
-            Statement st = con.createStatement();
-            String sql = "select * from dias where NumSemana like '"+cmbSemana.getSelectedItem()+"' and Inicio like '"+fecha.get(cmbSemana.getSelectedIndex())+"' order by NumEmpleado";
-            ResultSet rs = st.executeQuery(sql);
-            String datos[] = new String[27];
-            DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
-            int cont = 0;
-            while(rs.next()){
-                String num = rs.getString("NumEmpleado");
-                boolean band = false;
-                int nu = 0;
-                
-                for (int i = 0; i < config.length; i++) {
-                    if(config[i].getNumEmpleado().equals(num)){
-                        band = true;
-                        nu = i;
-                        break;
+        if (cmbSemana.getSelectedIndex() == 0) {
+            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR UN NUMERO DE SEMANA", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+        } else {
+            try {
+                limpiarTabla();
+                Connection con;
+                Conexion con1 = new Conexion();
+                con = con1.getConnection();
+                Statement st = con.createStatement();
+                String sql = "select * from dias where NumSemana like '" + cmbSemana.getSelectedItem() + "' and Inicio like '" + fecha.get(cmbSemana.getSelectedIndex()) + "' order by NumEmpleado";
+                ResultSet rs = st.executeQuery(sql);
+                String datos[] = new String[27];
+                DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
+                int cont = 0;
+                while (rs.next()) {
+                    String num = rs.getString("NumEmpleado");
+                    boolean band = false;
+                    int nu = 0;
+
+                    for (int i = 0; i < config.length; i++) {
+                        if (config[i].getNumEmpleado().equals(num)) {
+                            band = true;
+                            nu = i;
+                            break;
+                        }
+                    }
+                    cont++;
+                    if (band) {
+                        datos[0] = config[nu].getNumEmpleado();
+                        datos[1] = config[nu].getNombre();
+                        datos[2] = rs.getString("Lunes");
+                        datos[2] = getTiempo(datos[2]);
+
+                        datos[3] = rs.getString("SLunes");
+                        datos[3] = getTiempo(datos[3]);
+
+                        datos[4] = "";
+                        datos[5] = rs.getString("Martes");
+                        datos[5] = getTiempo(datos[5]);
+
+                        datos[6] = rs.getString("SMartes");
+                        datos[6] = getTiempo(datos[6]);
+
+                        datos[7] = "";
+                        datos[8] = rs.getString("Miercoles");
+                        datos[8] = getTiempo(datos[8]);
+
+                        datos[9] = rs.getString("SMiercoles");
+                        datos[9] = getTiempo(datos[9]);
+
+                        datos[10] = "";
+                        datos[11] = rs.getString("Jueves");
+                        datos[11] = getTiempo(datos[11]);
+
+                        datos[12] = rs.getString("SJueves");
+                        datos[12] = getTiempo(datos[12]);
+
+                        datos[13] = "";
+                        datos[14] = rs.getString("Viernes");
+                        datos[14] = getTiempo(datos[14]);
+
+                        datos[15] = rs.getString("SViernes");
+                        datos[15] = getTiempo(datos[15]);
+
+                        datos[16] = "";
+                        datos[17] = rs.getString("Sabado");
+                        datos[17] = getTiempo(datos[17]);
+
+                        datos[18] = rs.getString("SSabado");
+                        datos[18] = getTiempo(datos[18]);
+
+                        datos[19] = "";
+                        datos[20] = rs.getString("Domingo");
+                        datos[20] = getTiempo(datos[20]);
+
+                        datos[21] = rs.getString("SDomingo");
+                        datos[21] = getTiempo(datos[21]);
+
+                        if (datos[20].equals("") && datos[21].equals("")) {
+                            datos[20] = "";
+                            datos[21] = "";
+                        }
+                        if (tgRedondear.isSelected()) {
+                            datos[2] = redondear(datos[2], datos[0]);
+                            datos[3] = redondear(datos[3], datos[0]);
+                            datos[5] = redondear(datos[5], datos[0]);
+                            datos[6] = redondear(datos[6], datos[0]);
+                            datos[8] = redondear(datos[8], datos[0]);
+                            datos[9] = redondear(datos[9], datos[0]);
+                            datos[11] = redondear(datos[11], datos[0]);
+                            datos[12] = redondear(datos[12], datos[0]);
+                            datos[14] = redondear(datos[14], datos[0]);
+                            datos[15] = redondear(datos[15], datos[0]);
+                            datos[17] = redondear(datos[17], datos[0]);
+                            datos[18] = redondear(datos[18], datos[0]);
+                            datos[20] = redondear(datos[20], datos[0]);
+                            datos[21] = redondear(datos[21], datos[0]);
+                        }
+                        miModelo.addRow(datos);
                     }
                 }
-                cont++;
-                if(band){
-                    datos[0] = config[nu].getNumEmpleado();
-                    datos[1] = config[nu].getNombre();
-                    datos[2] = rs.getString("Lunes");
-                    datos[2] = getTiempo(datos[2]);
 
-                    datos[3] = rs.getString("SLunes");
-                    datos[3] = getTiempo(datos[3]);
-
-                    datos[4] = "";
-                    datos[5] = rs.getString("Martes");
-                    datos[5] = getTiempo(datos[5]);
-
-                    datos[6] = rs.getString("SMartes");
-                    datos[6] = getTiempo(datos[6]);
-
-                    datos[7] = "";
-                    datos[8] = rs.getString("Miercoles");
-                    datos[8] = getTiempo(datos[8]);
-
-                    datos[9] = rs.getString("SMiercoles");
-                    datos[9] = getTiempo(datos[9]);
-
-                    datos[10] = "";
-                    datos[11] = rs.getString("Jueves");
-                    datos[11] = getTiempo(datos[11]);
-
-                    datos[12] = rs.getString("SJueves");
-                    datos[12] = getTiempo(datos[12]);
-
-                    datos[13] = "";
-                    datos[14] = rs.getString("Viernes");
-                    datos[14] = getTiempo(datos[14]);
-
-                    datos[15] = rs.getString("SViernes");
-                    datos[15] = getTiempo(datos[15]);
-
-                    datos[16] = "";
-                    datos[17] = rs.getString("Sabado");
-                    datos[17] = getTiempo(datos[17]);
-
-                    datos[18] = rs.getString("SSabado");
-                    datos[18] = getTiempo(datos[18]);
-
-                    datos[19] = "";
-                    datos[20] = rs.getString("Domingo");
-                    datos[20] = getTiempo(datos[20]);
-
-                    datos[21]= rs.getString("SDomingo");
-                    datos[21] = getTiempo(datos[21]);
-
-                    if(datos[20].equals("") && datos[21].equals("")){
+                for (int i = 0; i < config.length; i++) {
+                    boolean band = true;
+                    for (int j = 0; j < Tabla1.getRowCount(); j++) {
+                        if (config[i].getNombre().equals(Tabla1.getValueAt(j, 1).toString())) {
+                            band = false;
+                        }
+                    }
+                    if (band == true && config[i].isAutomatico()) {
+                        datos[0] = config[i].getNumEmpleado();
+                        datos[1] = config[i].getNombre();
+                        datos[2] = config[i].getEntrada();
+                        datos[2] = getTiempo(datos[2]);
+                        datos[3] = config[i].getSalida();
+                        datos[3] = getTiempo(datos[3]);
+                        datos[4] = "";
+                        datos[5] = config[i].getEntrada();
+                        datos[5] = getTiempo(datos[5]);
+                        datos[6] = config[i].getSalida();
+                        datos[6] = getTiempo(datos[6]);
+                        datos[7] = "";
+                        datos[8] = config[i].getEntrada();
+                        datos[8] = getTiempo(datos[8]);
+                        datos[9] = config[i].getSalida();
+                        datos[9] = getTiempo(datos[9]);
+                        datos[10] = "";
+                        datos[11] = config[i].getEntrada();
+                        datos[11] = getTiempo(datos[11]);
+                        datos[12] = config[i].getSalida();
+                        datos[12] = getTiempo(datos[12]);
+                        datos[13] = "";
+                        datos[14] = config[i].getEntrada();
+                        datos[14] = getTiempo(datos[14]);
+                        datos[15] = config[i].getSalida();
+                        datos[15] = getTiempo(datos[15]);
+                        datos[16] = "";
+                        datos[17] = config[i].getEntradaSabado();
+                        datos[17] = getTiempo(datos[17]);
+                        datos[18] = config[i].getSalidaSabado();
+                        datos[18] = getTiempo(datos[18]);
+                        datos[19] = "";
                         datos[20] = "";
                         datos[21] = "";
-                    }
-                    if(tgRedondear.isSelected()){
-                        datos[2] = redondear(datos[2],datos[0]);
-                        datos[3] = redondear(datos[3],datos[0]);
-                        datos[5] = redondear(datos[5],datos[0]);
-                        datos[6] = redondear(datos[6],datos[0]);
-                        datos[8] = redondear(datos[8],datos[0]);
-                        datos[9] = redondear(datos[9],datos[0]);
-                        datos[11] = redondear(datos[11],datos[0]);
-                        datos[12] = redondear(datos[12],datos[0]);
-                        datos[14] = redondear(datos[14],datos[0]);
-                        datos[15] = redondear(datos[15],datos[0]);
-                        datos[17] = redondear(datos[17],datos[0]);
-                        datos[18] = redondear(datos[18],datos[0]);
-                        datos[20] = redondear(datos[20],datos[0]);
-                        datos[21] = redondear(datos[21],datos[0]);
-                    }
-                    miModelo.addRow(datos);
-                }
-            }
-            
-            for (int i = 0; i < config.length; i++) {
-                boolean band = true;
-                for (int j = 0; j < Tabla1.getRowCount(); j++) {
-                    if(config[i].getNombre().equals(Tabla1.getValueAt(j, 1).toString())){
-                        band = false;
+                        if (tgRedondear.isSelected()) {
+                            datos[2] = redondear(datos[2], datos[0]);
+                            datos[3] = redondear(datos[3], datos[0]);
+                            datos[5] = redondear(datos[5], datos[0]);
+                            datos[6] = redondear(datos[6], datos[0]);
+                            datos[8] = redondear(datos[8], datos[0]);
+                            datos[9] = redondear(datos[9], datos[0]);
+                            datos[11] = redondear(datos[11], datos[0]);
+                            datos[12] = redondear(datos[12], datos[0]);
+                            datos[14] = redondear(datos[14], datos[0]);
+                            datos[15] = redondear(datos[15], datos[0]);
+                            datos[17] = redondear(datos[17], datos[0]);
+                            datos[18] = redondear(datos[18], datos[0]);
+                            datos[20] = redondear(datos[20], datos[0]);
+                            datos[21] = redondear(datos[21], datos[0]);
+                        }
+                        miModelo.addRow(datos);
                     }
                 }
-                if(band == true && config[i].isAutomatico()){
-                    datos[0] = config[i].getNumEmpleado();
-                    datos[1] = config[i].getNombre();
-                    datos[2] = config[i].getEntrada();
-                    datos[2] = getTiempo(datos[2]);
-                    datos[3] = config[i].getSalida();
-                    datos[3] = getTiempo(datos[3]);
-                    datos[4] = "";
-                    datos[5] = config[i].getEntrada();
-                    datos[5] = getTiempo(datos[5]);
-                    datos[6] = config[i].getSalida();
-                    datos[6] = getTiempo(datos[6]);
-                    datos[7] = "";
-                    datos[8] = config[i].getEntrada();
-                    datos[8] = getTiempo(datos[8]);
-                    datos[9] = config[i].getSalida();
-                    datos[9] = getTiempo(datos[9]);
-                    datos[10] = "";
-                    datos[11] = config[i].getEntrada();
-                    datos[11] = getTiempo(datos[11]);
-                    datos[12] = config[i].getSalida();
-                    datos[12] = getTiempo(datos[12]);
-                    datos[13] = "";
-                    datos[14] = config[i].getEntrada();
-                    datos[14] = getTiempo(datos[14]);
-                    datos[15] = config[i].getSalida();
-                    datos[15] = getTiempo(datos[15]);
-                    datos[16] = "";
-                    datos[17] = config[i].getEntradaSabado();
-                    datos[17] = getTiempo(datos[17]);
-                    datos[18] = config[i].getSalidaSabado();
-                    datos[18] = getTiempo(datos[18]);
-                    datos[19] = "";
-                    datos[20] = "";
-                    datos[21] = "";
-                    if(tgRedondear.isSelected()){
-                        datos[2] = redondear(datos[2],datos[0]);
-                        datos[3] = redondear(datos[3],datos[0]);
-                        datos[5] = redondear(datos[5],datos[0]);
-                        datos[6] = redondear(datos[6],datos[0]);
-                        datos[8] = redondear(datos[8],datos[0]);
-                        datos[9] = redondear(datos[9],datos[0]);
-                        datos[11] = redondear(datos[11],datos[0]);
-                        datos[12] = redondear(datos[12],datos[0]);
-                        datos[14] = redondear(datos[14],datos[0]);
-                        datos[15] = redondear(datos[15],datos[0]);
-                        datos[17] = redondear(datos[17],datos[0]);
-                        datos[18] = redondear(datos[18],datos[0]);
-                        datos[20] = redondear(datos[20],datos[0]);
-                        datos[21] = redondear(datos[21],datos[0]);
+
+                String sql2 = "select * from semanas where NumSemana like '" + cmbSemana.getSelectedItem() + "'";
+                Statement st2 = con.createStatement();
+                ResultSet rs2 = st2.executeQuery(sql2);
+                String estado = null;
+                String inicio = "";
+                while (rs2.next()) {
+                    estado = rs2.getString(getSupervisor());
+                    inicio = rs2.getString("Inicio");
+                }
+                agregarDias(inicio);
+                if (estado == null) {
+                    lblEstado.setText("EDITANDO");
+                    lblEstado.setForeground(Color.ORANGE);
+                } else {
+                    lblEstado.setText("EDITADO");
+                    lblEstado.setForeground(Color.RED);
+                }
+                if (cmbSemana.getSelectedIndex() == 0) {
+                    lblSemana.setText("SIN SELECCIONAR");
+                } else {
+                    lblSemana.setText(cmbSemana.getSelectedItem().toString());
+                }
+                crearMatriz();
+                if (tgIncidencias.isVisible()) {
+                    if (tgIncidencias.isSelected()) {
+                        crearMatrizIncidencias(con, fecha.get(cmbSemana.getSelectedIndex()), lblSemana.getText());
                     }
-                    miModelo.addRow(datos);
+                } else {
+                    crearMatrizIncidencias(con, fecha.get(cmbSemana.getSelectedIndex()), lblSemana.getText());
                 }
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
             }
-            
-            String sql2 = "select * from semanas where NumSemana like '"+cmbSemana.getSelectedItem()+"'";
-            Statement st2 = con.createStatement();
-            ResultSet rs2  = st2.executeQuery(sql2);
-            String estado = null;
-            String inicio = "";
-            while(rs2.next()){
-                estado = rs2.getString(getSupervisor());
-                inicio = rs2.getString("Inicio");
-            }
-            agregarDias(inicio);
-            if(estado == null){
-                lblEstado.setText("EDITANDO");
-                lblEstado.setForeground(Color.ORANGE);
-            }else{
-                lblEstado.setText("EDITADO");
-                lblEstado.setForeground(Color.RED);
-            }
-            if(cmbSemana.getSelectedIndex() == 0){
-                lblSemana.setText("SIN SELECCIONAR");
-            }else{
-                lblSemana.setText(cmbSemana.getSelectedItem().toString());
-            }
-            crearMatriz();
-            if(tgIncidencias.isVisible()){
-                if(tgIncidencias.isSelected()){
-                    crearMatrizIncidencias(con, fecha.get(cmbSemana.getSelectedIndex()),lblSemana.getText());
-                }
-            }else{
-                crearMatrizIncidencias(con, fecha.get(cmbSemana.getSelectedIndex()),lblSemana.getText());
-            }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
-        }
         }
     }//GEN-LAST:event_btnVerMisEmpleadosActionPerformed
 
     private void Tabla1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_Tabla1MouseClicked
-        if(evt.getClickCount() == 1){
-            if(Tabla1.getColumnName(Tabla1.getSelectedColumn()).equals("entrada") || Tabla1.getColumnName(Tabla1.getSelectedColumn()).equals("salida")){
+        if (evt.getClickCount() == 1) {
+            if (Tabla1.getColumnName(Tabla1.getSelectedColumn()).equals("entrada") || Tabla1.getColumnName(Tabla1.getSelectedColumn()).equals("salida")) {
                 Tabla1.setValueAt("", Tabla1.getSelectedRow(), Tabla1.getSelectedColumn());
             }
         }
@@ -1982,7 +1988,7 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
 
     private void rSButtonRoundRipple3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rSButtonRoundRipple3ActionPerformed
         JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        e = new editarEmpleado(f,true,numEmpleado);
+        e = new editarEmpleado(f, true, numEmpleado);
         e.btnGuardar.addActionListener(this);
         e.setVisible(true);
     }//GEN-LAST:event_rSButtonRoundRipple3ActionPerformed
@@ -1996,16 +2002,16 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
     }//GEN-LAST:event_cmbSemanaVetoableChange
 
     private void cmbSemanaPopupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent evt) {//GEN-FIRST:event_cmbSemanaPopupMenuWillBecomeInvisible
-        
+
     }//GEN-LAST:event_cmbSemanaPopupMenuWillBecomeInvisible
 
     private void btnSubir1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSubir1ActionPerformed
-        if(Tabla1.getRowCount() < 0){
-            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR UN HORARIO","ADVERTENCIA",JOptionPane.WARNING_MESSAGE);
-        }else{
+        if (Tabla1.getRowCount() < 0) {
+            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR UN HORARIO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+        } else {
             int opc = JOptionPane.showConfirmDialog(this, "ESTAS SEGURO DE GUARDAR ESTE HORARIO?");
-            if(opc == 0){
-                try{
+            if (opc == 0) {
+                try {
                     //--------------------------------------------------------------------------------------------------------------------------------
                     int n1 = 0;
                     String sql2 = "insert into incidencias_checador(NumSemana, Inicio, X, NumEmpleado, Comentario, Hora) values(?,?,?,?,?,?)"
@@ -2016,7 +2022,7 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                     for (int i = 0; i < matrizIncidencias.length; i++) {
                         for (int j = 0; j < matrizIncidencias[i].length; j++) {
                             Object comentario = matrizIncidencias[i][j][0];
-                            if(comentario != null){
+                            if (comentario != null) {
                                 pst2.setString(1, lblSemana.getText());
                                 pst2.setString(2, fecha.get(cmbSemana.getSelectedIndex()));
                                 pst2.setInt(3, j);
@@ -2027,11 +2033,11 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                             }
                         }
                     }
-                    
+
                     String sql = "update dias lunes = ?, martes = ?, miercoles = ?, jueves = ?, viernes = ?, sabado = ?, domingo = ?, slunes = ?, "
                             + "smartes = ?, smiercoles = ?, sjueves = ?, sviernes = ?, ssabado = ?, sdomingo = ? where NumEmpleado = ? and Inicio = ?";
                     PreparedStatement pst = con.prepareStatement(sql);
-                    
+
                     for (int i = 0; i < Tabla1.getRowCount(); i++) {
                         pst.setString(1, evaluarNull(Tabla1.getValueAt(i, 2)));
                         pst.setString(2, evaluarNull(Tabla1.getValueAt(i, 5)));
@@ -2055,11 +2061,11 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                     if (n1 > 0) {
                         JOptionPane.showMessageDialog(this, "DATOS GUARDADOS");
                         crearPdf();
-                    }else{
+                    } else {
                         crearPdf();
                     }
-                }catch(SQLException e){
-                    JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
@@ -2070,20 +2076,20 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
     }//GEN-LAST:event_cmbSemanaActionPerformed
 
     private void Tabla1KeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_Tabla1KeyPressed
-        
+
     }//GEN-LAST:event_Tabla1KeyPressed
 
     private void agregarIncidenciaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_agregarIncidenciaActionPerformed
         int row = Tabla1.getSelectedRow();
         int col = Tabla1.getSelectedColumn();
         if (verificarColumna(col)) {
-            incidencias = new Incidencias(null,true,"","",Tabla1.getValueAt(row, 1).toString());
+            incidencias = new Incidencias(null, true, "", "", Tabla1.getValueAt(row, 1).toString());
             incidencias.setLocationRelativeTo(null);
             String comentarios = incidencias.getIncidencia();
             matrizIncidencias[row][col][0] = comentarios;
             matrizIncidencias[row][col][1] = "";
             matrizIncidencias[row][col][2] = "";
-            if(comentarios.equals("")){
+            if (comentarios.equals("")) {
                 Tabla1.setValueAt("", row, col);
             }
         }
@@ -2181,8 +2187,8 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(this.e != null){
-            if(e.getSource() == this.e.btnGuardar){
+        if (this.e != null) {
+            if (e.getSource() == this.e.btnGuardar) {
                 config = null;
                 addConfig();
                 limpiarTabla();

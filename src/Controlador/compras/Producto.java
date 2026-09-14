@@ -8,7 +8,7 @@ public class Producto {
     private String numeroParte;
     private String descripcion;
     private String unidad;
-    private int cantidad;
+    private double cantidad;
     private BigDecimal precioUnitario;
 
     public int getItem() {
@@ -27,7 +27,7 @@ public class Producto {
         return unidad;
     }
 
-    public int getCantidad() {
+    public double getCantidad() {
         return cantidad;
     }
 
@@ -41,7 +41,7 @@ public class Producto {
         );
     }
     
-    public Producto(int item, String numeroParte, String descripcion, String unidad, int cantidad, BigDecimal precioUnitario) {
+    public Producto(int item, String numeroParte, String descripcion, String unidad, double cantidad, BigDecimal precioUnitario) {
         this.item = item;
         this.numeroParte = numeroParte;
         this.descripcion = descripcion;

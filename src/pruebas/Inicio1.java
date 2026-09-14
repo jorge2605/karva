@@ -1,4 +1,5 @@
 package pruebas;
+
 import Conexiones.Conexion;
 import Conexiones.ConexionChat;
 import VentanaEmergente.CalidadNew.inicioCalidad;
@@ -52,7 +53,7 @@ import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public final class Inicio1 extends javax.swing.JFrame implements Observer,ActionListener{
+public final class Inicio1 extends javax.swing.JFrame implements Observer, ActionListener {
 
     String num;
     String depa;
@@ -67,20 +68,20 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     public int HOME = 1;
     public int COSTOS = 2;
     public Backups backup;
-    
-    public void activar(){
+
+    public void activar() {
         Thread hilo = new Thread() {
             public void run() {
                 for (;;) {
                     if (pedido) {
                         try {
                             sleep(500);
-                            if(panelPedidos.getBackground().equals(Color.white)){
+                            if (panelPedidos.getBackground().equals(Color.white)) {
                                 panelPedidos.setBackground(new Color(255, 133, 133));
-                            }else{
+                            } else {
                                 panelPedidos.setBackground(Color.white);
                             }
-                            
+
                         } catch (Exception e) {
                             JOptionPane.showMessageDialog(null, "ERROR EN CRONOMETRO");
                         }
@@ -92,143 +93,143 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         };
         hilo.start();
     }
-    
-    public void visto(){
-    try{
-        Connection con = null;
-        ConexionChat con1 = new ConexionChat();
-        con = con1.getConnection();
-        Statement st = con.createStatement();
-        String not = "noti"+num;
-        String sql = "select * from "+not+" where Visto2 is null";
-        ResultSet rs = st.executeQuery(sql);
-        String id;
-        while(rs.next()){
-            id = rs.getString("Id");
-            String sql2 = "update "+not+" set Visto2 = ? where Id = ?";
-            PreparedStatement pst2 = con.prepareStatement(sql2);
-            
-            pst2.setString(1, "SI");
-            pst2.setString(2, id);
-            pst2.executeUpdate();
-        }
-    }catch(SQLException e){
-        JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
-    }   catch (ClassNotFoundException ex) { 
+
+    public void visto() {
+        try {
+            Connection con = null;
+            ConexionChat con1 = new ConexionChat();
+            con = con1.getConnection();
+            Statement st = con.createStatement();
+            String not = "noti" + num;
+            String sql = "select * from " + not + " where Visto2 is null";
+            ResultSet rs = st.executeQuery(sql);
+            String id;
+            while (rs.next()) {
+                id = rs.getString("Id");
+                String sql2 = "update " + not + " set Visto2 = ? where Id = ?";
+                PreparedStatement pst2 = con.prepareStatement(sql2);
+
+                pst2.setString(1, "SI");
+                pst2.setString(2, id);
+                pst2.executeUpdate();
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
+        } catch (ClassNotFoundException ex) {
             Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, ex);
-        } 
+        }
     }
-    
-    public void actualizar(){
-        try{
+
+    public void actualizar() {
+        try {
             Connection con;
             ConexionChat con1 = new ConexionChat();
             con = con1.getConnection();
             Statement st = con.createStatement();
-            String sql = "select * from noti"+num+" where Departamento like '4'";
+            String sql = "select * from noti" + num + " where Departamento like '4'";
             ResultSet rs = st.executeQuery(sql);
             String depa = "";
             String visto = "";
             int cont = 0;
-            while(rs.next()){
+            while (rs.next()) {
                 visto = rs.getString("Visto2");
                 depa = rs.getString("Departamento");
-                if(visto == null){
+                if (visto == null) {
                     cont++;
                 }
             }
-            if(cont > 0){
-                
+            if (cont > 0) {
+
                 pedido = true;
-                if(this.c != null){
-                    if(this.c.isVisible()){
+                if (this.c != null) {
+                    if (this.c.isVisible()) {
                         System.out.println("entra en visible");
                         pedido = false;
-                    c.limpiarPanelPedidos();
-                    int opc;
-                        if(c.nuevos.isSelected()){
+                        c.limpiarPanelPedidos();
+                        int opc;
+                        if (c.nuevos.isSelected()) {
                             opc = 0;
-                        }else{
+                        } else {
                             opc = 1;
                         }
-                    c.addBotonesPedido(opc);
-                    }else{
+                        c.addBotonesPedido(opc);
+                    } else {
                         System.out.println("entra a no visible");
                         pedido = true;
                     }
-                }else{
+                } else {
                     System.out.println("entra a null");
                     pedido = true;
                 }
-            
+
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, ex);
         }
-    
+
     }
-    
-    public void verNotificaciones(){
-        try{
+
+    public void verNotificaciones() {
+        try {
             Connection con = null;
             ConexionChat con1 = new ConexionChat();
             con = con1.getConnection();
             Statement st = con.createStatement();
-            String numero = "noti"+num;
-            String sql = "select * from "+numero;
+            String numero = "noti" + num;
+            String sql = "select * from " + numero;
             ResultSet rs = st.executeQuery(sql);
             String visto = "";
             String depa = "";
             int cont = 0;
-            while(rs.next()){
+            while (rs.next()) {
                 visto = rs.getString("Visto2");
                 depa = rs.getString("Departamento");
-                if(visto == null){
+                if (visto == null) {
                     cont++;
                 }
             }
-            
-            if(cont == 0){
+
+            if (cont == 0) {
                 lblCont.setVisible(false);
-            }else{
+            } else {
                 lblCont.setVisible(true);
                 lblCont.setText(String.valueOf(cont));
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    public void iniciarServidor(){
+
+    public void iniciarServidor() {
         int port = 0;
-        try{
+        try {
             Connection con = null;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
             Statement st = con.createStatement();
-            String sql = "select * from registroempleados where NumEmpleado like '"+num+"'";
+            String sql = "select * from registroempleados where NumEmpleado like '" + num + "'";
             ResultSet rs = st.executeQuery(sql);
-            while(rs.next()){
+            while (rs.next()) {
                 port = Integer.parseInt(rs.getString("Puerto"));
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
-            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
+
         }
-        if(port == 0){
-            JOptionPane.showMessageDialog(this, "NO SE PUEDE PUDO INICIAR EL SERVIDOR","ERROR",JOptionPane.ERROR_MESSAGE);
-        }else{
-        Servidor servidor = new Servidor(port+1);
-        servidor.addObserver(this);
-        Thread hilo = new Thread(servidor);
-        hilo.start();
+        if (port == 0) {
+            JOptionPane.showMessageDialog(this, "NO SE PUEDE PUDO INICIAR EL SERVIDOR", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else {
+            Servidor servidor = new Servidor(port + 1);
+            servidor.addObserver(this);
+            Thread hilo = new Thread(servidor);
+            hilo.start();
         }
     }
-    
+
     private static void cargarUbicacionVentana(Frame ventana) {
         Preferences prefs = Preferences.userNodeForPackage(Inicio1.class);
         int x = prefs.getInt("posX", 100);
@@ -242,46 +243,46 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         prefs.putInt("posX", ubicacion.x);
         prefs.putInt("posY", ubicacion.y);
     }
-    
-    public void getPrecioDolar(){
-        
-        try{
+
+    public void getPrecioDolar() {
+
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
             String sql = "insert into preciodolar (Precio, Fecha) values (?,?)";
             PreparedStatement pst = con.prepareStatement(sql);
-            
+
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             Date d = new Date();
             String fecha = sdf.format(d);
-            
-            String sql2 = "select * from preciodolar where Fecha like '"+fecha+"'";
+
+            String sql2 = "select * from preciodolar where Fecha like '" + fecha + "'";
             Statement st = con.createStatement();
             ResultSet rs = st.executeQuery(sql2);
-            
+
             String fec = null;
-            while(rs.next()){
+            while (rs.next()) {
                 fec = rs.getString("Precio");
             }
-            
-            if(fec == null){
+
+            if (fec == null) {
                 precioDolar precio = new precioDolar();
-                if(precio.getPrecio() != 0){
+                if (precio.getPrecio() != 0) {
                     pst.setString(1, String.valueOf(precio.getPrecio()));
                     pst.setString(2, fecha);
 
                     pst.executeUpdate();
                 }
             }
-            
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public final int getCostos(String numEmpleado, int seleccion){
-        try{
+
+    public final int getCostos(String numEmpleado, int seleccion) {
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
@@ -289,21 +290,21 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
             String sql = "select * from requisicion where Progreso like 'EVALUACION'";
             ResultSet rs = st.executeQuery(sql);
             int cont = 0;
-            while(rs.next()){
+            while (rs.next()) {
                 cont++;
             }
-            if(seleccion == COSTOS){
+            if (seleccion == COSTOS) {
                 cont--;
             }
             return cont;
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "Error: "+e,"Error",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
         return 0;
     }
-    
-    public String getEmpleadoCostos(String numEmpleado){
-        try{
+
+    public String getEmpleadoCostos(String numEmpleado) {
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
@@ -311,27 +312,27 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
             String sql2 = "select * from registroempleados where NumEmpleado like '" + numEmpleado + "'";
             ResultSet rs2 = st2.executeQuery(sql2);
             String costos = null;
-            while(rs2.next()){
+            while (rs2.next()) {
                 costos = rs2.getString("Costos");
                 requis = rs2.getBoolean("VerRequisiciones");
             }
             return costos;
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "Error: "+e,"error",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "error", JOptionPane.ERROR_MESSAGE);
         }
         return null;
     }
-    
-    public void checkCostos(){
+
+    public void checkCostos() {
         boolean band = true;
         Thread hilo = new Thread(new Runnable() {
             public void run() {
-                while(band) {
+                while (band) {
                     try {
                         notiCostos = getCostos(lblId.getText(), HOME);
-                        if(notiCostos == 0){
+                        if (notiCostos == 0) {
                             lblNotiCostos.setVisible(false);
-                        }else{
+                        } else {
                             lblNotiCostos.setVisible(true);
                             lblNotiCostos.setText(String.valueOf(notiCostos));
                         }
@@ -344,43 +345,43 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         });
         hilo.start();
     }
-    
-    public int extraerRequisiciones(){
-       try{
-           Connection con;
-           Conexion con1 = new Conexion();
-           con = con1.getConnection();
-           Statement st = con.createStatement();
-           LocalDate fechaActual = LocalDate.now();
-           LocalDate nuevaFecha = fechaActual.minusDays(3);
-           DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-           String nuevaFechaFormateada = nuevaFecha.format(formatter);
-           String sql = "select Progreso, Id, NumeroEmpleado, NumeroCotizacion, Estatus, Estado, Progreso, Costo, Fecha from requisicion where "
-                   + "(Progreso like 'COMPRADO' or Progreso like 'COTIZANDO' "
-                   + "or Progreso like 'COTIZADO' or Progreso like 'APROBADO' or Progreso like 'NUEVO' or Progreso like 'LLEGO, INCOMPETO'"
-                   + "or Progreso like 'EVALUACION') and FechaNew < '" + nuevaFechaFormateada + "' and NumeroEmpleado like '" + lblId.getText() + "'";
-           ResultSet rs = st.executeQuery(sql);
-           int cont = 0;
-           while(rs.next()){
-               cont++;
-           }
-           return cont;
-       }catch(SQLException e){
-           JOptionPane.showMessageDialog(this, "Error: "+e,"Error",JOptionPane.ERROR_MESSAGE);
-       }
-       return 0;
-   }
-    
-    public void checkRequi(){
+
+    public int extraerRequisiciones() {
+        try {
+            Connection con;
+            Conexion con1 = new Conexion();
+            con = con1.getConnection();
+            Statement st = con.createStatement();
+            LocalDate fechaActual = LocalDate.now();
+            LocalDate nuevaFecha = fechaActual.minusDays(3);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            String nuevaFechaFormateada = nuevaFecha.format(formatter);
+            String sql = "select Progreso, Id, NumeroEmpleado, NumeroCotizacion, Estatus, Estado, Progreso, Costo, Fecha from requisicion where "
+                    + "(Progreso like 'COMPRADO' or Progreso like 'COTIZANDO' "
+                    + "or Progreso like 'COTIZADO' or Progreso like 'APROBADO' or Progreso like 'NUEVO' or Progreso like 'LLEGO, INCOMPETO'"
+                    + "or Progreso like 'EVALUACION') and FechaNew < '" + nuevaFechaFormateada + "' and NumeroEmpleado like '" + lblId.getText() + "'";
+            ResultSet rs = st.executeQuery(sql);
+            int cont = 0;
+            while (rs.next()) {
+                cont++;
+            }
+            return cont;
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return 0;
+    }
+
+    public void checkRequi() {
         boolean band = true;
         Thread hilo = new Thread(new Runnable() {
             public void run() {
-                while(band) {
+                while (band) {
                     try {
                         notiRequis = extraerRequisiciones();
-                        if(notiRequis == 0){
+                        if (notiRequis == 0) {
                             lblNotiRequis.setVisible(false);
-                        }else{
+                        } else {
                             lblNotiRequis.setVisible(true);
                             lblNotiRequis.setText(String.valueOf(notiRequis));
                         }
@@ -393,20 +394,20 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         });
         hilo.start();
     }
-    
-    public void inicioCostos(JInternalFrame c){
+
+    public void inicioCostos(JInternalFrame c) {
         JInternalFrame cla = c;
         jDesktopPane1.add(cla);
         cla.toFront();
         cla.setLocation(jDesktopPane1.getWidth() / 2 - cla.getWidth() / 2, jDesktopPane1.getHeight() / 2 - cla.getHeight() / 2);
-        try{
+        try {
             cla.setMaximum(true);
-        }catch(PropertyVetoException ex){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,ex);
+        } catch (PropertyVetoException ex) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, ex);
         }
         cla.setVisible(true);
     }
-    
+
     public final void iniciarBackup() {
         try {
             backup = new Backups();
@@ -415,7 +416,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
             JOptionPane.showMessageDialog(this, "Error " + e);
         }
     }
-    
+
     public Inicio1(String numero, String nombre, String depa) {
         try {
             UIManager.setLookAndFeel(new FlatMacLightLaf());
@@ -429,26 +430,25 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         lblNombre.setText(nombre);
         setLocationRelativeTo(null);
         setTitle("Servicios Industriales 3i");
-        this.setIconImage(new ImageIcon(getClass().getResource("/Img/Icono Towi.png")).getImage()); 
+        this.setIconImage(new ImageIcon(getClass().getResource("/Img/Icono Towi.png")).getImage());
         btnCalidad.setComponentPopupMenu(jPopupMenu1);
         pedido = false;
         cargarUbicacionVentana(this);
         this.setExtendedState(Inicio1.MAXIMIZED_BOTH);
         getPrecioDolar();
-        if(getEmpleadoCostos(numero) != null){
+        if (getEmpleadoCostos(numero) != null) {
             checkCostos();
-        }else{
+        } else {
             lblNotiCostos.setVisible(false);
         }
-        if(requis){
+        if (requis) {
             checkRequi();
-        }else{
+        } else {
             lblNotiRequis.setVisible(false);
         }
         iniciarBackup();
     }
 
-   
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -544,7 +544,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jLabel15 = new javax.swing.JLabel();
         panel38 = new javax.swing.JPanel();
         rSPanelRound39 = new rojeru_san.rspanel.RSPanelRound();
-        btnRegistro1 = new javax.swing.JButton();
+        btnRH = new javax.swing.JButton();
         jLabel38 = new javax.swing.JLabel();
         panel32 = new javax.swing.JPanel();
         rSPanelRound17 = new rojeru_san.rspanel.RSPanelRound();
@@ -1597,30 +1597,30 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         rSPanelRound39.setPreferredSize(new java.awt.Dimension(90, 90));
         rSPanelRound39.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 10));
 
-        btnRegistro1.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        btnRegistro1.setForeground(new java.awt.Color(0, 153, 255));
-        btnRegistro1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/rh.png"))); // NOI18N
-        btnRegistro1.setBorder(null);
-        btnRegistro1.setContentAreaFilled(false);
-        btnRegistro1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnRegistro1.setFocusPainted(false);
-        btnRegistro1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        btnRegistro1.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        btnRegistro1.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        btnRegistro1.addMouseListener(new java.awt.event.MouseAdapter() {
+        btnRH.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        btnRH.setForeground(new java.awt.Color(0, 153, 255));
+        btnRH.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/rh.png"))); // NOI18N
+        btnRH.setBorder(null);
+        btnRH.setContentAreaFilled(false);
+        btnRH.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnRH.setFocusPainted(false);
+        btnRH.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        btnRH.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        btnRH.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        btnRH.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btnRegistro1MouseEntered(evt);
+                btnRHMouseEntered(evt);
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                btnRegistro1MouseExited(evt);
+                btnRHMouseExited(evt);
             }
         });
-        btnRegistro1.addActionListener(new java.awt.event.ActionListener() {
+        btnRH.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnRegistro1ActionPerformed(evt);
+                btnRHActionPerformed(evt);
             }
         });
-        rSPanelRound39.add(btnRegistro1);
+        rSPanelRound39.add(btnRH);
 
         panel38.add(rSPanelRound39, new java.awt.GridBagConstraints());
 
@@ -2441,19 +2441,19 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        Configuracion e = new Configuracion(this,true,lblId.getText(),lblNombre.getText());
+        Configuracion e = new Configuracion(this, true, lblId.getText(), lblNombre.getText());
         e.setVisible(true);
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void miReporteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miReporteActionPerformed
-        
+
     }//GEN-LAST:event_miReporteActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         visto();
         verNotificaciones();
-        Notificaciones n = new Notificaciones(this,lblId.getText(),lblNombre.getText(), lblId.getText());
-        n.setBounds(jButton3.getX(), jButton3.getY()+50, n.getWidth(), n.getHeight());
+        Notificaciones n = new Notificaciones(this, lblId.getText(), lblNombre.getText(), lblId.getText());
+        n.setBounds(jButton3.getX(), jButton3.getY() + 50, n.getWidth(), n.getHeight());
         n.setVisible(true);
     }//GEN-LAST:event_jButton3ActionPerformed
 
@@ -2463,27 +2463,27 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_jButton4ActionPerformed
 
     private void lblId1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblId1MouseClicked
-        try{
-        Clip clip;
-        clip = AudioSystem.getClip();
-        clip.open(AudioSystem.getAudioInputStream(getClass().getResourceAsStream("/Gif/campana.wav")));
-        clip.start();
-        }catch(Exception e){
-            System.out.println("NO SE EJECUTO EL SISTEMA DE AUDIO: "+e);
+        try {
+            Clip clip;
+            clip = AudioSystem.getClip();
+            clip.open(AudioSystem.getAudioInputStream(getClass().getResourceAsStream("/Gif/campana.wav")));
+            clip.start();
+        } catch (Exception e) {
+            System.out.println("NO SE EJECUTO EL SISTEMA DE AUDIO: " + e);
         }
     }//GEN-LAST:event_lblId1MouseClicked
 
     private void btnCotizacionVentasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionVentasActionPerformed
-        InicioCotizacion c = new InicioCotizacion(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
-            c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
-        }
-        c.setVisible(true);
+//        InicioCotizacion c = new InicioCotizacion(lblId.getText());
+//        jDesktopPane1.add(c);
+//        c.toFront();
+//        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+//        try{
+//            c.setMaximum(true);
+//        }catch(PropertyVetoException e){
+//            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+//        }
+//        c.setVisible(true);
     }//GEN-LAST:event_btnCotizacionVentasActionPerformed
 
     private void btnCotizacionVentasMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionVentasMouseExited
@@ -2499,10 +2499,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnVerActionPerformed
@@ -2516,14 +2516,14 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnVerMouseEntered
 
     private void btnCotizacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionActionPerformed
-        InicioCotizacion c = new InicioCotizacion(lblId.getText());
+        InicioCotizacion c = new InicioCotizacion(lblId.getText(), this);
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnCotizacionActionPerformed
@@ -2537,14 +2537,14 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnCotizacionMouseEntered
 
     private void btnPrestamosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPrestamosActionPerformed
-        Prestamo c = new Prestamo(lblId.getText(),this);
+        Prestamo c = new Prestamo(lblId.getText(), this);
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnPrestamosActionPerformed
@@ -2562,10 +2562,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnRecibosActionPerformed
@@ -2583,10 +2583,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnOrden1ActionPerformed
@@ -2604,10 +2604,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnOrdenActionPerformed
@@ -2621,14 +2621,14 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnOrdenMouseEntered
 
     private void btnRequisicionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRequisicionActionPerformed
-        requisicionDeCompra c = new requisicionDeCompra(lblId.getText(),lblNombre.getText());
+        requisicionDeCompra c = new requisicionDeCompra(lblId.getText(), lblNombre.getText());
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnRequisicionActionPerformed
@@ -2646,10 +2646,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
         actualizar();
@@ -2668,10 +2668,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnEntregaActionPerformed
@@ -2689,10 +2689,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnRemisionesActionPerformed
@@ -2710,10 +2710,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnInventario2ActionPerformed
@@ -2731,10 +2731,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnInventario1ActionPerformed
@@ -2748,7 +2748,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnInventario1MouseEntered
 
     private void btnInventarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventarioActionPerformed
-        inicioAlmacen = new InicioAlmacen(this,true);
+        inicioAlmacen = new InicioAlmacen(this, true);
         inicioAlmacen.setLocationRelativeTo(this);
         inicioAlmacen.btnInventario.addActionListener(this);
         inicioAlmacen.btnRevisar.addActionListener(this);
@@ -2768,10 +2768,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnEmpleadoActionPerformed
@@ -2802,10 +2802,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnElecActionPerformed
@@ -2823,10 +2823,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnTrataActionPerformed
@@ -2845,10 +2845,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnCalidadActionPerformed
@@ -2866,10 +2866,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnCorteActionPerformed
@@ -2887,10 +2887,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnEstado5ActionPerformed
@@ -2908,10 +2908,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnEstado3ActionPerformed
@@ -2929,10 +2929,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnEstado1ActionPerformed
@@ -2950,10 +2950,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnEstado2ActionPerformed
@@ -2971,10 +2971,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(VistaEXe);
         VistaEXe.toFront();
         VistaEXe.setLocation(jDesktopPane1.getWidth() / 2 - VistaEXe.getWidth() / 2, jDesktopPane1.getHeight() / 2 - VistaEXe.getHeight() / 2);
-        try{
+        try {
             VistaEXe.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         VistaEXe.setVisible(true);
     }//GEN-LAST:event_btnEstadoActionPerformed
@@ -2992,10 +2992,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnDisenioActionPerformed
@@ -3021,10 +3021,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnChecadorActionPerformed
@@ -3042,10 +3042,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
 //        c.insertarSemanas();
         c.setVisible(true);
@@ -3067,10 +3067,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
 
     private void btnCostosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCostosActionPerformed
         JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        inicioCostos = new InicioCostos(f,true);
-        if(notiCostos == 0){
+        inicioCostos = new InicioCostos(f, true);
+        if (notiCostos == 0) {
             inicioCostos.lblNotiCostos.setVisible(false);
-        }else{
+        } else {
             inicioCostos.lblNotiCostos.setVisible(true);
             inicioCostos.lblNotiCostos.setText(String.valueOf(notiCostos));
         }
@@ -3083,16 +3083,16 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
 
     private void formKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_formKeyPressed
         int modifer = evt.getModifiersEx();
-        if(modifer == (KeyEvent.ALT_DOWN_MASK | KeyEvent.CTRL_DOWN_MASK) && evt.getKeyCode() == KeyEvent.VK_M){
+        if (modifer == (KeyEvent.ALT_DOWN_MASK | KeyEvent.CTRL_DOWN_MASK) && evt.getKeyCode() == KeyEvent.VK_M) {
             JOptionPane.showMessageDialog(this, "SE ARMO");
-        }else{
+        } else {
             System.out.println("no");
         }
     }//GEN-LAST:event_formKeyPressed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         int opc = JOptionPane.showConfirmDialog(this, "¿Estas seguro de cerrar sesion?");
-        if(opc == 0){
+        if (opc == 0) {
             InicioSesion inicio = new InicioSesion();
             inicio.setLocationRelativeTo(this);
             inicio.setVisible(true);
@@ -3109,14 +3109,14 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnCalendarioMouseExited
 
     private void btnCalendarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCalendarioActionPerformed
-        Calendario c = new Calendario(lblId.getText(),this);
+        Calendario c = new Calendario(lblId.getText(), this);
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnCalendarioActionPerformed
@@ -3130,14 +3130,14 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     }//GEN-LAST:event_btnIntegracionMouseExited
 
     private void btnIntegracionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIntegracionActionPerformed
-        Integracion c = new Integracion(lblNombre.getText(),lblId.getText());
+        Integracion c = new Integracion(lblNombre.getText(), lblId.getText());
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnIntegracionActionPerformed
@@ -3155,10 +3155,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnIntegracion1ActionPerformed
@@ -3176,10 +3176,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
     }//GEN-LAST:event_btnCalidad1ActionPerformed
@@ -3189,34 +3189,32 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
             backup.setSize(1112, 691);
             backup.setLocationRelativeTo(this);
             backup.setVisible(true);
-        } catch(Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e,"Error",JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_btnModificar1ActionPerformed
 
-    private void btnRegistro1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRegistro1MouseEntered
+    private void btnRHMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRHMouseEntered
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnRegistro1MouseEntered
+    }//GEN-LAST:event_btnRHMouseEntered
 
-    private void btnRegistro1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRegistro1MouseExited
+    private void btnRHMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRHMouseExited
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnRegistro1MouseExited
+    }//GEN-LAST:event_btnRHMouseExited
 
-    private void btnRegistro1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegistro1ActionPerformed
+    private void btnRHActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRHActionPerformed
         RH c = new RH(lblId.getText());
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try{
+        try {
             c.setMaximum(true);
-        }catch(PropertyVetoException e){
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
-    }//GEN-LAST:event_btnRegistro1ActionPerformed
+    }//GEN-LAST:event_btnRHActionPerformed
 
-    
-    
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -3228,7 +3226,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
                 }
             }
         });
-        
+
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     public javax.swing.JButton btnCalendario;
@@ -3259,9 +3257,9 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
     public javax.swing.JButton btnOrden1;
     public javax.swing.JButton btnPedidos;
     public javax.swing.JButton btnPrestamos;
+    public javax.swing.JButton btnRH;
     public javax.swing.JButton btnRecibos;
     public javax.swing.JButton btnRegistro;
-    public javax.swing.JButton btnRegistro1;
     public javax.swing.JButton btnRemisiones;
     public javax.swing.JButton btnRequisicion;
     public javax.swing.JButton btnTrata;
@@ -3396,16 +3394,16 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
 
     @Override
     public void update(Observable o, Object arg) {
-        String mensaje = (String)arg;
+        String mensaje = (String) arg;
         verNotificaciones();
 //        Notifi n = new Notifi(mensaje,"1",this);
-        try{
-        Clip clip;
-        clip = AudioSystem.getClip();
-        clip.open(AudioSystem.getAudioInputStream(getClass().getResourceAsStream("/Gif/campana.wav")));
-        clip.start();
-        }catch(IOException | LineUnavailableException | UnsupportedAudioFileException e){
-            System.out.println("NO SE EJECUTO EL SISTEMA DE AUDIO: "+e);
+        try {
+            Clip clip;
+            clip = AudioSystem.getClip();
+            clip.open(AudioSystem.getAudioInputStream(getClass().getResourceAsStream("/Gif/campana.wav")));
+            clip.start();
+        } catch (IOException | LineUnavailableException | UnsupportedAudioFileException e) {
+            System.out.println("NO SE EJECUTO EL SISTEMA DE AUDIO: " + e);
         }
         verNotificaciones();
         verNotificaciones();
@@ -3419,8 +3417,8 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(inicioAlmacen != null){
-            if(e.getSource() == inicioAlmacen.btnInventario){
+        if (inicioAlmacen != null) {
+            if (e.getSource() == inicioAlmacen.btnInventario) {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
@@ -3428,16 +3426,16 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
                         jDesktopPane1.add(c);
                         c.toFront();
                         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-                        try{
+                        try {
                             c.setMaximum(true);
-                        }catch(PropertyVetoException e){
-                            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+                        } catch (PropertyVetoException e) {
+                            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
                         }
                         inicioAlmacen.dispose();
                         c.setVisible(true);
                     }
                 });
-            }else if(e.getSource() == inicioAlmacen.btnRevisar){
+            } else if (e.getSource() == inicioAlmacen.btnRevisar) {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
@@ -3445,10 +3443,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
                         jDesktopPane1.add(c);
                         c.toFront();
                         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-                        try{
+                        try {
                             c.setMaximum(true);
-                        }catch(PropertyVetoException e){
-                            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
+                        } catch (PropertyVetoException e) {
+                            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
                         }
                         inicioAlmacen.dispose();
                         c.setVisible(true);
@@ -3456,30 +3454,30 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer,Action
                 });
             }
         }
-        if(inicioCostos != null){
-            if(e.getSource() == inicioCostos.btnCostos){
+        if (inicioCostos != null) {
+            if (e.getSource() == inicioCostos.btnCostos) {
                 inicioCostos.dispose();
                 Costos c = new Costos(lblId.getText());
                 inicioCostos(c);
-            }else if(e.getSource() == inicioCostos.btnEvaluacion){
+            } else if (e.getSource() == inicioCostos.btnEvaluacion) {
                 inicioCostos.dispose();
                 evaluacion = new Evaluacion(lblId.getText());
                 inicioCostos(evaluacion);
-            }else if(e.getSource() == inicioCostos.btnCosteo){
+            } else if (e.getSource() == inicioCostos.btnCosteo) {
                 inicioCostos.dispose();
                 Costeo c = new Costeo(lblId.getText());
                 inicioCostos(c);
             }
         }
-        
-        if(evaluacion != null){
-            if(e.getSource() == evaluacion.btnAceptar || e.getSource() == evaluacion.btnRechazar){
+
+        if (evaluacion != null) {
+            if (e.getSource() == evaluacion.btnAceptar || e.getSource() == evaluacion.btnRechazar) {
                 notiCostos = getCostos(lblId.getText(), COSTOS);
-                if(notiCostos == 0){
+                if (notiCostos == 0) {
                     lblNotiCostos.setVisible(false);
                     this.revalidate();
                     this.repaint();
-                }else{
+                } else {
                     System.err.println("se activa uno de los 2 botones");
                     lblNotiCostos.setText(String.valueOf(notiCostos));
                     lblNotiCostos.setVisible(true);

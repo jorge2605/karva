@@ -79,17 +79,18 @@ public class AgregarCliente extends javax.swing.JDialog {
     public final void agregarCliente () {
         try {
             Connection con = new Conexion().getConnection();
-            String sql = "insert into clientes_cotizacion (nombre, domicilio, rfc) values(?,?,?)";
+            String sql = "insert into clientes_cotizacion (nombre, domicilio, rfc, email) values(?,?,?,?)";
             if (!lblId.getText().equals("")) {
-                sql = "update clientes_cotizacion set nombre = ?, domicilio = ?, rfc = ? where idCliente = ?";
+                sql = "update clientes_cotizacion set nombre = ?, domicilio = ?, rfc = ?, email = ? where idCliente = ?";
             }
             PreparedStatement pst = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             
             pst.setString(1, txtCliente.getText());
             pst.setString(2, txtDomicilio.getText());
             pst.setString(3, txtRFC.getText());
+            pst.setString(4, txtEmail.getText());
             if (!lblId.getText().equals("")) {
-                pst.setString(4, lblId.getText());
+                pst.setString(5, lblId.getText());
             }
             
             int n = pst.executeUpdate();
@@ -134,13 +135,14 @@ public class AgregarCliente extends javax.swing.JDialog {
             try (Connection con = new Conexion().getConnection()) {
                 Statement st = con.createStatement();
                 txtCliente.setText(cliente);
-                String sql = "select cl.domicilio, cl.rfc, cl.idcliente, co.nombre from clientes_cotizacion as cl "
+                String sql = "select cl.domicilio, cl.rfc, cl.idcliente, cl.Email, co.nombre from clientes_cotizacion as cl "
                         + "inner join contacto_cotizacion as co on cl.idcontacto = co.idcontacto_cotizacion "
                         + "where cl.nombre = '" + cliente + "'";
                 ResultSet rs = st.executeQuery(sql);
                 while (rs.next()) {
                     txtDomicilio.setText(rs.getString("cl.domicilio"));
                     txtRFC.setText(rs.getString("cl.rfc"));
+                    txtEmail.setText(rs.getString("cl.Email"));
                     lblId.setText(rs.getString("cl.idCliente"));
                     contacto = rs.getString("co.Nombre");
                 }
@@ -170,6 +172,8 @@ public class AgregarCliente extends javax.swing.JDialog {
         txtDomicilio = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
         txtRFC = new javax.swing.JTextField();
+        jLabel7 = new javax.swing.JLabel();
+        txtEmail = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
         jcbContacto = new javax.swing.JComboBox<>();
         btnGuardar = new javax.swing.JButton();
@@ -247,6 +251,24 @@ public class AgregarCliente extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(2, 50, 10, 50);
         jPanel1.add(txtRFC, gridBagConstraints);
 
+        jLabel7.setFont(new java.awt.Font("Trebuchet MS", 1, 14)); // NOI18N
+        jLabel7.setText("Email");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(10, 50, 2, 50);
+        jPanel1.add(jLabel7, gridBagConstraints);
+
+        txtEmail.setBackground(new java.awt.Color(255, 255, 255));
+        txtEmail.setFont(new java.awt.Font("Trebuchet MS", 0, 12)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(2, 50, 10, 50);
+        jPanel1.add(txtEmail, gridBagConstraints);
+
         jLabel5.setFont(new java.awt.Font("Trebuchet MS", 1, 14)); // NOI18N
         jLabel5.setText("Contacto");
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -299,7 +321,7 @@ public class AgregarCliente extends javax.swing.JDialog {
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 8;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.insets = new java.awt.Insets(2, 0, 10, 50);
         jPanel1.add(btnAgregarContacto, gridBagConstraints);
 
@@ -316,7 +338,7 @@ public class AgregarCliente extends javax.swing.JDialog {
         lblguardado.setText("Datos guardados correctamente");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 9;
+        gridBagConstraints.gridy = 11;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.PAGE_END;
         jPanel1.add(lblguardado, gridBagConstraints);
@@ -370,12 +392,14 @@ public class AgregarCliente extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel7;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JComboBox<String> jcbContacto;
     private javax.swing.JLabel lblId;
     private javax.swing.JLabel lblguardado;
     private javax.swing.JTextField txtCliente;
     private javax.swing.JTextField txtDomicilio;
+    private javax.swing.JTextField txtEmail;
     private javax.swing.JTextField txtRFC;
     // End of variables declaration//GEN-END:variables
 }

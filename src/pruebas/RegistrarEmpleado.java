@@ -179,7 +179,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 String sql = "update registroempleados set Nombre = ?,Apellido = ?,Direccion = ?,Telefono = ?,Puesto = ?,Diseño = ?,Cambio = ?,Reportes = "
                         + "?,Carga = ?,Ventas = ?,Cortes = ?,Fresa = ?,Cnc = ?,Torno = ?,Acabados = ?,Calidad = ?,Tratamiento = ?,Electrico = ?,"
                         + "CrearEmpleado = ?,VerEmpleado = ?,Inventario = ?,Ensamble = ?,InventarioPlanos = ?,Requisiciones = ?,Orden = ?,Aprobacion = ?,"
-                        + "Recibo = ?,Prestamo = ?,Cotizacion = ?,VerRequisiciones = ?,Cotizar = ?, ProyectMan = ?, Checador = ?, Entrega = ?,Pedidos = ? where NumEmpleado = ?";
+                        + "Recibo = ?,Prestamo = ?,Cotizacion = ?,VerRequisiciones = ?,Cotizar = ?, ProyectMan = ?, Checador = ?, Entrega = ?,Pedidos = ?, rh = ? where NumEmpleado = ?";
                 PreparedStatement pst = con.prepareStatement(sql);
                 
                 pst.setString(1, txtNombre.getText());
@@ -217,7 +217,8 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 pst.setBoolean(33, checador.isSelected());
                 pst.setBoolean(34, entrega.isSelected());
                 pst.setBoolean(35, pedidos.isSelected());
-                pst.setString(36, txtCodigo.getText());
+                pst.setBoolean(36, rh.isSelected());
+                pst.setString(37, txtCodigo.getText());
 
                 int n = pst.executeUpdate();
                 String SqlCheck="UPDATE empleadoscheck SET Nombre=?,Entrada=?,Salida=?,HorasDiarias=?,Turno=?,HoraSabado=?,EntradaSabado=?,SalidaSabado=?,"
@@ -319,8 +320,8 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                     String sql = "insert into registroEmpleados (Nombre,Apellido,Direccion,Telefono,Puesto,Contraseña,NumEmpleado,Diseño,Cambio,Reportes,"
                             + "Carga,Ventas,Cortes,Fresa,Cnc,Torno,Acabados,Calidad,Tratamiento,Electrico,CrearEmpleado,VerEmpleado,Inventario,Ensamble,"
                             + "InventarioPlanos,Requisiciones,Orden,Aprobacion,Recibo,Prestamo,Cotizacion,VerRequisiciones,Cotizar,ProyectMan, Checador, Entrega, Pedidos,"
-                            + "Herramentista, Disenio, Administracion, Almacen, Super,Remisiones,Puerto) "
-                            + "values (?,?,?,?,?,AES_ENCRYPT(?,'mi_llave'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            + "Herramentista, Disenio, Administracion, Almacen, Super,Remisiones,Puerto,rh) "
+                            + "values (?,?,?,?,?,AES_ENCRYPT(?,'mi_llave'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                     PreparedStatement pst3 = con2.prepareStatement(sql);
                   
                     byte dato[] = txtContra.getText().getBytes();
@@ -370,6 +371,8 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                     pst3.setString(41, "NO");
                     pst3.setString(42, "NO");
                     pst3.setString(43, "0");
+                    
+                    pst3.setBoolean(44, rh.isSelected());
                     
                     String sql4 = "select Puerto from registroempleados";
                     Statement st4 = con2.createStatement();
@@ -494,6 +497,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         jPanel7 = new javax.swing.JPanel();
         jPanel11 = new javax.swing.JPanel();
@@ -574,6 +578,8 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
         recibos = new rojerusan.RSCheckBox();
         prestamos = new rojerusan.RSCheckBox();
         cotizacion = new rojerusan.RSCheckBox();
+        verRequisicion1 = new rojerusan.RSCheckBox();
+        rh = new rojerusan.RSCheckBox();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setBackground(new java.awt.Color(255, 255, 255));
@@ -602,7 +608,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
         jPanel11.setLayout(jPanel11Layout);
         jPanel11Layout.setHorizontalGroup(
             jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(btnGuardar, javax.swing.GroupLayout.DEFAULT_SIZE, 1245, Short.MAX_VALUE)
+            .addComponent(btnGuardar, javax.swing.GroupLayout.DEFAULT_SIZE, 1248, Short.MAX_VALUE)
         );
         jPanel11Layout.setVerticalGroup(
             jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -638,7 +644,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(txtCodigo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(411, Short.MAX_VALUE))
+                .addContainerGap(415, Short.MAX_VALUE))
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1034,7 +1040,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 .addGap(75, 75, 75)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btImagen, javax.swing.GroupLayout.DEFAULT_SIZE, 224, Short.MAX_VALUE)
+                .addComponent(btImagen, javax.swing.GroupLayout.DEFAULT_SIZE, 228, Short.MAX_VALUE)
                 .addGap(158, 158, 158))
         );
         jPanel18Layout.setVerticalGroup(
@@ -1149,13 +1155,13 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addComponent(diseño, javax.swing.GroupLayout.DEFAULT_SIZE, 151, Short.MAX_VALUE)
+                .addComponent(diseño, javax.swing.GroupLayout.DEFAULT_SIZE, 152, Short.MAX_VALUE)
                 .addGap(0, 0, 0)
-                .addComponent(estados, javax.swing.GroupLayout.DEFAULT_SIZE, 153, Short.MAX_VALUE)
+                .addComponent(estados, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
                 .addGap(0, 0, 0)
-                .addComponent(reportes, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE)
+                .addComponent(reportes, javax.swing.GroupLayout.DEFAULT_SIZE, 155, Short.MAX_VALUE)
                 .addGap(0, 0, 0)
-                .addComponent(carga, javax.swing.GroupLayout.DEFAULT_SIZE, 154, Short.MAX_VALUE))
+                .addComponent(carga, javax.swing.GroupLayout.DEFAULT_SIZE, 155, Short.MAX_VALUE))
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addComponent(ventas, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
                 .addGap(0, 0, 0)
@@ -1176,7 +1182,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                         .addComponent(carga, javax.swing.GroupLayout.PREFERRED_SIZE, 93, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(ventas, javax.swing.GroupLayout.DEFAULT_SIZE, 91, Short.MAX_VALUE)
+                    .addComponent(ventas, javax.swing.GroupLayout.DEFAULT_SIZE, 87, Short.MAX_VALUE)
                     .addComponent(checador, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(proyectos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(proyectM, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
@@ -1258,12 +1264,12 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(cortes, javax.swing.GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE)
+                    .addComponent(cortes, javax.swing.GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
                     .addComponent(fresadora, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(cnc, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(torno, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(acabados, javax.swing.GroupLayout.DEFAULT_SIZE, 91, Short.MAX_VALUE)
+                    .addComponent(acabados, javax.swing.GroupLayout.DEFAULT_SIZE, 89, Short.MAX_VALUE)
                     .addComponent(calidad, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(tratamiento, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(electrico, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
@@ -1345,12 +1351,12 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(crear, javax.swing.GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE)
+                    .addComponent(crear, javax.swing.GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
                     .addComponent(ensambles, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(verEmpleado, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(inventario, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(invPlanos, javax.swing.GroupLayout.DEFAULT_SIZE, 91, Short.MAX_VALUE)
+                    .addComponent(invPlanos, javax.swing.GroupLayout.DEFAULT_SIZE, 89, Short.MAX_VALUE)
                     .addComponent(remisiones, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(entrega, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(pedidos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
@@ -1358,90 +1364,112 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
 
         jPanel5.setBackground(new java.awt.Color(255, 255, 255));
         jPanel5.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 1, 1, 1, new java.awt.Color(204, 204, 204)));
+        java.awt.GridBagLayout jPanel5Layout = new java.awt.GridBagLayout();
+        jPanel5Layout.columnWeights = new double[] {1.0, 1.0, 1.0, 1.0};
+        jPanel5Layout.rowWeights = new double[] {1.0, 1.0};
+        jPanel5.setLayout(jPanel5Layout);
 
         cotizar.setForeground(new java.awt.Color(51, 51, 51));
         cotizar.setText("Cotizar");
         cotizar.setColorCheck(new java.awt.Color(102, 102, 102));
         cotizar.setColorUnCheck(new java.awt.Color(51, 51, 51));
         cotizar.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(cotizar, gridBagConstraints);
 
         verRequisicion.setForeground(new java.awt.Color(51, 51, 51));
         verRequisicion.setText("Ver requisiciones");
         verRequisicion.setColorCheck(new java.awt.Color(102, 102, 102));
         verRequisicion.setColorUnCheck(new java.awt.Color(51, 51, 51));
         verRequisicion.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(verRequisicion, gridBagConstraints);
 
         requisiciones.setForeground(new java.awt.Color(51, 51, 51));
         requisiciones.setText("Requisiciones");
         requisiciones.setColorCheck(new java.awt.Color(102, 102, 102));
         requisiciones.setColorUnCheck(new java.awt.Color(51, 51, 51));
         requisiciones.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(requisiciones, gridBagConstraints);
 
         compras.setForeground(new java.awt.Color(51, 51, 51));
         compras.setText("Compras");
         compras.setColorCheck(new java.awt.Color(102, 102, 102));
         compras.setColorUnCheck(new java.awt.Color(51, 51, 51));
         compras.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(compras, gridBagConstraints);
 
         aprobacion.setForeground(new java.awt.Color(51, 51, 51));
         aprobacion.setText("Aprobaciones");
         aprobacion.setColorCheck(new java.awt.Color(102, 102, 102));
         aprobacion.setColorUnCheck(new java.awt.Color(51, 51, 51));
         aprobacion.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(aprobacion, gridBagConstraints);
 
         recibos.setForeground(new java.awt.Color(51, 51, 51));
         recibos.setText("Recibos");
         recibos.setColorCheck(new java.awt.Color(102, 102, 102));
         recibos.setColorUnCheck(new java.awt.Color(51, 51, 51));
         recibos.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(recibos, gridBagConstraints);
 
         prestamos.setForeground(new java.awt.Color(51, 51, 51));
         prestamos.setText("Prestamos");
         prestamos.setColorCheck(new java.awt.Color(102, 102, 102));
         prestamos.setColorUnCheck(new java.awt.Color(51, 51, 51));
         prestamos.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(prestamos, gridBagConstraints);
 
         cotizacion.setForeground(new java.awt.Color(51, 51, 51));
         cotizacion.setText("Cotizacion");
         cotizacion.setColorCheck(new java.awt.Color(102, 102, 102));
         cotizacion.setColorUnCheck(new java.awt.Color(51, 51, 51));
         cotizacion.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(cotizacion, gridBagConstraints);
 
-        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
-        jPanel5.setLayout(jPanel5Layout);
-        jPanel5Layout.setHorizontalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addComponent(cotizar, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(verRequisicion, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(requisiciones, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(compras, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addComponent(aprobacion, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(recibos, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(prestamos, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(cotizacion, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
-        );
-        jPanel5Layout.setVerticalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(cotizar, javax.swing.GroupLayout.DEFAULT_SIZE, 91, Short.MAX_VALUE)
-                    .addComponent(verRequisicion, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(requisiciones, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(compras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(aprobacion, javax.swing.GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE)
-                    .addComponent(recibos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(prestamos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(cotizacion, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-        );
+        verRequisicion1.setForeground(new java.awt.Color(51, 51, 51));
+        verRequisicion1.setText("Ver requisiciones");
+        verRequisicion1.setColorCheck(new java.awt.Color(102, 102, 102));
+        verRequisicion1.setColorUnCheck(new java.awt.Color(51, 51, 51));
+        verRequisicion1.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(verRequisicion1, gridBagConstraints);
+
+        rh.setForeground(new java.awt.Color(51, 51, 51));
+        rh.setText("RH");
+        rh.setColorCheck(new java.awt.Color(102, 102, 102));
+        rh.setColorUnCheck(new java.awt.Color(51, 51, 51));
+        rh.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        jPanel5.add(rh, gridBagConstraints);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -1449,7 +1477,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, 618, Short.MAX_VALUE)
             .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel1Layout.setVerticalGroup(
@@ -1461,7 +1489,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 .addGap(0, 0, 0)
                 .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGap(0, 0, 0)
-                .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, 197, Short.MAX_VALUE))
         );
 
         jPanel9.add(jPanel1);
@@ -2012,6 +2040,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 datos[30] = rs.getString("Checador");
                 datos[31] = rs.getString("Entrega");
                 datos[32] = rs.getString("Pedidos");
+                datos[33] = rs.getString("rh");
             }
             if(datos[1].equals("1")){
                 diseño.setSelected(true);
@@ -2191,6 +2220,12 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
                 pedidos.setSelected(false);
             }
 
+            if(datos[33].equals("1")){
+                rh.setSelected(true);
+            }else{
+                rh.setSelected(false);
+            }
+
         }catch(SQLException e){
             JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
         }
@@ -2368,6 +2403,7 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
     private rojerusan.RSCheckBox remisiones;
     private rojerusan.RSCheckBox reportes;
     private rojerusan.RSCheckBox requisiciones;
+    private rojerusan.RSCheckBox rh;
     private rojerusan.RSCheckBox torno;
     private rojerusan.RSCheckBox tratamiento;
     private RSMaterialComponent.RSTextFieldMaterial txtApellido;
@@ -2381,5 +2417,6 @@ public class RegistrarEmpleado extends javax.swing.JFrame {
     private rojerusan.RSCheckBox ventas;
     private rojerusan.RSCheckBox verEmpleado;
     private rojerusan.RSCheckBox verRequisicion;
+    private rojerusan.RSCheckBox verRequisicion1;
     // End of variables declaration//GEN-END:variables
 }

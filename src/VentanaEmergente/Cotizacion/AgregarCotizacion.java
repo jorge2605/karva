@@ -1,14 +1,18 @@
 package VentanaEmergente.Cotizacion;
 
 import Conexiones.Conexion;
+import Controlador.compras.Producto;
+import Controlador.cotizaciones.CotizacionSiyms;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfCopy;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.mxrck.autocompleter.TextAutoCompleter;
 import java.awt.Color;
@@ -20,6 +24,7 @@ import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.beans.PropertyVetoException;
 import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -29,12 +34,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -45,6 +54,9 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+import pruebas.Inicio1;
+import pruebas.InicioCotizacion;
+import pruebas.Ventas;
 
 public class AgregarCotizacion extends javax.swing.JDialog {
 
@@ -52,6 +64,14 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     private ArrayList array;
     private final String numEmpleado;
     private String numCliente;
+    private String nombre;
+    private String coti;
+    private String email;
+    private String tot;
+    private String contacto;
+    private File cotizacion;
+    public Inicio1 inicio1;
+    public InicioCotizacion inicio;
 
     private boolean mostrarAgregar = false;
 
@@ -82,15 +102,15 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     {null, null, null, null, null, null}
                 },
                 new String[]{
-                    "No. item", "Descripcion", "Cantidad", "Precio Unitario", "Impuestos", "Importe", "Id"
+                    "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
                 }
         ) {
             Class[] types = new Class[]{
-                java.lang.Integer.class, java.lang.Object.class, java.lang.Float.class,
-                java.lang.Float.class, java.lang.Float.class, java.lang.Float.class, java.lang.Object.class
+                java.lang.Integer.class, java.lang.Object.class, java.lang.Object.class, java.lang.Float.class,
+                java.lang.Float.class, java.lang.Object.class, java.lang.Float.class, java.lang.Float.class, java.lang.Object.class
             };
             boolean[] canEdit = new boolean[]{
-                false, true, true, true, false, false, false
+                false, true, true, true, true, true, false, false, false
             };
 
             public Class getColumnClass(int columnIndex) {
@@ -111,9 +131,6 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             Tabla1.getColumnModel().getColumn(0).setMinWidth(50);
             Tabla1.getColumnModel().getColumn(0).setPreferredWidth(50);
             Tabla1.getColumnModel().getColumn(0).setMaxWidth(50);
-            Tabla1.getColumnModel().getColumn(2).setMinWidth(150);
-            Tabla1.getColumnModel().getColumn(2).setPreferredWidth(150);
-            Tabla1.getColumnModel().getColumn(2).setMaxWidth(150);
             Tabla1.getColumnModel().getColumn(3).setMinWidth(150);
             Tabla1.getColumnModel().getColumn(3).setPreferredWidth(150);
             Tabla1.getColumnModel().getColumn(3).setMaxWidth(150);
@@ -123,9 +140,15 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             Tabla1.getColumnModel().getColumn(5).setMinWidth(150);
             Tabla1.getColumnModel().getColumn(5).setPreferredWidth(150);
             Tabla1.getColumnModel().getColumn(5).setMaxWidth(150);
-            Tabla1.getColumnModel().getColumn(6).setMinWidth(0);
-            Tabla1.getColumnModel().getColumn(6).setPreferredWidth(0);
-            Tabla1.getColumnModel().getColumn(6).setMaxWidth(0);
+            Tabla1.getColumnModel().getColumn(6).setMinWidth(150);
+            Tabla1.getColumnModel().getColumn(6).setPreferredWidth(150);
+            Tabla1.getColumnModel().getColumn(6).setMaxWidth(150);
+            Tabla1.getColumnModel().getColumn(7).setMinWidth(150);
+            Tabla1.getColumnModel().getColumn(7).setPreferredWidth(150);
+            Tabla1.getColumnModel().getColumn(7).setMaxWidth(150);
+            Tabla1.getColumnModel().getColumn(8).setMinWidth(0);
+            Tabla1.getColumnModel().getColumn(8).setPreferredWidth(0);
+            Tabla1.getColumnModel().getColumn(8).setMaxWidth(0);
         }
 
         Tabla1.setComponentPopupMenu(jPopupMenu1);
@@ -138,18 +161,18 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                 int columna = e.getColumn();
                 int fila = Tabla1.getSelectedRow();
 
-                if (columna == 2 || columna == 3) {
+                if (columna == 3 || columna == 4) {
                     try {
-                        float cantidad = Float.parseFloat(Tabla1.getValueAt(fila, 2).toString());
-                        float precio = Float.parseFloat(Tabla1.getValueAt(fila, 3).toString());
-                        float iva = Float.parseFloat(cmbIva.getSelectedItem().toString());
+                        float cantidad = Float.parseFloat(Tabla1.getValueAt(fila, 3).toString());
+                        float precio = Float.parseFloat(Tabla1.getValueAt(fila, 4).toString());
+                        float iva = Float.parseFloat(jcbIva.getSelectedItem().toString());
 
                         float subtotal = cantidad * precio;
                         float impuesto = (subtotal * iva) / 100;
                         float importe = subtotal + impuesto;
 
-                        Tabla1.setValueAt(impuesto, fila, 4);  // columna Impuestos
-                        Tabla1.setValueAt(importe, fila, 5);   // columna Importe
+                        Tabla1.setValueAt(impuesto, fila, 6);  // columna Impuestos
+                        Tabla1.setValueAt(importe, fila, 7);   // columna Importe
 
                     } catch (Exception ex) {
                     }
@@ -244,7 +267,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             String sql = "select * from conf_cotizacion order by idconf_cotizacion desc";
             Statement st = con.createStatement();
             ResultSet rs = st.executeQuery(sql);
-            while(rs.next()) {
+            while (rs.next()) {
                 return rs.getString("urldireccion");
             }
         } catch (SQLException e) {
@@ -252,7 +275,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         }
         return null;
     }
-    
+
     public final void crearPdf() {
         try {
             try (Connection con = new Conexion().getConnection()) {
@@ -273,55 +296,55 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     direccion = rs.getString("direccion");
                     vendedor = rs.getString("vendedor");
                 }
-                
+
                 String id = lblCotizacion.getText().replace("Cotizacion: ", "");
-                String forma = empresa.substring(0,1).toUpperCase() + String.format("%05d", Integer.valueOf(id));
+                String forma = empresa.substring(0, 1).toUpperCase() + String.format("%05d", Integer.valueOf(id));
                 File archivo = new File(extraerDirectorio() + "\\" + forma);
                 if (!archivo.getName().contains(".pdf")) {
                     archivo = new File(archivo.getAbsoluteFile() + ".pdf");
                 }
-                
+
                 Document document = new Document(PageSize.A4, 0, 0, 271, 80);
                 PdfWriter weiter = PdfWriter.getInstance(document, new FileOutputStream(archivo));
                 CabezeraCotizaciones cabezera = new CabezeraCotizaciones();
                 //BD
-                
+
                 cabezera.correo = correo;
                 cabezera.direccion = direccion;
                 cabezera.empresa = empresa;
                 cabezera.rfc = rfc;
                 cabezera.logo = url;
-                
+
                 cabezera.empresaCli = txtCliente.getText();
                 cabezera.direccionCli = txtDomicilio.getText();
                 cabezera.rfcCli = txtRfc.getText();
-                
+
                 cabezera.fecha = txtCreacion.getText();
                 cabezera.fechaVencimiento = txtFecha.getDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
                 cabezera.vendedor = vendedor;
                 cabezera.coti = id;
-                
+
                 cabezera.setEncabezado("Jorge");
                 weiter.setPageEvent(cabezera);
                 document.open();
-                
+
                 PdfPTable tabInfo = new PdfPTable(6);
                 tabInfo.setTotalWidth(527);
                 float med[] = {50, 300, 90, 90, 90, 90};
                 tabInfo.setWidths(med);
                 tabInfo.setLockedWidth(true);
-                
+
                 com.itextpdf.text.Font fuente5 = new com.itextpdf.text.Font();
                 fuente5.setSize(10);
                 fuente5.setFamily("Trebuchet MS");
                 fuente5.setColor(0, 0, 0);
-                
+
                 com.itextpdf.text.Font fuente6 = new com.itextpdf.text.Font();
                 fuente6.setSize(10);
                 fuente6.setStyle(com.itextpdf.text.Font.BOLD);
                 fuente6.setFamily("Trebuchet MS");
                 fuente6.setColor(0, 0, 0);
-                
+
                 float tot = 0;
                 float sub = 0;
                 float iva = 0;
@@ -359,7 +382,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                         tabInfo.addCell(border(new PdfPCell(new Paragraph(cont, fuente5)), 0.2f, align));
                     }
                 }
-                
+
                 for (int i = Tabla1.getRowCount(); i < 21; i++) {
                     for (int j = 0; j < Tabla1.getColumnCount() - 1; j++) {
                         String d = " ";
@@ -369,7 +392,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                         tabInfo.addCell(border(new PdfPCell(new Paragraph(d, fuente5)), 0.2f, Element.ALIGN_CENTER));
                     }
                 }
-                
+
                 Object totales[] = new Object[6];
                 totales[0] = "Subtotal:";
                 totales[1] = df.format(tot - iva);
@@ -377,14 +400,14 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                 totales[3] = df.format(iva);
                 totales[4] = "Total:";
                 totales[5] = df.format(tot);
-                
+
                 insertarTotal(tot, id);
-                
+
                 BaseColor base[] = new BaseColor[6];
                 base[1] = new BaseColor(209, 235, 252);
                 base[3] = new BaseColor(145, 208, 242);
                 base[5] = new BaseColor(114, 188, 221);
-                
+
                 com.itextpdf.text.Font fuentes[] = new com.itextpdf.text.Font[6];
                 fuentes[0] = fuente6;
                 fuentes[1] = fuente5;
@@ -392,7 +415,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                 fuentes[3] = fuente5;
                 fuentes[4] = fuente6;
                 fuentes[5] = fuente5;
-                
+
                 int cont = 0;
                 for (int i = 0; i < 6; i++) {
                     PdfPCell subTotal = new PdfPCell(new Paragraph(totales[i].toString(), fuentes[i]));
@@ -409,7 +432,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     subTotal = border(subTotal, bor, Element.ALIGN_RIGHT);
                     tabInfo.addCell(subTotal);
                 }
-                
+
                 document.add(tabInfo);
                 document.close();
                 Desktop.getDesktop().open(archivo);
@@ -418,6 +441,79 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             JOptionPane.showMessageDialog(this, "Error: " + ex, "Error", JOptionPane.ERROR_MESSAGE);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public String formatearString(Object obj) {
+        try {
+            return obj.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public final void crearPdfSyims(boolean abrir) {
+        try {
+            cotizacion = null;
+            coti = null;
+            tot = null;
+            Connection con = new Conexion().getConnection();
+            Statement st = con.createStatement();
+            String sql = "select * from conf_cotizacion";
+            ResultSet rs = st.executeQuery(sql);
+            String empresa = "";
+            while (rs.next()) {
+                empresa = rs.getString("empresa");
+            }
+            String id = lblCotizacion.getText().replace("Cotizacion: ", "");
+            String forma = empresa.substring(0, 1).toUpperCase() + String.format("%05d", Integer.valueOf(id));
+            File archivo = new File(extraerDirectorio() + "\\" + forma);
+            if (!archivo.getName().contains(".pdf")) {
+                archivo = new File(archivo.getAbsoluteFile() + ".pdf");
+            }
+            Date d = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+            CotizacionSiyms cot = new CotizacionSiyms();
+            List<Producto> productos = new ArrayList<>();
+            cot.cotizacion = forma;
+            cot.email = email;
+            cot.compania = nombre;
+            cot.contacto = contacto;
+            cot.fecha = sdf.format(d);
+            cot.moneda = jcbMoneda.getSelectedItem().toString();
+            cot.iva = jcbIva.getSelectedItem().toString();
+
+//                      0       1           2              3              4              5      6            7         8
+//                "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
+            for (int i = 0; i < Tabla1.getRowCount() - 1; i++) {
+                double cantidad;
+                try {
+                    cantidad = Double.parseDouble(Tabla1.getValueAt(i, 3).toString());
+                } catch (Exception e) {
+                    System.out.println(e);
+                    cantidad = 0;
+                }
+                productos.add(new Producto(
+                        i + 1,
+                        formatearString(Tabla1.getValueAt(i, 1)),
+                        formatearString(Tabla1.getValueAt(i, 2)),
+                        formatearString(Tabla1.getValueAt(i, 5)),
+                        cantidad,
+                        new BigDecimal(formatearString(Tabla1.getValueAt(i, 7)))
+                ));
+            }
+            String total = cot.generar(archivo.getAbsolutePath(), productos);
+            if (total != null) {
+                insertarTotal(Float.parseFloat(total.replace("$", "").replace(",", "")), lblCotizacion.getText().replace("Cotizacion: ", ""));
+            }
+            this.tot = total;
+            cotizacion = archivo;
+            coti = forma;
+            if (abrir) {
+                Desktop.getDesktop().open(archivo);
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(AgregarCotizacion.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -443,11 +539,11 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     public final void agregarItems() {
         try (Connection con = new Conexion().getConnection()) {
             Statement st = con.createStatement();
-            String sql = "select descripcion from items_cotizacion order by descripcion asc";
+            String sql = "select codigo from items_cotizacion order by codigo asc";
             ResultSet rs = st.executeQuery(sql);
             array = new ArrayList();
             while (rs.next()) {
-                array.add(rs.getString("descripcion"));
+                array.add(rs.getString("codigo"));
             }
 
         } catch (SQLException e) {
@@ -492,23 +588,34 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         txtDomicilio.setText("");
         txtRfc.setText("");
     }
-    
+
     public final void verCliente(String cliente) {
         try {
             try (Connection con = new Conexion().getConnection()) {
                 Statement st = con.createStatement();
                 txtCliente.setText(cliente);
                 limpiarFormulario();
-                String sql = "select * from clientes_cotizacion where nombre like '" + cliente + "'";
+                String sql = "select cl.domicilio, cl.rfc, cl.idcliente, cl.email, cl.nombre as nom, co.nombre as contacto from clientes_cotizacion as cl "
+                        + " inner join contacto_cotizacion as co"
+                        + " on cl.idCliente = co.idcliente"
+                        + " where cl.nombre like '" + cliente + "'";
                 ResultSet rs = st.executeQuery(sql);
                 while (rs.next()) {
                     txtDomicilio.setText(rs.getString("domicilio"));
                     txtRfc.setText(rs.getString("rfc"));
                     numCliente = rs.getString("idCliente");
+                    this.email = rs.getString("email");
+                    this.nombre = rs.getString("nom");
+                    this.contacto = rs.getString("contacto");
+                }
+                if (email != null || !email.equals("")) {
+                    btnCorreo.setEnabled(true);
+                } else {
+                    btnCorreo.setEnabled(false);
                 }
             }
         } catch (SQLException e) {
-            
+            JOptionPane.showMessageDialog(this, "Error al ver cliente: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -520,28 +627,33 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                 String sql = "select * from items_cotizacion where idcotizacion like '" + id + "'";
                 ResultSet rs = st.executeQuery(sql);
                 DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
-                Object datos[] = new Object[7];
+                Object datos[] = new Object[10];
                 miModelo.removeRow(0);
+                int cont = 0;
+//                      0       1           2              3              4              5      6            7         8
+//                "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
                 while (rs.next()) {
-                    datos[0] = 0;
-                    datos[1] = rs.getString("descripcion");
-                    datos[2] = rs.getFloat("cantidad");
-                    datos[3] = rs.getFloat("precio");
+                    datos[0] = cont;
+                    datos[1] = rs.getString("codigo");
+                    datos[2] = rs.getString("descripcion");
+                    datos[3] = rs.getFloat("cantidad");
+                    datos[4] = rs.getFloat("precio");
+                    datos[5] = rs.getString("um");
                     try {
-                        float cantidad = Float.parseFloat(datos[2].toString());
-                        float precio = Float.parseFloat(datos[3].toString());
-                        float iva = Float.parseFloat(cmbIva.getSelectedItem().toString());
+                        float cantidad = Float.parseFloat(datos[3].toString());
+                        float precio = Float.parseFloat(datos[4].toString());
+                        float iva = Float.parseFloat(jcbIva.getSelectedItem().toString());
 
                         float subtotal = cantidad * precio;
                         float impuesto = (subtotal * iva) / 100;
                         float importe = subtotal + impuesto;
 
-                        datos[4] = impuesto;  // columna Impuestos
-                        datos[5] = importe;   // columna Importe
+                        datos[6] = impuesto;  // columna Impuestos
+                        datos[7] = importe;   // columna Importe
 
                     } catch (Exception ex) {
                     }
-                    datos[6] = rs.getString("idItems_cotizacion");
+                    datos[8] = rs.getString("idItems_cotizacion");
                     boolean act = rs.getBoolean("activo");
                     if (act) {
                         miModelo.addRow(datos);
@@ -574,9 +686,9 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     public final void guardarItems() {
         try {
             Connection con = new Conexion().getConnection();
-            String sql = "insert into items_cotizacion (idcotizacion, descripcion, precio, cantidad, activo) values (?,?,?,?,?)";
+            String sql = "insert into items_cotizacion (idcotizacion, codigo, descripcion, precio, cantidad, activo, um) values (?,?,?,?,?,?,?)";
             PreparedStatement pst = con.prepareStatement(sql);
-            String sql2 = "update items_cotizacion set descripcion = ?, precio = ?, cantidad = ? where iditems_cotizacion = ?";
+            String sql2 = "update items_cotizacion set codigo = ?, descripcion = ?, precio = ?, cantidad = ?, um = ? where iditems_cotizacion = ?";
             PreparedStatement pst2 = con.prepareStatement(sql2);
 
             if (lblCotizacion.getText().equals("Cotizacion: ")) {
@@ -590,7 +702,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                 pst3.setString(3, numEmpleado);
                 pst3.setFloat(4, 0);
                 pst3.setString(5, "Nuevo");
-                pst3.setString(6, cmbIva.getSelectedItem().toString());
+                pst3.setString(6, jcbIva.getSelectedItem().toString());
                 pst3.setBoolean(7, true);
 
                 int n = pst3.executeUpdate();
@@ -607,32 +719,41 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             }
 
             for (int i = 0; i < Tabla1.getRowCount() - 1; i++) {
-                String descripcion = Tabla1.getValueAt(i, 1).toString();
-                float cantidad = Tabla1.getValueAt(i, 2) != null ? Float.parseFloat(Tabla1.getValueAt(i, 2).toString()) : 0;
-                float precio = Tabla1.getValueAt(i, 3) != null ? Float.parseFloat(Tabla1.getValueAt(i, 3).toString()) : 0;
-                String id = Tabla1.getValueAt(i, 6) != null ? Tabla1.getValueAt(i, 6).toString() : "";
+//                      0       1           2              3              4              5      6            7         8
+//                "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
+                String codigo = formatearString(Tabla1.getValueAt(i, 1));
+                String descripcion = formatearString(Tabla1.getValueAt(i, 2));
+                String um = formatearString(Tabla1.getValueAt(i, 5));
+                float cantidad = Tabla1.getValueAt(i, 3) != null ? Float.parseFloat(Tabla1.getValueAt(i, 3).toString()) : 0;
+                float precio = Tabla1.getValueAt(i, 4) != null ? Float.parseFloat(Tabla1.getValueAt(i, 4).toString()) : 0;
+                String id = formatearString(Tabla1.getValueAt(i, 8));
 
-                int n = 0;
+                int n;
+                System.out.println(id);
                 if (!descripcion.equals("")) {
                     if (id.equals("")) {
                         pst.setString(1, lblCotizacion.getText().replace("Cotizacion: ", ""));
-                        pst.setString(2, descripcion);
-                        pst.setFloat(3, precio);
-                        pst.setFloat(4, cantidad);
-                        pst.setBoolean(5, true);
+                        pst.setString(2, codigo);
+                        pst.setString(3, descripcion);
+                        pst.setFloat(4, precio);
+                        pst.setFloat(5, cantidad);
+                        pst.setBoolean(6, true);
+                        pst.setString(7, um);
 
                         n = pst.executeUpdate();
                     } else {
-                        pst2.setString(1, descripcion);
-                        pst2.setFloat(2, precio);
-                        pst2.setFloat(3, cantidad);
-                        pst2.setString(4, id);
+                        pst2.setString(1, codigo);
+                        pst2.setString(2, descripcion);
+                        pst2.setFloat(3, precio);
+                        pst2.setFloat(4, cantidad);
+                        pst2.setString(5, um);
+                        pst2.setString(6, id);
 
                         n = pst2.executeUpdate();
                     }
 
                     if (n < 1) {
-                        JOptionPane.showMessageDialog(this, "El item : " + descripcion + " no se guardo exitosamente", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "El item : " + codigo + " no se guardo exitosamente", "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
@@ -648,10 +769,12 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             String sql = "update items_cotizacion set activo = ? where iditems = ?";
             PreparedStatement pst = con.prepareStatement(sql);
 
+//                      0       1           2              3              4              5      6            7         8
+//                "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
             for (int i = 0; i < Tabla1.getSelectedRows().length; i++) {
                 pst.setBoolean(1, false);
-                System.out.println(Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 6).toString());
-                pst.setString(2, Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 6).toString());
+                System.out.println(Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 8).toString());
+                pst.setString(2, Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 8).toString());
 
                 int n = pst.executeUpdate();
 
@@ -665,13 +788,80 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         }
     }
 
-    public AgregarCotizacion(java.awt.Frame parent, boolean modal, String numEmpleado, boolean band) {
+    public final void enviarCorreo() {
+        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+        EnviarCorreoCotizaciones enviar = new EnviarCorreoCotizaciones(f, true, this.numEmpleado);
+        enviar.lblCorreoCliente.setText(email);
+        enviar.lblNombreCliente.setText(nombre);
+        enviar.cotizacion = cotizacion;
+        enviar.coti = coti;
+        System.out.println(coti);
+        enviar.setLocationRelativeTo(f);
+        enviar.setVisible(true);
+    }
+
+    public final void agregarPdf(String pdf1, String pdf2, String salida) {
+        try {
+            Document documento = new Document();
+
+            PdfCopy copy = new PdfCopy(documento, new FileOutputStream(salida));
+            documento.open();
+            // Primer PDF
+            PdfReader reader1 = new PdfReader(pdf1);
+            for (int i = 1; i <= reader1.getFileLength(); i++) {
+                copy.addPage(copy.getImportedPage(reader1, i));
+            }
+            reader1.close();
+            // Segundo PDF
+            PdfReader reader2 = new PdfReader(pdf2);
+            for (int i = 1; i <= reader2.getFileLength(); i++) {
+                copy.addPage(copy.getImportedPage(reader2, i));
+            }
+            reader2.close();
+            documento.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(AgregarCotizacion.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (DocumentException | IOException ex) {
+            Logger.getLogger(AgregarCotizacion.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public final void abrirVentanaVentas() {
+        int opc = JOptionPane.showConfirmDialog(this, "Estas seguro de cerrar esta ventana?");
+        if (opc == JOptionPane.OK_OPTION) {
+            this.dispose();
+            inicio.dispose();
+            crearPdfSyims(false);
+            Ventas c = new Ventas();
+            inicio1.jDesktopPane1.add(c);
+            c.addCliente();
+            c.cmbCliente.setSelectedItem(nombre);
+            c.jcbMoneda.setSelectedItem(jcbMoneda.getSelectedItem());
+            c.txtCotizacion.setText(coti);
+            c.txtValor.setText(tot.replace("$", ""));
+            c.txtCoti.setText(cotizacion.getName());
+            c.trCot.setRuta(cotizacion.getAbsolutePath());
+            c.toFront();
+            c.setLocation(inicio1.jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, inicio1.jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+            try {
+                c.setMaximum(true);
+            } catch (PropertyVetoException e) {
+                Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+            }
+            c.setVisible(true);
+        }
+    }
+
+    public AgregarCotizacion(java.awt.Frame parent, boolean modal, String numEmpleado, boolean band, InicioCotizacion inicio, Inicio1 inicio1) {
         super(parent, modal);
         initComponents();
         limpiarTabla();
         setLocationRelativeTo(parent);
-        if (band)
+        if (band) {
             agregarClientes();
+        }
+        this.inicio = inicio;
+        this.inicio1 = inicio1;
         this.numEmpleado = numEmpleado;
     }
 
@@ -699,16 +889,18 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         jLabel1 = new javax.swing.JLabel();
         txtFecha = new com.github.lgooddatepicker.components.DatePicker();
         jLabel4 = new javax.swing.JLabel();
-        cmbIva = new javax.swing.JComboBox<>();
+        jcbIva = new javax.swing.JComboBox<>();
+        jLabel8 = new javax.swing.JLabel();
+        jcbMoneda = new javax.swing.JComboBox<>();
         jPanel3 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         Tabla1 = new javax.swing.JTable();
         jPanel4 = new javax.swing.JPanel();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jButton5 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
+        btnImprimir = new javax.swing.JButton();
+        btnGuardar = new javax.swing.JButton();
+        btnCorreo = new javax.swing.JButton();
+        btnProyecto = new javax.swing.JButton();
+        jMenuBar1 = new javax.swing.JMenuBar();
 
         btnEliminar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/error.png"))); // NOI18N
         btnEliminar.setText("Eliminar fila (s)                                      ");
@@ -806,8 +998,8 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         jPanel6.setBackground(new java.awt.Color(255, 255, 255));
         jPanel6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 20, 5));
 
-        jLabel2.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
         jLabel2.setText("Fecha de creacion:");
+        jLabel2.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
         jPanel6.add(jLabel2);
 
         txtCreacion.setFont(new java.awt.Font("Trebuchet MS", 0, 12)); // NOI18N
@@ -828,12 +1020,19 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         txtFecha.setFont(new java.awt.Font("Trebuchet MS", 0, 12)); // NOI18N
         jPanel6.add(txtFecha);
 
-        jLabel4.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
         jLabel4.setText("IVA");
+        jLabel4.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
         jPanel6.add(jLabel4);
 
-        cmbIva.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "8", "16" }));
-        jPanel6.add(cmbIva);
+        jcbIva.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "8", "16" }));
+        jPanel6.add(jcbIva);
+
+        jLabel8.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
+        jLabel8.setText("Moneda");
+        jPanel6.add(jLabel8);
+
+        jcbMoneda.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "MXN", "USD" }));
+        jPanel6.add(jcbMoneda);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
@@ -883,75 +1082,65 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         jPanel4.setBackground(new java.awt.Color(255, 255, 255));
         jPanel4.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 40, 5));
 
-        jButton1.setText("Imprimir");
-        jButton1.setBackground(new java.awt.Color(51, 153, 255));
-        jButton1.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
-        jButton1.setForeground(new java.awt.Color(255, 255, 255));
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        btnImprimir.setText("Imprimir");
+        btnImprimir.setBackground(new java.awt.Color(51, 153, 255));
+        btnImprimir.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
+        btnImprimir.setForeground(new java.awt.Color(255, 255, 255));
+        btnImprimir.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                btnImprimirActionPerformed(evt);
             }
         });
-        jPanel4.add(jButton1);
+        jPanel4.add(btnImprimir);
 
-        jButton2.setText("Guardar");
-        jButton2.setBackground(new java.awt.Color(51, 153, 0));
-        jButton2.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
-        jButton2.setForeground(new java.awt.Color(255, 255, 255));
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        btnGuardar.setText("Guardar");
+        btnGuardar.setBackground(new java.awt.Color(51, 153, 0));
+        btnGuardar.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
+        btnGuardar.setForeground(new java.awt.Color(255, 255, 255));
+        btnGuardar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                btnGuardarActionPerformed(evt);
             }
         });
-        jPanel4.add(jButton2);
+        jPanel4.add(btnGuardar);
 
-        jButton3.setText("Enviar cotizacion");
-        jButton3.setBackground(new java.awt.Color(51, 51, 51));
-        jButton3.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
-        jButton3.setForeground(new java.awt.Color(255, 255, 255));
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
+        btnCorreo.setText("Enviar cotizacion");
+        btnCorreo.setBackground(new java.awt.Color(51, 51, 51));
+        btnCorreo.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
+        btnCorreo.setForeground(new java.awt.Color(255, 255, 255));
+        btnCorreo.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
+                btnCorreoActionPerformed(evt);
             }
         });
-        jPanel4.add(jButton3);
+        jPanel4.add(btnCorreo);
 
-        jButton5.setBackground(new java.awt.Color(0, 153, 153));
-        jButton5.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
-        jButton5.setForeground(new java.awt.Color(255, 255, 255));
-        jButton5.setText("Crear orden de trabajo");
-        jButton5.addActionListener(new java.awt.event.ActionListener() {
+        btnProyecto.setText("Crear proyecto nuevo");
+        btnProyecto.setBackground(new java.awt.Color(255, 102, 0));
+        btnProyecto.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
+        btnProyecto.setForeground(new java.awt.Color(255, 255, 255));
+        btnProyecto.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton5ActionPerformed(evt);
+                btnProyectoActionPerformed(evt);
             }
         });
-        jPanel4.add(jButton5);
-
-        jButton6.setBackground(new java.awt.Color(255, 102, 0));
-        jButton6.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
-        jButton6.setForeground(new java.awt.Color(255, 255, 255));
-        jButton6.setText("Venta");
-        jButton6.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton6ActionPerformed(evt);
-            }
-        });
-        jPanel4.add(jButton6);
+        jPanel4.add(btnProyecto);
 
         jPanel3.add(jPanel4, java.awt.BorderLayout.PAGE_END);
 
         jPanel1.add(jPanel3, java.awt.BorderLayout.CENTER);
 
         getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
+        setJMenuBar(jMenuBar1);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    private void btnImprimirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImprimirActionPerformed
         guardarCliente();
         guardarItems();
-        crearPdf();
-    }//GEN-LAST:event_jButton1ActionPerformed
+        crearPdfSyims(true);
+    }//GEN-LAST:event_btnImprimirActionPerformed
 
     private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarActionPerformed
         inhabilitarItem();
@@ -959,10 +1148,10 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         verItems(lblCotizacion.getText().replace("Cotizacion: ", ""));
     }//GEN-LAST:event_btnEliminarActionPerformed
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+    private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
         guardarCliente();
         guardarItems();
-    }//GEN-LAST:event_jButton2ActionPerformed
+    }//GEN-LAST:event_btnGuardarActionPerformed
 
     private void txtClienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtClienteActionPerformed
         verCliente(txtCliente.getText());
@@ -972,9 +1161,12 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtCreacionActionPerformed
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton3ActionPerformed
+    private void btnCorreoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCorreoActionPerformed
+        guardarCliente();
+        guardarItems();
+        crearPdfSyims(false);
+        enviarCorreo();
+    }//GEN-LAST:event_btnCorreoActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         Window ventana = SwingUtilities.getWindowAncestor(this);
@@ -984,20 +1176,17 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         add.verCliente(txtCliente.getText());
         add.verContactos();
         add.setVisible(true);
+        verCliente(txtCliente.getText());
     }//GEN-LAST:event_jButton4ActionPerformed
 
-    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton5ActionPerformed
-
-    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton6ActionPerformed
+    private void btnProyectoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnProyectoActionPerformed
+        abrirVentanaVentas();
+    }//GEN-LAST:event_btnProyectoActionPerformed
 
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                AgregarCotizacion dialog = new AgregarCotizacion(new javax.swing.JFrame(), true, null, true);
+                AgregarCotizacion dialog = new AgregarCotizacion(new javax.swing.JFrame(), true, null, true, null, null);
                 dialog.addWindowListener(new java.awt.event.WindowAdapter() {
                     @Override
                     public void windowClosing(java.awt.event.WindowEvent e) {
@@ -1011,20 +1200,20 @@ public class AgregarCotizacion extends javax.swing.JDialog {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable Tabla1;
+    private javax.swing.JButton btnCorreo;
     private javax.swing.JMenuItem btnEliminar;
-    public javax.swing.JComboBox<String> cmbIva;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
+    private javax.swing.JButton btnGuardar;
+    private javax.swing.JButton btnImprimir;
+    private javax.swing.JButton btnProyecto;
     private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
@@ -1033,6 +1222,8 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPopupMenu jPopupMenu1;
     private javax.swing.JScrollPane jScrollPane1;
+    public javax.swing.JComboBox<String> jcbIva;
+    public javax.swing.JComboBox<String> jcbMoneda;
     private javax.swing.JLabel lblCotizacion;
     private javax.swing.JTextField txtCliente;
     public javax.swing.JTextField txtCreacion;
