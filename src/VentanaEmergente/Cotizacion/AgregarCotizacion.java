@@ -608,8 +608,9 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     this.nombre = rs.getString("nom");
                     this.contacto = rs.getString("contacto");
                 }
-                if (email != null || !email.equals("")) {
-                    btnCorreo.setEnabled(true);
+                if (email != null) {
+                    if (!email.equals(""))
+                        btnCorreo.setEnabled(true);
                 } else {
                     btnCorreo.setEnabled(false);
                 }

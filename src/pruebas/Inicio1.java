@@ -50,8 +50,20 @@ import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
 import javax.swing.SwingUtilities;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Supplier;
+import javax.swing.JButton;
+import javax.swing.JDesktopPane;
+import javax.swing.SwingConstants;
+import scrollPane.PanelRound;
 
 public final class Inicio1 extends javax.swing.JFrame implements Observer, ActionListener {
 
@@ -68,6 +80,12 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     public int HOME = 1;
     public int COSTOS = 2;
     public Backups backup;
+    private boolean activarNombres = true;
+    private PanelRound menuSeleccionado = null;
+
+    private final Color COLOR_NORMAL = Color.WHITE;
+    private final Color COLOR_HOVER = new Color(234, 244, 255);
+    private final Color COLOR_SELECCIONADO = new Color(123, 192, 255);
 
     public void activar() {
         Thread hilo = new Thread() {
@@ -245,40 +263,45 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     }
 
     public void getPrecioDolar() {
+        Thread hilo = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Connection con;
+                    Conexion con1 = new Conexion();
+                    con = con1.getConnection();
+                    String sql = "insert into preciodolar (Precio, Fecha) values (?,?)";
+                    PreparedStatement pst = con.prepareStatement(sql);
 
-        try {
-            Connection con;
-            Conexion con1 = new Conexion();
-            con = con1.getConnection();
-            String sql = "insert into preciodolar (Precio, Fecha) values (?,?)";
-            PreparedStatement pst = con.prepareStatement(sql);
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    Date d = new Date();
+                    String fecha = sdf.format(d);
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            Date d = new Date();
-            String fecha = sdf.format(d);
+                    String sql2 = "select * from preciodolar where Fecha like '" + fecha + "'";
+                    Statement st = con.createStatement();
+                    ResultSet rs = st.executeQuery(sql2);
 
-            String sql2 = "select * from preciodolar where Fecha like '" + fecha + "'";
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery(sql2);
+                    String fec = null;
+                    while (rs.next()) {
+                        fec = rs.getString("Precio");
+                    }
 
-            String fec = null;
-            while (rs.next()) {
-                fec = rs.getString("Precio");
-            }
+                    if (fec == null) {
+                        precioDolar precio = new precioDolar();
+                        if (precio.getPrecio() != 0) {
+                            pst.setString(1, String.valueOf(precio.getPrecio()));
+                            pst.setString(2, fecha);
 
-            if (fec == null) {
-                precioDolar precio = new precioDolar();
-                if (precio.getPrecio() != 0) {
-                    pst.setString(1, String.valueOf(precio.getPrecio()));
-                    pst.setString(2, fecha);
+                            pst.executeUpdate();
+                        }
+                    }
 
-                    pst.executeUpdate();
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(null, "Error al extraer precio del dolar: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
                 }
             }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
-        }
+        });
+        hilo.start();
     }
 
     public final int getCostos(String numEmpleado, int seleccion) {
@@ -417,6 +440,146 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         }
     }
 
+    public final void agregarMenuProduccion(String depa, int y, String ruta, Supplier<JInternalFrame> frameSupplier) {
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        PanelRound pnlBoton = new PanelRound();
+        pnlBoton.setBackground(Color.WHITE);
+        pnlBoton.setRoundBottomLeft(10);
+        pnlBoton.setRoundBottomRight(10);
+        pnlBoton.setRoundTopLeft(10);
+        pnlBoton.setRoundTopRight(10);
+        pnlBoton.setLayout(new BorderLayout());
+
+        JButton btnDepartamento = new JButton();
+
+        btnDepartamento.setBackground(Color.WHITE);
+        btnDepartamento.setFont(new Font("Roboto", Font.PLAIN, 12));
+        btnDepartamento.setForeground(new Color(50, 50, 50));
+
+        btnDepartamento.setText(activarNombres ? depa : "      ");
+
+        btnDepartamento.setHorizontalAlignment(SwingConstants.LEFT);
+        btnDepartamento.setBorder(null);
+        btnDepartamento.setIcon(new ImageIcon(getClass().getResource(ruta)));
+        btnDepartamento.setBorderPainted(false);
+        btnDepartamento.setContentAreaFilled(false);
+        btnDepartamento.setFocusPainted(false);
+
+        btnDepartamento.addActionListener(e -> {
+            if (menuSeleccionado != null) {
+                menuSeleccionado.setBackground(COLOR_NORMAL);
+            }
+            menuSeleccionado = pnlBoton;
+            menuSeleccionado.setBackground(COLOR_SELECCIONADO);
+            verFrame(frameSupplier.get());
+        });
+
+        btnDepartamento.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent evt) {
+                pnlBoton.setBackground(COLOR_HOVER);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent evt) {
+                if (menuSeleccionado != pnlBoton) {
+                    pnlBoton.setBackground(COLOR_NORMAL);
+                }
+            }
+        });
+
+        pnlBoton.add(btnDepartamento, BorderLayout.CENTER);
+
+        gbc.gridy = y;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.ipadx = activarNombres ? 10 : 0;
+        gbc.ipady = 15;
+        gbc.insets = new Insets(3, 10, 3, 0);
+
+        jPanel2.add(pnlBoton, gbc);
+    }
+
+    public final void limpiarPanel() {
+        jPanel2.removeAll();
+        jPanel2.revalidate();
+        jPanel2.repaint();
+
+        jScrollPane1.revalidate();
+        jScrollPane1.repaint();
+
+        jScrollPane1.getViewport().revalidate();
+        jScrollPane1.getViewport().repaint();
+    }
+
+    public final void agregarLabel(String depa, int i) {
+        javax.swing.JLabel lbl = new javax.swing.JLabel();
+        lbl.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        lbl.setForeground(new java.awt.Color(204, 204, 204));
+        lbl.setText(depa);
+        java.awt.GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = i;
+        gridBagConstraints.insets = new Insets(3, 5, 3, 0);
+        jPanel2.add(lbl, gridBagConstraints);
+    }
+
+    public final void agregarMenu() {
+        limpiarPanel();
+        agregarLabel("Produccion", 0);
+        agregarMenuProduccion("Dashboard", 1, "/Img/dashboard_16.png", () -> new Live(lblId.getText()));
+        agregarMenuProduccion("Diseno", 2, "/Img/diseno_16.png", () -> new InicioDiseño(this));
+        agregarMenuProduccion("Proyectos", 3, "/Img/estados_16.png", () -> new CambiarEstado(lblId.getText()));
+        agregarMenuProduccion("Carga de trabajo", 4, "/Img/carga_16.png", () -> new CargaTrabajo(this));
+        agregarMenuProduccion("Reportes", 5, "/Img/reportes_16.png", () -> new Reportes(lblId.getText()));
+        agregarMenuProduccion("Cortes", 6, "/Img/cortes_16.png", () -> new Cortes(lblId.getText()));
+        agregarMenuProduccion("Maquinados", 7, "/Img/maquinado_16.png", () -> new MaquinadosNew(lblId.getText()));
+        agregarMenuProduccion("Ensamble", 8, "/Img/ensamble_16.png", () -> new Ensamble());
+        agregarMenuProduccion("Calidad", 9, "/Img/calidad_16.png", () -> new CalidadDebug(lblNombre.getText(), lblId.getText()));
+        agregarLabel("Compras", 10);
+        agregarMenuProduccion("Requisiciones", 11, "/Img/requisiciones_16.png", () -> new requisicionDeCompra(lblId.getText(), lblNombre.getText()));
+        agregarMenuProduccion("Compras", 12, "/Img/compras_16.png", () -> new OrdenDeCompra(lblId.getText()));
+        agregarMenuProduccion("Estado requisiciones", 13, "/Img/ver_requi_16.png", () -> new VerRequisiciones(lblId.getText()));
+        agregarMenuProduccion("Aprobacion", 14, "/Img/aprobacion_16.png", () -> new Aprobacion(lblId.getText()));
+        agregarMenuProduccion("Evaluacion", 15, "/Img/evaluacion_16.png", () -> new Evaluacion(lblId.getText()));
+        agregarLabel("Administracion", 16);
+        agregarMenuProduccion("Cotizaciones", 17, "/Img/cotizacion_16.png", () -> new InicioCotizacion(lblId.getText(), this));
+        agregarMenuProduccion("Ventas", 18, "/Img/ventas_16.png", () -> new Ventas());
+        agregarMenuProduccion("Remisiones", 19, "/Img/remisiones_16.png", () -> new Remisiones(lblId.getText()));
+        agregarMenuProduccion("CXP", 20, "/Img/cxp_16.png", () -> new cxp());
+        agregarMenuProduccion("Costos", 21, "/Img/costos_16.png", () -> new Costos(lblId.getText()));
+        agregarMenuProduccion("RH", 22, "/Img/rh_16.png", () -> new RH(lblId.getText()));
+        agregarMenuProduccion("Agregar empleado", 23, "/Img/agregar_empleado_16.png", () -> new AgregarEmpleado());
+        agregarMenuProduccion("Project manager", 24, "/Img/proyect_16.png", () -> new ProyectManager(lblId.getText()));
+        agregarMenuProduccion("Checador", 25, "/Img/huella_16.png", () -> new Checador(lblId.getText()));
+        agregarLabel("Almacen", 26);
+//      Pendiente  
+//      agregarMenuProduccion("Almacen", 26, "/Img/.png", () -> new InicioAlmacen(this, true));
+        agregarMenuProduccion("Inventario", 28, "/Img/inventario_16.png", () -> new InventarioNew(lblId.getText()));
+        agregarMenuProduccion("Recibos", 29, "/Img/recibos_16.png", () -> new Recibos(lblId.getText()));
+        agregarMenuProduccion("Prestamos", 30, "/Img/prestamos_16.png", () -> new Prestamo(lblId.getText(), this));
+        agregarMenuProduccion("Pedidos", 31, "/Img/pedidos_16.png", () -> new Pedidos(lblId.getText()));
+        agregarMenuProduccion("Entregas", 32, "/Img/entregas_16.png", () -> new EntregaRequisicion(lblId.getText()));
+        agregarMenuProduccion("Liberacion", 33, "/Img/liberacion_16.png", () -> new Almacen(lblId.getText()));
+    }
+
+    public final void verFrame(javax.swing.JInternalFrame c) {
+        JInternalFrame frame = jDesktopPane1.getSelectedFrame();
+
+        if (frame != null) {
+            frame.dispose();
+        }
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }
+
     public Inicio1(String numero, String nombre, String depa) {
         try {
             UIManager.setLookAndFeel(new FlatMacLightLaf());
@@ -447,6 +610,9 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             lblNotiRequis.setVisible(false);
         }
         iniciarBackup();
+        agregarMenu();
+        jPanel3.setVisible(false);
+        jScrollPane1.getVerticalScrollBar().setUnitIncrement(15);
     }
 
     @SuppressWarnings("unchecked")
@@ -468,6 +634,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         lblCont = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
         btnModificar1 = new javax.swing.JButton();
+        jButton1 = new javax.swing.JButton();
         jDesktopPane1 = new javax.swing.JDesktopPane();
         jPanel3 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
@@ -508,6 +675,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         btnHtpp = new javax.swing.JButton();
         jLabel30 = new javax.swing.JLabel();
         jPanel6 = new javax.swing.JPanel();
+        jPanel22 = new javax.swing.JPanel();
+        rSPanelRound37 = new rojeru_san.rspanel.RSPanelRound();
+        btnIntegracion1 = new javax.swing.JButton();
+        jLabel36 = new javax.swing.JLabel();
         panel21 = new javax.swing.JPanel();
         rSPanelRound9 = new rojeru_san.rspanel.RSPanelRound();
         btnCorte = new javax.swing.JButton();
@@ -533,10 +704,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         rSPanelRound36 = new rojeru_san.rspanel.RSPanelRound();
         btnIntegracion = new javax.swing.JButton();
         jLabel35 = new javax.swing.JLabel();
-        jPanel22 = new javax.swing.JPanel();
-        rSPanelRound37 = new rojeru_san.rspanel.RSPanelRound();
-        btnIntegracion1 = new javax.swing.JButton();
-        jLabel36 = new javax.swing.JLabel();
         jPanel5 = new javax.swing.JPanel();
         panel31 = new javax.swing.JPanel();
         rSPanelRound16 = new rojeru_san.rspanel.RSPanelRound();
@@ -615,6 +782,12 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         btnCalendario = new javax.swing.JButton();
         jLabel34 = new javax.swing.JLabel();
         jPanel8 = new javax.swing.JPanel();
+        jLabel12 = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jPanel2 = new javax.swing.JPanel();
+        jLabel9 = new javax.swing.JLabel();
+        jLabel10 = new javax.swing.JLabel();
+        jLabel11 = new javax.swing.JLabel();
 
         miReporte.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/excel_1.png"))); // NOI18N
         miReporte.setText("REPORTES DE CALIDAD");
@@ -740,6 +913,13 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             }
         });
 
+        jButton1.setText("jButton1");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -749,7 +929,9 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
                 .addComponent(jPanel37, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButton4)
-                .addGap(89, 89, 89)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(lblId1, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(lblId, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -763,18 +945,20 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
                 .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnModificar1)
-                .addContainerGap(243, Short.MAX_VALUE))
+                .addContainerGap(235, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jButton4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 22, Short.MAX_VALUE)
+                    .addComponent(jButton4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblId, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblId2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblNombre, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(lblId1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(lblId1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jButton1))
                     .addComponent(jPanel37, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButton5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btnModificar1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -784,6 +968,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         getContentPane().add(jPanel1, java.awt.BorderLayout.NORTH);
 
         jDesktopPane1.setBackground(new java.awt.Color(255, 255, 255));
+        jDesktopPane1.setLayout(new java.awt.BorderLayout());
 
         jPanel3.setBackground(new java.awt.Color(255, 255, 255));
         jPanel3.setLayout(new java.awt.GridLayout(4, 1));
@@ -1210,6 +1395,52 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         jPanel6.setBackground(new java.awt.Color(255, 255, 255));
         jPanel6.setLayout(new java.awt.GridLayout(1, 8));
 
+        jPanel22.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel22.setLayout(new java.awt.GridBagLayout());
+
+        rSPanelRound37.setBackground(new java.awt.Color(235, 235, 235));
+        rSPanelRound37.setColorBackground(new java.awt.Color(245, 245, 245));
+        rSPanelRound37.setColorBorde(new java.awt.Color(245, 245, 245));
+        rSPanelRound37.setPreferredSize(new java.awt.Dimension(90, 90));
+        rSPanelRound37.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 10));
+
+        btnIntegracion1.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        btnIntegracion1.setForeground(new java.awt.Color(0, 153, 255));
+        btnIntegracion1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/live.png"))); // NOI18N
+        btnIntegracion1.setBorder(null);
+        btnIntegracion1.setContentAreaFilled(false);
+        btnIntegracion1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnIntegracion1.setFocusPainted(false);
+        btnIntegracion1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        btnIntegracion1.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        btnIntegracion1.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        btnIntegracion1.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnIntegracion1MouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnIntegracion1MouseExited(evt);
+            }
+        });
+        btnIntegracion1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnIntegracion1ActionPerformed(evt);
+            }
+        });
+        rSPanelRound37.add(btnIntegracion1);
+
+        jPanel22.add(rSPanelRound37, new java.awt.GridBagConstraints());
+
+        jLabel36.setFont(new java.awt.Font("Roboto Medium", 0, 14)); // NOI18N
+        jLabel36.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel36.setText("Live");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        jPanel22.add(jLabel36, gridBagConstraints);
+
+        jPanel6.add(jPanel22);
+
         panel21.setBackground(new java.awt.Color(255, 255, 255));
         panel21.setLayout(new java.awt.GridBagLayout());
 
@@ -1490,52 +1721,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         jPanel21.add(jLabel35, gridBagConstraints);
 
         jPanel6.add(jPanel21);
-
-        jPanel22.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel22.setLayout(new java.awt.GridBagLayout());
-
-        rSPanelRound37.setBackground(new java.awt.Color(235, 235, 235));
-        rSPanelRound37.setColorBackground(new java.awt.Color(245, 245, 245));
-        rSPanelRound37.setColorBorde(new java.awt.Color(245, 245, 245));
-        rSPanelRound37.setPreferredSize(new java.awt.Dimension(90, 90));
-        rSPanelRound37.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 10));
-
-        btnIntegracion1.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        btnIntegracion1.setForeground(new java.awt.Color(0, 153, 255));
-        btnIntegracion1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/kpi.png"))); // NOI18N
-        btnIntegracion1.setBorder(null);
-        btnIntegracion1.setContentAreaFilled(false);
-        btnIntegracion1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnIntegracion1.setFocusPainted(false);
-        btnIntegracion1.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        btnIntegracion1.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        btnIntegracion1.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        btnIntegracion1.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btnIntegracion1MouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                btnIntegracion1MouseExited(evt);
-            }
-        });
-        btnIntegracion1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnIntegracion1ActionPerformed(evt);
-            }
-        });
-        rSPanelRound37.add(btnIntegracion1);
-
-        jPanel22.add(rSPanelRound37, new java.awt.GridBagConstraints());
-
-        jLabel36.setFont(new java.awt.Font("Roboto Medium", 0, 14)); // NOI18N
-        jLabel36.setForeground(new java.awt.Color(51, 51, 51));
-        jLabel36.setText("KPI's");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        jPanel22.add(jLabel36, gridBagConstraints);
-
-        jPanel6.add(jPanel22);
 
         jPanel3.add(jPanel6);
 
@@ -2413,28 +2598,47 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
 
         jPanel3.add(jPanel7);
 
+        jDesktopPane1.add(jPanel3, java.awt.BorderLayout.SOUTH);
+
         jPanel8.setBackground(new java.awt.Color(255, 255, 255));
         jPanel8.setLayout(new java.awt.GridLayout(1, 0));
+        jDesktopPane1.add(jPanel8, java.awt.BorderLayout.PAGE_START);
 
-        jDesktopPane1.setLayer(jPanel3, javax.swing.JLayeredPane.DEFAULT_LAYER);
-        jDesktopPane1.setLayer(jPanel8, javax.swing.JLayeredPane.DEFAULT_LAYER);
-
-        javax.swing.GroupLayout jDesktopPane1Layout = new javax.swing.GroupLayout(jDesktopPane1);
-        jDesktopPane1.setLayout(jDesktopPane1Layout);
-        jDesktopPane1Layout.setHorizontalGroup(
-            jDesktopPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jDesktopPane1Layout.createSequentialGroup()
-                .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, 1246, Short.MAX_VALUE)
-                .addGap(0, 0, 0)
-                .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
-        jDesktopPane1Layout.setVerticalGroup(
-            jDesktopPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, 641, Short.MAX_VALUE)
-        );
+        jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel12.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/si3i.png"))); // NOI18N
+        jDesktopPane1.add(jLabel12, java.awt.BorderLayout.CENTER);
 
         getContentPane().add(jDesktopPane1, java.awt.BorderLayout.CENTER);
+
+        jScrollPane1.setBackground(new java.awt.Color(255, 255, 255));
+        jScrollPane1.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(255, 255, 255), 1, true));
+        jScrollPane1.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        jPanel2.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+
+        jLabel9.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        jLabel9.setForeground(new java.awt.Color(204, 204, 204));
+        jLabel9.setText("Produccion");
+        jPanel2.add(jLabel9, new java.awt.GridBagConstraints());
+
+        jLabel10.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(204, 204, 204));
+        jLabel10.setText("Compras");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 10;
+        jPanel2.add(jLabel10, gridBagConstraints);
+
+        jLabel11.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        jLabel11.setForeground(new java.awt.Color(204, 204, 204));
+        jLabel11.setText("Administracion");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 15;
+        jPanel2.add(jLabel11, gridBagConstraints);
+
+        jScrollPane1.setViewportView(jPanel2);
+
+        getContentPane().add(jScrollPane1, java.awt.BorderLayout.WEST);
 
         pack();
         setLocationRelativeTo(null);
@@ -2473,613 +2677,10 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         }
     }//GEN-LAST:event_lblId1MouseClicked
 
-    private void btnCotizacionVentasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionVentasActionPerformed
-//        InicioCotizacion c = new InicioCotizacion(lblId.getText());
-//        jDesktopPane1.add(c);
-//        c.toFront();
-//        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-//        try{
-//            c.setMaximum(true);
-//        }catch(PropertyVetoException e){
-//            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE,null,e);
-//        }
-//        c.setVisible(true);
-    }//GEN-LAST:event_btnCotizacionVentasActionPerformed
-
-    private void btnCotizacionVentasMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionVentasMouseExited
-//        btnCotizacionVentas.setText("");
-    }//GEN-LAST:event_btnCotizacionVentasMouseExited
-
-    private void btnCotizacionVentasMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionVentasMouseEntered
-//        btnCotizacionVentas.setText("COTIZACION");
-    }//GEN-LAST:event_btnCotizacionVentasMouseEntered
-
-    private void btnVerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerActionPerformed
-        VerRequisiciones c = new VerRequisiciones(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnVerActionPerformed
-
-    private void btnVerMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnVerMouseExited
-//        btnVer.setText("");
-    }//GEN-LAST:event_btnVerMouseExited
-
-    private void btnVerMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnVerMouseEntered
-//        btnVer.setText("VER REQUISICION");
-    }//GEN-LAST:event_btnVerMouseEntered
-
-    private void btnCotizacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionActionPerformed
-        InicioCotizacion c = new InicioCotizacion(lblId.getText(), this);
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnCotizacionActionPerformed
-
-    private void btnCotizacionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionMouseExited
-//        btnCotizacion.setText("");
-    }//GEN-LAST:event_btnCotizacionMouseExited
-
-    private void btnCotizacionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionMouseEntered
-//        btnCotizacion.setText("COTIZACION");
-    }//GEN-LAST:event_btnCotizacionMouseEntered
-
-    private void btnPrestamosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPrestamosActionPerformed
-        Prestamo c = new Prestamo(lblId.getText(), this);
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnPrestamosActionPerformed
-
-    private void btnPrestamosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPrestamosMouseExited
-//        btnPrestamos.setText("");
-    }//GEN-LAST:event_btnPrestamosMouseExited
-
-    private void btnPrestamosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPrestamosMouseEntered
-//        btnPrestamos.setText("PRESTAMOS");
-    }//GEN-LAST:event_btnPrestamosMouseEntered
-
-    private void btnRecibosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecibosActionPerformed
-        Recibos c = new Recibos(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnRecibosActionPerformed
-
-    private void btnRecibosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRecibosMouseExited
-//        btnRecibos.setText("");
-    }//GEN-LAST:event_btnRecibosMouseExited
-
-    private void btnRecibosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRecibosMouseEntered
-//        btnRecibos.setText("RECIBOS");
-    }//GEN-LAST:event_btnRecibosMouseEntered
-
-    private void btnOrden1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOrden1ActionPerformed
-        Aprobacion c = new Aprobacion(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnOrden1ActionPerformed
-
-    private void btnOrden1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrden1MouseExited
-//        btnOrden1.setText("");
-    }//GEN-LAST:event_btnOrden1MouseExited
-
-    private void btnOrden1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrden1MouseEntered
-//        btnOrden1.setText("APROBACION");
-    }//GEN-LAST:event_btnOrden1MouseEntered
-
-    private void btnOrdenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOrdenActionPerformed
-        OrdenDeCompra c = new OrdenDeCompra(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnOrdenActionPerformed
-
-    private void btnOrdenMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrdenMouseExited
-//        btnOrden.setText("");
-    }//GEN-LAST:event_btnOrdenMouseExited
-
-    private void btnOrdenMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrdenMouseEntered
-//        btnOrden.setText("COMPRAS");
-    }//GEN-LAST:event_btnOrdenMouseEntered
-
-    private void btnRequisicionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRequisicionActionPerformed
-        requisicionDeCompra c = new requisicionDeCompra(lblId.getText(), lblNombre.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnRequisicionActionPerformed
-
-    private void btnRequisicionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRequisicionMouseExited
-//        btnRequisicion.setText("");
-    }//GEN-LAST:event_btnRequisicionMouseExited
-
-    private void btnRequisicionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRequisicionMouseEntered
-//        btnRequisicion.setText("REQUISICIONES");
-    }//GEN-LAST:event_btnRequisicionMouseEntered
-
-    private void btnPedidosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPedidosActionPerformed
-        c = new Pedidos(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-        actualizar();
-    }//GEN-LAST:event_btnPedidosActionPerformed
-
-    private void btnPedidosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPedidosMouseExited
-//        btnPedidos.setText("");
-    }//GEN-LAST:event_btnPedidosMouseExited
-
-    private void btnPedidosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPedidosMouseEntered
-//        btnPedidos.setText("PEDIDOS");
-    }//GEN-LAST:event_btnPedidosMouseEntered
-
-    private void btnEntregaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEntregaActionPerformed
-        EntregaRequisicion c = new EntregaRequisicion(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnEntregaActionPerformed
-
-    private void btnEntregaMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEntregaMouseExited
-//        btnEntrega.setText("");
-    }//GEN-LAST:event_btnEntregaMouseExited
-
-    private void btnEntregaMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEntregaMouseEntered
-//        btnEntrega.setText("ENTREGA");
-    }//GEN-LAST:event_btnEntregaMouseEntered
-
-    private void btnRemisionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRemisionesActionPerformed
-        Remisiones c = new Remisiones(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnRemisionesActionPerformed
-
-    private void btnRemisionesMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRemisionesMouseExited
-//        btnRemisiones.setText("");
-    }//GEN-LAST:event_btnRemisionesMouseExited
-
-    private void btnRemisionesMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRemisionesMouseEntered
-//        btnRemisiones.setText("REMISIONES");
-    }//GEN-LAST:event_btnRemisionesMouseEntered
-
-    private void btnInventario2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventario2ActionPerformed
-        InventarioPlanos c = new InventarioPlanos();
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnInventario2ActionPerformed
-
-    private void btnInventario2MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario2MouseExited
-//        btnInventario2.setText("");
-    }//GEN-LAST:event_btnInventario2MouseExited
-
-    private void btnInventario2MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario2MouseEntered
-//        btnInventario2.setText("INV. PLANOS");
-    }//GEN-LAST:event_btnInventario2MouseEntered
-
-    private void btnInventario1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventario1ActionPerformed
-        Ensamble c = new Ensamble();
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnInventario1ActionPerformed
-
-    private void btnInventario1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario1MouseExited
-//        btnInventario1.setText("");
-    }//GEN-LAST:event_btnInventario1MouseExited
-
-    private void btnInventario1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario1MouseEntered
-//        btnInventario1.setText("ENSAMBLE");
-    }//GEN-LAST:event_btnInventario1MouseEntered
-
-    private void btnInventarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventarioActionPerformed
-        inicioAlmacen = new InicioAlmacen(this, true);
-        inicioAlmacen.setLocationRelativeTo(this);
-        inicioAlmacen.btnInventario.addActionListener(this);
-        inicioAlmacen.btnRevisar.addActionListener(this);
-        inicioAlmacen.setVisible(true);
-    }//GEN-LAST:event_btnInventarioActionPerformed
-
-    private void btnInventarioMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventarioMouseExited
-//        btnInventario.setText("");
-    }//GEN-LAST:event_btnInventarioMouseExited
-
-    private void btnInventarioMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventarioMouseEntered
-//        btnInventario.setText("INVENTARIO");
-    }//GEN-LAST:event_btnInventarioMouseEntered
-
-    private void btnEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEmpleadoActionPerformed
-        cxp c = new cxp();
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnEmpleadoActionPerformed
-
-    private void btnEmpleadoMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEmpleadoMouseExited
-//        btnEmpleado.setText("");
-    }//GEN-LAST:event_btnEmpleadoMouseExited
-
-    private void btnEmpleadoMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEmpleadoMouseEntered
-//        btnEmpleado.setText("VER");
-    }//GEN-LAST:event_btnEmpleadoMouseEntered
-
-    private void btnRegistroActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegistroActionPerformed
-        RegistrarEmpleado c = new RegistrarEmpleado();
-        c.setVisible(true);
-    }//GEN-LAST:event_btnRegistroActionPerformed
-
-    private void btnRegistroMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRegistroMouseExited
-//        btnRegistro.setText("");
-    }//GEN-LAST:event_btnRegistroMouseExited
-
-    private void btnRegistroMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRegistroMouseEntered
-//        btnRegistro.setText("AÑADIR");
-    }//GEN-LAST:event_btnRegistroMouseEntered
-
-    private void btnElecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnElecActionPerformed
-        Maquinados c = new Maquinados(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnElecActionPerformed
-
-    private void btnElecMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnElecMouseExited
-//        btnElec.setText("");
-    }//GEN-LAST:event_btnElecMouseExited
-
-    private void btnElecMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnElecMouseEntered
-//        btnElec.setText("ELECT..");
-    }//GEN-LAST:event_btnElecMouseEntered
-
-    private void btnTrataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnTrataActionPerformed
-        Tratamiento c = new Tratamiento();
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnTrataActionPerformed
-
-    private void btnTrataMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnTrataMouseExited
-//        btnTrata.setText("");
-    }//GEN-LAST:event_btnTrataMouseExited
-
-    private void btnTrataMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnTrataMouseEntered
-//        btnTrata.setText("TRATAMIENTO");
-    }//GEN-LAST:event_btnTrataMouseEntered
-
-    private void btnCalidadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCalidadActionPerformed
-//        CalidadNew c = new CalidadNew(lblNombre.getText(), lblId.getText());
-        CalidadDebug c = new CalidadDebug(lblNombre.getText(), lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnCalidadActionPerformed
-
-    private void btnCalidadMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidadMouseExited
-//        btnCalidad.setText("");
-    }//GEN-LAST:event_btnCalidadMouseExited
-
-    private void btnCalidadMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidadMouseEntered
-//        btnCalidad.setText("CALIDAD");
-    }//GEN-LAST:event_btnCalidadMouseEntered
-
-    private void btnCorteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCorteActionPerformed
-        Cortes c = new Cortes(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnCorteActionPerformed
-
-    private void btnCorteMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCorteMouseExited
-//        btnCorte.setText("");
-    }//GEN-LAST:event_btnCorteMouseExited
-
-    private void btnCorteMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCorteMouseEntered
-//        btnCorte.setText("CORTES");
-    }//GEN-LAST:event_btnCorteMouseEntered
-
-    private void btnEstado5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado5ActionPerformed
-        ProyectManager c = new ProyectManager(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnEstado5ActionPerformed
-
-    private void btnEstado5MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado5MouseExited
-//        btnEstado5.setText("");
-    }//GEN-LAST:event_btnEstado5MouseExited
-
-    private void btnEstado5MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado5MouseEntered
-//        btnEstado5.setText("PROYECTOS");
-    }//GEN-LAST:event_btnEstado5MouseEntered
-
-    private void btnEstado3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado3ActionPerformed
-        Ventas c = new Ventas();
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnEstado3ActionPerformed
-
-    private void btnEstado3MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado3MouseExited
-//        btnEstado3.setText("");
-    }//GEN-LAST:event_btnEstado3MouseExited
-
-    private void btnEstado3MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado3MouseEntered
-//        btnEstado3.setText("VENTAS");
-    }//GEN-LAST:event_btnEstado3MouseEntered
-
-    private void btnEstado1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado1ActionPerformed
-        Reportes c = new Reportes(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnEstado1ActionPerformed
-
-    private void btnEstado1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado1MouseExited
-//        btnEstado1.setText("");
-    }//GEN-LAST:event_btnEstado1MouseExited
-
-    private void btnEstado1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado1MouseEntered
-//        btnEstado1.setText("REPORTES");
-    }//GEN-LAST:event_btnEstado1MouseEntered
-
-    private void btnEstado2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado2ActionPerformed
-        CargaTrabajo c = new CargaTrabajo(this);
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnEstado2ActionPerformed
-
-    private void btnEstado2MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado2MouseExited
-//        btnEstado2.setText("");
-    }//GEN-LAST:event_btnEstado2MouseExited
-
-    private void btnEstado2MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado2MouseEntered
-//        btnEstado2.setText("CARGA");
-    }//GEN-LAST:event_btnEstado2MouseEntered
-
-    private void btnEstadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstadoActionPerformed
-        CambiarEstado VistaEXe = new CambiarEstado(lblId.getText());
-        jDesktopPane1.add(VistaEXe);
-        VistaEXe.toFront();
-        VistaEXe.setLocation(jDesktopPane1.getWidth() / 2 - VistaEXe.getWidth() / 2, jDesktopPane1.getHeight() / 2 - VistaEXe.getHeight() / 2);
-        try {
-            VistaEXe.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        VistaEXe.setVisible(true);
-    }//GEN-LAST:event_btnEstadoActionPerformed
-
-    private void btnEstadoMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstadoMouseExited
-//        btnEstado.setText("");
-    }//GEN-LAST:event_btnEstadoMouseExited
-
-    private void btnEstadoMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstadoMouseEntered
-//        btnEstado.setText("ESTADOS");
-    }//GEN-LAST:event_btnEstadoMouseEntered
-
-    private void btnDisenioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDisenioActionPerformed
-        InicioDiseño c = new InicioDiseño(this);
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnDisenioActionPerformed
-
-    private void btnDisenioMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnDisenioMouseExited
-//        btnDisenio.setText("");
-    }//GEN-LAST:event_btnDisenioMouseExited
-
-    private void btnDisenioMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnDisenioMouseEntered
-//        btnDisenio.setText("DISEÑO");
-    }//GEN-LAST:event_btnDisenioMouseEntered
-
-    private void btnChecadorMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnChecadorMouseEntered
-//        btnChecador.setText("Checador");
-    }//GEN-LAST:event_btnChecadorMouseEntered
-
-    private void btnChecadorMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnChecadorMouseExited
-//        btnChecador.setText("");
-    }//GEN-LAST:event_btnChecadorMouseExited
-
-    private void btnChecadorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnChecadorActionPerformed
-        Checador c = new Checador(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-        c.setVisible(true);
-    }//GEN-LAST:event_btnChecadorActionPerformed
-
-    private void btnHtppMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnHtppMouseEntered
-//        btnHtpp.setText("HTPP");
-    }//GEN-LAST:event_btnHtppMouseEntered
-
-    private void btnHtppMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnHtppMouseExited
-//        btnHtpp.setText("");
-    }//GEN-LAST:event_btnHtppMouseExited
-
-    private void btnHtppActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHtppActionPerformed
-        HTPP c = new HTPP(lblId.getText());
-        jDesktopPane1.add(c);
-        c.toFront();
-        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
-        try {
-            c.setMaximum(true);
-        } catch (PropertyVetoException e) {
-            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
-        }
-//        c.insertarSemanas();
-        c.setVisible(true);
-//        c.verDatos();
-    }//GEN-LAST:event_btnHtppActionPerformed
-
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         guardarUbicacionVentana(this);
         System.exit(0);
     }//GEN-LAST:event_formWindowClosing
-
-    private void btnCostosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCostosMouseEntered
-//        btnCostos.setText("Costos");
-    }//GEN-LAST:event_btnCostosMouseEntered
-
-    private void btnCostosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCostosMouseExited
-//        btnCostos.setText("");
-    }//GEN-LAST:event_btnCostosMouseExited
-
-    private void btnCostosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCostosActionPerformed
-        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        inicioCostos = new InicioCostos(f, true);
-        if (notiCostos == 0) {
-            inicioCostos.lblNotiCostos.setVisible(false);
-        } else {
-            inicioCostos.lblNotiCostos.setVisible(true);
-            inicioCostos.lblNotiCostos.setText(String.valueOf(notiCostos));
-        }
-        inicioCostos.setLocationRelativeTo(f);
-        inicioCostos.btnCostos.addActionListener(this);
-        inicioCostos.btnEvaluacion.addActionListener(this);
-        inicioCostos.btnCosteo.addActionListener(this);
-        inicioCostos.setVisible(true);
-    }//GEN-LAST:event_btnCostosActionPerformed
 
     private void formKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_formKeyPressed
         int modifer = evt.getModifiersEx();
@@ -3100,13 +2701,20 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         }
     }//GEN-LAST:event_jButton5ActionPerformed
 
-    private void btnCalendarioMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalendarioMouseEntered
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btnCalendarioMouseEntered
+    private void btnModificar1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnModificar1ActionPerformed
+        try {
+            backup.setSize(1112, 691);
+            backup.setLocationRelativeTo(this);
+            backup.setVisible(true);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_btnModificar1ActionPerformed
 
-    private void btnCalendarioMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalendarioMouseExited
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btnCalendarioMouseExited
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        activarNombres = !activarNombres;
+        agregarMenu();
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     private void btnCalendarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCalendarioActionPerformed
         Calendario c = new Calendario(lblId.getText(), this);
@@ -3121,13 +2729,361 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         c.setVisible(true);
     }//GEN-LAST:event_btnCalendarioActionPerformed
 
-    private void btnIntegracionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracionMouseEntered
+    private void btnCalendarioMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalendarioMouseExited
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnIntegracionMouseEntered
+    }//GEN-LAST:event_btnCalendarioMouseExited
 
-    private void btnIntegracionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracionMouseExited
+    private void btnCalendarioMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalendarioMouseEntered
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnIntegracionMouseExited
+    }//GEN-LAST:event_btnCalendarioMouseEntered
+
+    private void btnCostosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCostosActionPerformed
+        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+        inicioCostos = new InicioCostos(f, true);
+        if (notiCostos == 0) {
+            inicioCostos.lblNotiCostos.setVisible(false);
+        } else {
+            inicioCostos.lblNotiCostos.setVisible(true);
+            inicioCostos.lblNotiCostos.setText(String.valueOf(notiCostos));
+        }
+        inicioCostos.setLocationRelativeTo(f);
+        inicioCostos.btnCostos.addActionListener(this);
+        inicioCostos.btnEvaluacion.addActionListener(this);
+        inicioCostos.btnCosteo.addActionListener(this);
+        inicioCostos.setVisible(true);
+    }//GEN-LAST:event_btnCostosActionPerformed
+
+    private void btnCostosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCostosMouseExited
+        //        btnCostos.setText("");
+    }//GEN-LAST:event_btnCostosMouseExited
+
+    private void btnCostosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCostosMouseEntered
+        //        btnCostos.setText("Costos");
+    }//GEN-LAST:event_btnCostosMouseEntered
+
+    private void btnVerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerActionPerformed
+        VerRequisiciones c = new VerRequisiciones(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnVerActionPerformed
+
+    private void btnVerMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnVerMouseExited
+        //        btnVer.setText("");
+    }//GEN-LAST:event_btnVerMouseExited
+
+    private void btnVerMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnVerMouseEntered
+        //        btnVer.setText("VER REQUISICION");
+    }//GEN-LAST:event_btnVerMouseEntered
+
+    private void btnCotizacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionActionPerformed
+        InicioCotizacion c = new InicioCotizacion(lblId.getText(), this);
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnCotizacionActionPerformed
+
+    private void btnCotizacionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionMouseExited
+        //        btnCotizacion.setText("");
+    }//GEN-LAST:event_btnCotizacionMouseExited
+
+    private void btnCotizacionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionMouseEntered
+        //        btnCotizacion.setText("COTIZACION");
+    }//GEN-LAST:event_btnCotizacionMouseEntered
+
+    private void btnPrestamosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPrestamosActionPerformed
+        Prestamo c = new Prestamo(lblId.getText(), this);
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnPrestamosActionPerformed
+
+    private void btnPrestamosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPrestamosMouseExited
+        //        btnPrestamos.setText("");
+    }//GEN-LAST:event_btnPrestamosMouseExited
+
+    private void btnPrestamosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPrestamosMouseEntered
+        //        btnPrestamos.setText("PRESTAMOS");
+    }//GEN-LAST:event_btnPrestamosMouseEntered
+
+    private void btnRecibosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecibosActionPerformed
+        Recibos c = new Recibos(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnRecibosActionPerformed
+
+    private void btnRecibosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRecibosMouseExited
+        //        btnRecibos.setText("");
+    }//GEN-LAST:event_btnRecibosMouseExited
+
+    private void btnRecibosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRecibosMouseEntered
+        //        btnRecibos.setText("RECIBOS");
+    }//GEN-LAST:event_btnRecibosMouseEntered
+
+    private void btnOrden1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOrden1ActionPerformed
+        Aprobacion c = new Aprobacion(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnOrden1ActionPerformed
+
+    private void btnOrden1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrden1MouseExited
+        //        btnOrden1.setText("");
+    }//GEN-LAST:event_btnOrden1MouseExited
+
+    private void btnOrden1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrden1MouseEntered
+        //        btnOrden1.setText("APROBACION");
+    }//GEN-LAST:event_btnOrden1MouseEntered
+
+    private void btnOrdenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOrdenActionPerformed
+        OrdenDeCompra c = new OrdenDeCompra(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnOrdenActionPerformed
+
+    private void btnOrdenMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrdenMouseExited
+        //        btnOrden.setText("");
+    }//GEN-LAST:event_btnOrdenMouseExited
+
+    private void btnOrdenMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnOrdenMouseEntered
+        //        btnOrden.setText("COMPRAS");
+    }//GEN-LAST:event_btnOrdenMouseEntered
+
+    private void btnRequisicionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRequisicionActionPerformed
+        requisicionDeCompra c = new requisicionDeCompra(lblId.getText(), lblNombre.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnRequisicionActionPerformed
+
+    private void btnRequisicionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRequisicionMouseExited
+        //        btnRequisicion.setText("");
+    }//GEN-LAST:event_btnRequisicionMouseExited
+
+    private void btnRequisicionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRequisicionMouseEntered
+        //        btnRequisicion.setText("REQUISICIONES");
+    }//GEN-LAST:event_btnRequisicionMouseEntered
+
+    private void btnPedidosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPedidosActionPerformed
+        c = new Pedidos(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+        actualizar();
+    }//GEN-LAST:event_btnPedidosActionPerformed
+
+    private void btnPedidosMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPedidosMouseExited
+        //        btnPedidos.setText("");
+    }//GEN-LAST:event_btnPedidosMouseExited
+
+    private void btnPedidosMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnPedidosMouseEntered
+        //        btnPedidos.setText("PEDIDOS");
+    }//GEN-LAST:event_btnPedidosMouseEntered
+
+    private void btnEntregaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEntregaActionPerformed
+        EntregaRequisicion c = new EntregaRequisicion(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnEntregaActionPerformed
+
+    private void btnEntregaMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEntregaMouseExited
+        //        btnEntrega.setText("");
+    }//GEN-LAST:event_btnEntregaMouseExited
+
+    private void btnEntregaMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEntregaMouseEntered
+        //        btnEntrega.setText("ENTREGA");
+    }//GEN-LAST:event_btnEntregaMouseEntered
+
+    private void btnRemisionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRemisionesActionPerformed
+        Remisiones c = new Remisiones(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnRemisionesActionPerformed
+
+    private void btnRemisionesMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRemisionesMouseExited
+        //        btnRemisiones.setText("");
+    }//GEN-LAST:event_btnRemisionesMouseExited
+
+    private void btnRemisionesMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRemisionesMouseEntered
+        //        btnRemisiones.setText("REMISIONES");
+    }//GEN-LAST:event_btnRemisionesMouseEntered
+
+    private void btnInventario2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventario2ActionPerformed
+        InventarioPlanos c = new InventarioPlanos();
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnInventario2ActionPerformed
+
+    private void btnInventario2MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario2MouseExited
+        //        btnInventario2.setText("");
+    }//GEN-LAST:event_btnInventario2MouseExited
+
+    private void btnInventario2MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario2MouseEntered
+        //        btnInventario2.setText("INV. PLANOS");
+    }//GEN-LAST:event_btnInventario2MouseEntered
+
+    private void btnInventario1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventario1ActionPerformed
+        Ensamble c = new Ensamble();
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnInventario1ActionPerformed
+
+    private void btnInventario1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario1MouseExited
+        //        btnInventario1.setText("");
+    }//GEN-LAST:event_btnInventario1MouseExited
+
+    private void btnInventario1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventario1MouseEntered
+        //        btnInventario1.setText("ENSAMBLE");
+    }//GEN-LAST:event_btnInventario1MouseEntered
+
+    private void btnInventarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnInventarioActionPerformed
+        inicioAlmacen = new InicioAlmacen(this, true);
+        inicioAlmacen.setLocationRelativeTo(this);
+        inicioAlmacen.btnInventario.addActionListener(this);
+        inicioAlmacen.btnRevisar.addActionListener(this);
+        inicioAlmacen.setVisible(true);
+    }//GEN-LAST:event_btnInventarioActionPerformed
+
+    private void btnInventarioMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventarioMouseExited
+        //        btnInventario.setText("");
+    }//GEN-LAST:event_btnInventarioMouseExited
+
+    private void btnInventarioMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnInventarioMouseEntered
+        //        btnInventario.setText("INVENTARIO");
+    }//GEN-LAST:event_btnInventarioMouseEntered
+
+    private void btnEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEmpleadoActionPerformed
+        cxp c = new cxp();
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnEmpleadoActionPerformed
+
+    private void btnEmpleadoMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEmpleadoMouseExited
+        //        btnEmpleado.setText("");
+    }//GEN-LAST:event_btnEmpleadoMouseExited
+
+    private void btnEmpleadoMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEmpleadoMouseEntered
+        //        btnEmpleado.setText("VER");
+    }//GEN-LAST:event_btnEmpleadoMouseEntered
+
+    private void btnRHActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRHActionPerformed
+        RH c = new RH(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnRHActionPerformed
+
+    private void btnRHMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRHMouseExited
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnRHMouseExited
+
+    private void btnRHMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRHMouseEntered
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnRHMouseEntered
+
+    private void btnRegistroActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegistroActionPerformed
+        RegistrarEmpleado c = new RegistrarEmpleado();
+        c.setVisible(true);
+    }//GEN-LAST:event_btnRegistroActionPerformed
+
+    private void btnRegistroMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRegistroMouseExited
+        //        btnRegistro.setText("");
+    }//GEN-LAST:event_btnRegistroMouseExited
+
+    private void btnRegistroMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRegistroMouseEntered
+        //        btnRegistro.setText("AÑADIR");
+    }//GEN-LAST:event_btnRegistroMouseEntered
 
     private void btnIntegracionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIntegracionActionPerformed
         Integracion c = new Integracion(lblNombre.getText(), lblId.getText());
@@ -3142,16 +3098,16 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         c.setVisible(true);
     }//GEN-LAST:event_btnIntegracionActionPerformed
 
-    private void btnIntegracion1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracion1MouseEntered
+    private void btnIntegracionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracionMouseExited
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnIntegracion1MouseEntered
+    }//GEN-LAST:event_btnIntegracionMouseExited
 
-    private void btnIntegracion1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracion1MouseExited
+    private void btnIntegracionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracionMouseEntered
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnIntegracion1MouseExited
+    }//GEN-LAST:event_btnIntegracionMouseEntered
 
-    private void btnIntegracion1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIntegracion1ActionPerformed
-        KPI c = new KPI(lblId.getText(), depa);
+    private void btnTrataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnTrataActionPerformed
+        Tratamiento c = new Tratamiento();
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
@@ -3161,15 +3117,37 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
-    }//GEN-LAST:event_btnIntegracion1ActionPerformed
+    }//GEN-LAST:event_btnTrataActionPerformed
 
-    private void btnCalidad1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidad1MouseEntered
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btnCalidad1MouseEntered
+    private void btnTrataMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnTrataMouseExited
+        //        btnTrata.setText("");
+    }//GEN-LAST:event_btnTrataMouseExited
 
-    private void btnCalidad1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidad1MouseExited
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btnCalidad1MouseExited
+    private void btnTrataMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnTrataMouseEntered
+        //        btnTrata.setText("TRATAMIENTO");
+    }//GEN-LAST:event_btnTrataMouseEntered
+
+    private void btnCalidadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCalidadActionPerformed
+        //        CalidadNew c = new CalidadNew(lblNombre.getText(), lblId.getText());
+        CalidadDebug c = new CalidadDebug(lblNombre.getText(), lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnCalidadActionPerformed
+
+    private void btnCalidadMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidadMouseExited
+        //        btnCalidad.setText("");
+    }//GEN-LAST:event_btnCalidadMouseExited
+
+    private void btnCalidadMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidadMouseEntered
+        //        btnCalidad.setText("CALIDAD");
+    }//GEN-LAST:event_btnCalidadMouseEntered
 
     private void btnCalidad1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCalidad1ActionPerformed
         Acabados c = new Acabados(lblId.getText());
@@ -3184,26 +3162,16 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         c.setVisible(true);
     }//GEN-LAST:event_btnCalidad1ActionPerformed
 
-    private void btnModificar1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnModificar1ActionPerformed
-        try {
-            backup.setSize(1112, 691);
-            backup.setLocationRelativeTo(this);
-            backup.setVisible(true);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }//GEN-LAST:event_btnModificar1ActionPerformed
-
-    private void btnRHMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRHMouseEntered
+    private void btnCalidad1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidad1MouseExited
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnRHMouseEntered
+    }//GEN-LAST:event_btnCalidad1MouseExited
 
-    private void btnRHMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRHMouseExited
+    private void btnCalidad1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidad1MouseEntered
         // TODO add your handling code here:
-    }//GEN-LAST:event_btnRHMouseExited
+    }//GEN-LAST:event_btnCalidad1MouseEntered
 
-    private void btnRHActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRHActionPerformed
-        RH c = new RH(lblId.getText());
+    private void btnElecActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnElecActionPerformed
+        MaquinadosNew c = new MaquinadosNew(lblId.getText());
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
@@ -3213,7 +3181,248 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
         }
         c.setVisible(true);
-    }//GEN-LAST:event_btnRHActionPerformed
+    }//GEN-LAST:event_btnElecActionPerformed
+
+    private void btnElecMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnElecMouseExited
+        //        btnElec.setText("");
+    }//GEN-LAST:event_btnElecMouseExited
+
+    private void btnElecMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnElecMouseEntered
+        //        btnElec.setText("ELECT..");
+    }//GEN-LAST:event_btnElecMouseEntered
+
+    private void btnCorteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCorteActionPerformed
+        Cortes c = new Cortes(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnCorteActionPerformed
+
+    private void btnCorteMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCorteMouseExited
+        //        btnCorte.setText("");
+    }//GEN-LAST:event_btnCorteMouseExited
+
+    private void btnCorteMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCorteMouseEntered
+        //        btnCorte.setText("CORTES");
+    }//GEN-LAST:event_btnCorteMouseEntered
+
+    private void btnIntegracion1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIntegracion1ActionPerformed
+        Live c = new Live(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnIntegracion1ActionPerformed
+
+    private void btnIntegracion1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracion1MouseExited
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnIntegracion1MouseExited
+
+    private void btnIntegracion1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnIntegracion1MouseEntered
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnIntegracion1MouseEntered
+
+    private void btnHtppActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHtppActionPerformed
+        HTPP c = new HTPP(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        //        c.insertarSemanas();
+        c.setVisible(true);
+        //        c.verDatos();
+    }//GEN-LAST:event_btnHtppActionPerformed
+
+    private void btnHtppMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnHtppMouseExited
+        //        btnHtpp.setText("");
+    }//GEN-LAST:event_btnHtppMouseExited
+
+    private void btnHtppMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnHtppMouseEntered
+        //        btnHtpp.setText("HTPP");
+    }//GEN-LAST:event_btnHtppMouseEntered
+
+    private void btnChecadorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnChecadorActionPerformed
+        Checador c = new Checador(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnChecadorActionPerformed
+
+    private void btnChecadorMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnChecadorMouseExited
+        //        btnChecador.setText("");
+    }//GEN-LAST:event_btnChecadorMouseExited
+
+    private void btnChecadorMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnChecadorMouseEntered
+        //        btnChecador.setText("Checador");
+    }//GEN-LAST:event_btnChecadorMouseEntered
+
+    private void btnEstado5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado5ActionPerformed
+        ProyectManager c = new ProyectManager(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnEstado5ActionPerformed
+
+    private void btnEstado5MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado5MouseExited
+        //        btnEstado5.setText("");
+    }//GEN-LAST:event_btnEstado5MouseExited
+
+    private void btnEstado5MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado5MouseEntered
+        //        btnEstado5.setText("PROYECTOS");
+    }//GEN-LAST:event_btnEstado5MouseEntered
+
+    private void btnEstado3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado3ActionPerformed
+        Ventas c = new Ventas();
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnEstado3ActionPerformed
+
+    private void btnEstado3MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado3MouseExited
+        //        btnEstado3.setText("");
+    }//GEN-LAST:event_btnEstado3MouseExited
+
+    private void btnEstado3MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado3MouseEntered
+        //        btnEstado3.setText("VENTAS");
+    }//GEN-LAST:event_btnEstado3MouseEntered
+
+    private void btnCotizacionVentasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotizacionVentasActionPerformed
+        InicioCotizacion c = new InicioCotizacion(lblId.getText(), this);
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnCotizacionVentasActionPerformed
+
+    private void btnCotizacionVentasMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionVentasMouseExited
+        //        btnCotizacionVentas.setText("");
+    }//GEN-LAST:event_btnCotizacionVentasMouseExited
+
+    private void btnCotizacionVentasMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCotizacionVentasMouseEntered
+        //        btnCotizacionVentas.setText("COTIZACION");
+    }//GEN-LAST:event_btnCotizacionVentasMouseEntered
+
+    private void btnEstado1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado1ActionPerformed
+        Reportes c = new Reportes(lblId.getText());
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnEstado1ActionPerformed
+
+    private void btnEstado1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado1MouseExited
+        //        btnEstado1.setText("");
+    }//GEN-LAST:event_btnEstado1MouseExited
+
+    private void btnEstado1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado1MouseEntered
+        //        btnEstado1.setText("REPORTES");
+    }//GEN-LAST:event_btnEstado1MouseEntered
+
+    private void btnEstado2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado2ActionPerformed
+        CargaTrabajo c = new CargaTrabajo(this);
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnEstado2ActionPerformed
+
+    private void btnEstado2MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado2MouseExited
+        //        btnEstado2.setText("");
+    }//GEN-LAST:event_btnEstado2MouseExited
+
+    private void btnEstado2MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstado2MouseEntered
+        //        btnEstado2.setText("CARGA");
+    }//GEN-LAST:event_btnEstado2MouseEntered
+
+    private void btnEstadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstadoActionPerformed
+        CambiarEstado VistaEXe = new CambiarEstado(lblId.getText());
+        jDesktopPane1.add(VistaEXe);
+        VistaEXe.toFront();
+        VistaEXe.setLocation(jDesktopPane1.getWidth() / 2 - VistaEXe.getWidth() / 2, jDesktopPane1.getHeight() / 2 - VistaEXe.getHeight() / 2);
+        try {
+            VistaEXe.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        VistaEXe.setVisible(true);
+    }//GEN-LAST:event_btnEstadoActionPerformed
+
+    private void btnEstadoMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstadoMouseExited
+        //        btnEstado.setText("");
+    }//GEN-LAST:event_btnEstadoMouseExited
+
+    private void btnEstadoMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstadoMouseEntered
+        //        btnEstado.setText("ESTADOS");
+    }//GEN-LAST:event_btnEstadoMouseEntered
+
+    private void btnDisenioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDisenioActionPerformed
+        InicioDiseño c = new InicioDiseño(this);
+        jDesktopPane1.add(c);
+        c.toFront();
+        c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
+        try {
+            c.setMaximum(true);
+        } catch (PropertyVetoException e) {
+            Logger.getLogger(Inicio1.class.getName()).log(Level.SEVERE, null, e);
+        }
+        c.setVisible(true);
+    }//GEN-LAST:event_btnDisenioActionPerformed
+
+    private void btnDisenioMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnDisenioMouseExited
+        //        btnDisenio.setText("");
+    }//GEN-LAST:event_btnDisenioMouseExited
+
+    private void btnDisenioMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnDisenioMouseEntered
+        //        btnDisenio.setText("DISEÑO");
+    }//GEN-LAST:event_btnDisenioMouseEntered
 
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
@@ -3264,12 +3473,16 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     public javax.swing.JButton btnRequisicion;
     public javax.swing.JButton btnTrata;
     public javax.swing.JButton btnVer;
+    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
     public javax.swing.JDesktopPane jDesktopPane1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel15;
@@ -3303,7 +3516,9 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel20;
     private javax.swing.JPanel jPanel21;
     private javax.swing.JPanel jPanel22;
@@ -3319,6 +3534,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JPopupMenu jPopupMenu1;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JLabel lblCont;
     public javax.swing.JLabel lblId;
     private javax.swing.JLabel lblId1;
@@ -3355,7 +3571,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     private javax.swing.JPanel panel47;
     private javax.swing.JPanel panel48;
     private javax.swing.JPanel panel49;
-    private scrollPane.PanelRound panelPedidos;
+    public scrollPane.PanelRound panelPedidos;
     private rojeru_san.rspanel.RSPanelRound rSPanelRound1;
     private rojeru_san.rspanel.RSPanelRound rSPanelRound14;
     private rojeru_san.rspanel.RSPanelRound rSPanelRound15;

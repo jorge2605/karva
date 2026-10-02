@@ -15,7 +15,7 @@ import pruebas.Disenio1;
 public class ControladorExcel implements ActionListener{
 
     ModeloExcel ModeloEX=new ModeloExcel();
-    Disenio1 VistaEX=new Disenio1("",null);
+    Disenio1 VistaEX=new Disenio1(null,null,"");
     CambiarEstado VistaEXe = new CambiarEstado("");
     JFileChooser SelectArchivo=new JFileChooser();
     File archivo;

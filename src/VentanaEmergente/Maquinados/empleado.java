@@ -93,79 +93,33 @@ public class empleado extends javax.swing.JDialog {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
-        panelIngresar = new javax.swing.JPanel();
-        btnIngresar = new javax.swing.JButton();
-        jPanel5 = new javax.swing.JPanel();
-        txtEmpleado = new javax.swing.JTextField();
-        jLabel2 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        jPanel3 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
+        txtEmpleado = new javax.swing.JTextField();
+        btnIngresar = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         pnlX = new javax.swing.JPanel();
         btnX = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setUndecorated(true);
-        setPreferredSize(new java.awt.Dimension(764, 202));
+        setPreferredSize(new java.awt.Dimension(529, 167));
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel1.setLayout(new java.awt.BorderLayout(10, 10));
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel2.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 40, 10));
+        java.awt.GridBagLayout jPanel2Layout = new java.awt.GridBagLayout();
+        jPanel2Layout.columnWeights = new double[] {1.0};
+        jPanel2Layout.rowWeights = new double[] {0.0, 0.0, 1.0};
+        jPanel2.setLayout(jPanel2Layout);
 
-        panelIngresar.setBackground(new java.awt.Color(51, 153, 255));
-
-        btnIngresar.setFont(new java.awt.Font("Lexend", 1, 18)); // NOI18N
-        btnIngresar.setForeground(new java.awt.Color(255, 255, 255));
-        btnIngresar.setText("         Ingresar         ");
-        btnIngresar.setBorder(null);
-        btnIngresar.setBorderPainted(false);
-        btnIngresar.setContentAreaFilled(false);
-        btnIngresar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnIngresar.setFocusPainted(false);
-        btnIngresar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnIngresarActionPerformed(evt);
-            }
-        });
-        panelIngresar.add(btnIngresar);
-
-        jPanel2.add(panelIngresar);
-
-        jPanel1.add(jPanel2, java.awt.BorderLayout.PAGE_END);
-
-        jPanel5.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel5.setLayout(new java.awt.BorderLayout(40, 0));
-
-        txtEmpleado.setBackground(new java.awt.Color(255, 255, 255));
-        txtEmpleado.setFont(new java.awt.Font("Lexend", 1, 24)); // NOI18N
-        txtEmpleado.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        txtEmpleado.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(204, 204, 204)));
-        txtEmpleado.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtEmpleadoActionPerformed(evt);
-            }
-        });
-        jPanel5.add(txtEmpleado, java.awt.BorderLayout.CENTER);
-
-        jLabel2.setText("                                          ");
-        jPanel5.add(jLabel2, java.awt.BorderLayout.LINE_END);
-
-        jLabel3.setText("                                          ");
-        jPanel5.add(jLabel3, java.awt.BorderLayout.LINE_START);
-
-        jPanel1.add(jPanel5, java.awt.BorderLayout.CENTER);
-
-        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel3.setLayout(new java.awt.BorderLayout());
-
-        jLabel1.setFont(new java.awt.Font("Lexend", 1, 24)); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(0, 102, 204));
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("<html>\n<div style = 'width:300px; text-align:center;'>\nIngresa tu numero de empleado\n</div>");
@@ -182,15 +136,48 @@ public class empleado extends javax.swing.JDialog {
                 jLabel1MouseReleased(evt);
             }
         });
-        jPanel3.add(jLabel1, java.awt.BorderLayout.CENTER);
+        jPanel2.add(jLabel1, new java.awt.GridBagConstraints());
+
+        txtEmpleado.setBackground(new java.awt.Color(255, 255, 255));
+        txtEmpleado.setFont(new java.awt.Font("Lexend", 1, 24)); // NOI18N
+        txtEmpleado.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtEmpleado.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(204, 204, 204)));
+        txtEmpleado.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtEmpleadoActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(0, 50, 0, 50);
+        jPanel2.add(txtEmpleado, gridBagConstraints);
+
+        btnIngresar.setBackground(new java.awt.Color(0, 102, 204));
+        btnIngresar.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        btnIngresar.setForeground(new java.awt.Color(255, 255, 255));
+        btnIngresar.setText("         Ingresar         ");
+        btnIngresar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnIngresar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnIngresarActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 2;
+        jPanel2.add(btnIngresar, gridBagConstraints);
+
+        jPanel1.add(jPanel2, java.awt.BorderLayout.CENTER);
+
+        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel3.setLayout(new java.awt.BorderLayout());
 
         jPanel4.setBackground(new java.awt.Color(255, 255, 255));
         jPanel4.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
 
         pnlX.setBackground(new java.awt.Color(255, 255, 255));
 
-        btnX.setBackground(new java.awt.Color(255, 255, 255));
-        btnX.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
+        btnX.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
         btnX.setText(" X ");
         btnX.setBorder(null);
         btnX.setBorderPainted(false);
@@ -286,14 +273,10 @@ public class empleado extends javax.swing.JDialog {
     public javax.swing.JButton btnIngresar;
     public javax.swing.JButton btnX;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
-    private javax.swing.JPanel jPanel5;
-    private javax.swing.JPanel panelIngresar;
     private javax.swing.JPanel pnlX;
     public javax.swing.JTextField txtEmpleado;
     // End of variables declaration//GEN-END:variables

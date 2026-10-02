@@ -47,6 +47,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.text.AbstractDocument;
 
 public class Maquinados extends javax.swing.JInternalFrame implements ActionListener {
@@ -66,9 +67,13 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
     public double Densidad;
     public double Peso;
     public double precioEstimado;
-    public double costoFinal;    
-    
-    public void limpiarFormulario(){
+    public double costoFinal;
+    private final javax.swing.Timer timer = new javax.swing.Timer(100, e -> actualizarCronometros());
+    private long[] inicio = new long[4];
+    private long[] acumulado = new long[4];
+    private boolean[] corriendo = new boolean[4];
+
+    public void limpiarFormulario() {
         txtPlano2.setText("");
         txtProyecto.setText("");
         txtDim1.setText("");
@@ -76,20 +81,16 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         txtDim3.setText("");
         txtDim4.setText("");
         cmbMaterial.removeAllItems();
-      //  txtMaterial.setText("");
+        //  txtMaterial.setText("");
         txtCantidad.setText("");
         txtComentarios.setText("");
         pnlRecti.setBackground(Color.white);
         pnlCnc.setBackground(Color.white);
         pnlFresa.setBackground(Color.white);
         pnlTorno.setBackground(Color.white);
-        lblTC.setText("TC");
-        lblTF.setText("TF");
-        lblTR.setText("TR");
-        lblTT.setText("TT");
     }
-    
-    public JButton addBoton(String nombre){
+
+    public JButton addBoton(String nombre) {
         JButton boton = new javax.swing.JButton();
         boton.setBackground(new java.awt.Color(255, 255, 255));
         boton.setFont(new java.awt.Font("Lexend", 0, 12)); // NOI18N
@@ -103,16 +104,16 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         boton.setFocusPainted(false);
         return boton;
     }
-    
-    public void addPanel(JButton boton, int i){
+
+    public void addPanel(JButton boton, int i) {
         pnlEmpleado.push(new JPanel());
         pnlEmpleado.get(i).setBackground(new java.awt.Color(240, 240, 240));
         pnlEmpleado.get(i).add(boton);
         panelGastos.add(pnlEmpleado.get(i));
     }
-    
-    public void addEmpleados(String empleado){
-        try{
+
+    public void addEmpleados(String empleado) {
+        try {
             panelGastos.removeAll();
             revalidate();
             repaint();
@@ -124,16 +125,16 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
             ResultSet rs = st.executeQuery(sql);
             numEmpleados = new Stack<>();
             nombreEmpleados = new Stack<>();
-            while(rs.next()){
+            while (rs.next()) {
                 String nombre = rs.getString("Nombre");
                 String numero = rs.getString("NumEmpleado");
                 numEmpleados.push(numero);
                 nombreEmpleados.push(nombre);
             }
-            if(numEmpleados.isEmpty()){
-                JOptionPane.showMessageDialog(this, "El numero que ingresaste no existe","Error",JOptionPane.ERROR_MESSAGE);
+            if (numEmpleados.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El numero que ingresaste no existe", "Error", JOptionPane.ERROR_MESSAGE);
                 getNumEmpleado();
-            }else{
+            } else {
                 btnEmpleado = new Stack<>();
                 pnlEmpleado = new Stack<>();
                 for (int i = 0; i < numEmpleados.size(); i++) {
@@ -141,31 +142,31 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                     addPanel(btnEmpleado.get(i), i);
                 }
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public void setEmpleado(){
-        try{
+
+    public void setEmpleado() {
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
             Statement st = con.createStatement();
             String sql = "select * from registroempleados where NumEmpleado like '" + numEmpleado + "'";
             ResultSet rs = st.executeQuery(sql);
-            while(rs.next()){
+            while (rs.next()) {
                 lblEmpleado.setText(rs.getString("Nombre") + " " + rs.getString("Apellido"));
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "Error: "+e,"Error",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public String getNumEmpleado(){
+
+    public String getNumEmpleado() {
         String empleado;
         JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        emp = new empleado(f,true);
+        emp = new empleado(f, true);
         emp.btnX.addActionListener(this);
         emp.setLocationRelativeTo(f);
         empleado = emp.getEmpleado();
@@ -173,122 +174,121 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         setEmpleado();
         return empleado;
     }
-    
-    public Color setBack(JComponent comp, JLabel label,String tit){
+
+    public Color setBack(JComponent comp) {
         Color color;
-        if(comp.getBackground().equals(Color.white)){
+        if (comp.getBackground().equals(Color.white)) {
             color = (Color.green);
-            JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-            IngresarTiempo ingresar = new IngresarTiempo(f, true);
-            ingresar.setLocationRelativeTo(f);
-            String tiempo = ingresar.getTiempo();
-            if(tiempo == null) {
-                JOptionPane.showMessageDialog(this, "Debes ingresar tiempo mayor a 00:00", "Advertencia", JOptionPane.WARNING_MESSAGE);
-                color = Color.white;
-            } else {
-                if(!tiempo.equals(":")){
-                    label.setText(tiempo);
-                }else{
-                    color = Color.white;
-                }
-            }
-        }else{
+//            JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+//            IngresarTiempo ingresar = new IngresarTiempo(f, true);
+//            ingresar.setLocationRelativeTo(f);
+//            String tiempo = ingresar.getTiempo();
+//            if(tiempo == null) {
+//                JOptionPane.showMessageDialog(this, "Debes ingresar tiempo mayor a 00:00", "Advertencia", JOptionPane.WARNING_MESSAGE);
+//                color = Color.white;
+//            } else {
+//                if(!tiempo.equals(":")){
+//                    label.setText(tiempo);
+//                }else{
+//                    color = Color.white;
+//                }
+//            }
+        } else {
             color = (Color.white);
-            label.setText(tit);
         }
         return color;
     }
-    
+
     public String obtenerCaracter(String plano) {
         String texto = plano;
-        
+
         Pattern pattern = Pattern.compile("[^0-9a-zA-Z]");
         Matcher matcher = pattern.matcher(texto);
 
         while (matcher.find()) {
-            return  matcher.group();
+            return matcher.group();
         }
         return null;
     }
-    
-    public String verificarNomenclatura(String plano, int seleccion){
+
+    public String verificarNomenclatura(String plano, int seleccion) {
         String caracter = obtenerCaracter(plano);
         String partes[] = plano.split(caracter);
         String proyecto = plano.substring(0, plano.indexOf(caracter));
-        String plano3 = plano.substring(plano.indexOf(caracter),plano.length());
-        if(proyecto.length() >= 3){
-            try{
+        String plano3 = plano.substring(plano.indexOf(caracter), plano.length());
+        if (proyecto.length() >= 3) {
+            try {
                 Connection con;
                 Conexion con1 = new Conexion();
                 con = con1.getConnection();
-                Statement st =con.createStatement();
+                Statement st = con.createStatement();
                 String sql = "select Proyecto from proyectos where Proyecto like '" + proyecto + "%'";
                 ResultSet rs = st.executeQuery(sql);
-                while(rs.next()){
+                while (rs.next()) {
                     proyecto = rs.getString("Proyecto");
                 }
-                if(proyecto == null){
+                if (proyecto == null) {
                     return null;
-                }else{
-                    if(seleccion == PROYECTO){
+                } else {
+                    if (seleccion == PROYECTO) {
                         return proyecto;
-                    }else{
+                    } else {
                         if (partes.length >= 3) {
                             return plano;
                         }
                         return proyecto + plano3;
                     }
                 }
-            }catch(SQLException e){
-                JOptionPane.showMessageDialog(this, "ERROR "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "ERROR " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
             }
-        }else{
-            JOptionPane.showMessageDialog(this, "Datos no validos [0,3]","Error",JOptionPane.ERROR_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Datos no validos [0,3]", "Error", JOptionPane.ERROR_MESSAGE);
         }
         return null;
     }
-    
-    public void verPlanoPorProyecto(String plano){
+
+    public void verPlanoPorProyecto(String plano) {
         String proyecto = verificarNomenclatura(plano, PROYECTO);
-        if(proyecto.length() < 6){
-            JOptionPane.showMessageDialog(this, "Este Proyecto no existe","Error",JOptionPane.ERROR_MESSAGE);
+        if (proyecto.length() < 6) {
+            JOptionPane.showMessageDialog(this, "Este Proyecto no existe", "Error", JOptionPane.ERROR_MESSAGE);
             limpiarFormulario();
-        }else{
+        } else {
             txtProyecto.setText(proyecto);
             txtPlano2.setText(plano);
         }
     }
-    
+
     private void traerMateriales() {
-       //Limpiar el ComboBox antes de cargar los nuevos datos
-       cmbMaterial.removeAllItems();
-       try {
-           Connection con = new Conexion().getConnection();
-           Statement st = con.createStatement();
-           String sql = "SELECT m.Material FROM Materiales m INNER JOIN (SELECT Material, MAX(ID) as MaxID "
-           +"FROM Materiales GROUP BY Material) ultimos ON m.ID = ultimos.MaxID ORDER BY m.Material ASC";
-           ResultSet rs = st.executeQuery(sql);
-           while(rs.next()) {
-               cmbMaterial.addItem(rs.getString("Material"));
-           }
-           rs.close();
-           st.close();
-           con.close();
-       } catch(SQLException e) {
-           JOptionPane.showMessageDialog(this, "Error al cargar materiales: " + e.getMessage(),"Error", JOptionPane.ERROR_MESSAGE);
-       }   
+        //Limpiar el ComboBox antes de cargar los nuevos datos
+        cmbMaterial.removeAllItems();
+        try {
+            Connection con = new Conexion().getConnection();
+            Statement st = con.createStatement();
+            String sql = "SELECT m.Material FROM Materiales m INNER JOIN (SELECT Material, MAX(ID) as MaxID "
+                    + "FROM Materiales GROUP BY Material) ultimos ON m.ID = ultimos.MaxID ORDER BY m.Material ASC";
+            ResultSet rs = st.executeQuery(sql);
+            while (rs.next()) {
+                cmbMaterial.addItem(rs.getString("Material"));
+            }
+            rs.close();
+            st.close();
+            con.close();
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al cargar materiales: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
-    
-    private boolean iterarletras (String input, String letras){
-        for(char c: letras.toCharArray()){
-            if(!input.contains(String.valueOf(c))){
+
+    private boolean iterarletras(String input, String letras) {
+        for (char c : letras.toCharArray()) {
+            if (!input.contains(String.valueOf(c))) {
                 return false;
             }
         }
         return true;
     }
-    
-    private String iterarMateriales(String texto) throws SQLException{
+
+    private String iterarMateriales(String texto) throws SQLException {
         String input = texto.toLowerCase().replaceAll("[^a-z0-9áéíóúüñ\\s]", " ");
         List<patronMaterial> lista = patronesBD();
 
@@ -301,17 +301,17 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         for (patronMaterial material : lista) {
             for (String patron : material.getPatrones()) {
                 patron = patron.trim().toLowerCase();
-                if (patron.isEmpty()) continue;
+                if (patron.isEmpty()) {
+                    continue;
+                }
 
                 if (patron.matches(".*\\d.*")) {
-                // Si contiene números, usar regex (palabra exacta o código tipo 6061)
                     Pattern pattern = Pattern.compile("\\b" + Pattern.quote(patron) + "\\b", Pattern.CASE_INSENSITIVE);
                     Matcher matcher = pattern.matcher(input);
                     if (matcher.find()) {
                         return material.getNombre();
                     }
                 } else {
-                // Si no tiene números, usar coincidencia de letras desordenadas
                     if (iterarletras(input, patron)) {
                         return material.getNombre();
                     }
@@ -321,10 +321,10 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
 
         return texto.toUpperCase(); // Si no encontró coincidencias
     }
-    
-    public List<patronMaterial>patronesBD() throws SQLException{
-        List<patronMaterial> lista=new ArrayList<>();
-        try{
+
+    public List<patronMaterial> patronesBD() throws SQLException {
+        List<patronMaterial> lista = new ArrayList<>();
+        try {
             Connection con = new Conexion().getConnection();
             Statement st = con.createStatement();
             String sql = "SELECT nombre_material, patron FROM patron_material";
@@ -334,15 +334,15 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                 String patrones = rs.getString("patron");
                 lista.add(new patronMaterial(nombre, patrones));
             }
-        }catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-         return lista;
+        return lista;
     }
-    
-    public void verPlano(String plano){
+
+    public void verPlano(String plano) {
         String plan = plano;
-        try{
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
@@ -351,7 +351,7 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
             String sql = "select Plano, Proyecto, Cantidad, Material from planos where Plano like '" + plano + "'";
             ResultSet rs = st.executeQuery(sql);
             plano = null;
-            while(rs.next()){
+            while (rs.next()) {
                 plano = rs.getString("Plano");
                 txtPlano2.setText(plano);
                 txtProyecto.setText(rs.getString("Proyecto"));
@@ -372,112 +372,113 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                     cmbMaterial.setSelectedIndex(-1); // Esto deja el combo sin seleccionar nada
                 }
             }
-            if(plano == null){
-                JOptionPane.showMessageDialog(this, "Este plano no existe","Advertencia",JOptionPane.WARNING_MESSAGE);
+            if (plano == null) {
+                JOptionPane.showMessageDialog(this, "Este plano no existe", "Advertencia", JOptionPane.WARNING_MESSAGE);
                 verPlanoPorProyecto(plan);
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "Error: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public Stack<String> extraerBotones(){
+
+    public Stack<String> extraerBotones() {
         Stack<String> botones = new Stack<>();
-        if(pnlCnc.getBackground().equals(Color.green)){
+        if (pnlCnc.getBackground().equals(Color.green)) {
             botones.push("Cnc");
         }
-        if(pnlFresa.getBackground().equals(Color.green)){
+        if (pnlFresa.getBackground().equals(Color.green)) {
             botones.push("Fresadora");
         }
-        if(pnlTorno.getBackground().equals(Color.green)){
+        if (pnlTorno.getBackground().equals(Color.green)) {
             botones.push("Torno");
         }
-        if(pnlRecti.getBackground().equals(Color.green)){
+        if (pnlRecti.getBackground().equals(Color.green)) {
             botones.push("Rectificado");
         }
         return botones;
     }
-    
-    public String getDimensiones(){
+
+    public String getDimensiones() {
         switch (cmbDim.getSelectedIndex()) {
             case 0:
-                if(txtDim1.getText().equals("") || txtDim2.getText().equals("")){
-                    JOptionPane.showMessageDialog(this, "Debes ingresar las 2 dimensiones de tu pieza","Advertencia",JOptionPane.WARNING_MESSAGE);
-                }else{
+                if (txtDim1.getText().equals("") || txtDim2.getText().equals("")) {
+                    JOptionPane.showMessageDialog(this, "Debes ingresar las 2 dimensiones de tu pieza", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                } else {
                     return txtDim1.getText() + "x" + txtDim2.getText();
-                }   break;
+                }
+                break;
             case 1:
-                if(txtDim1.getText().equals("") || txtDim2.getText().equals("") || txtDim3.getText().equals("")){
-                    JOptionPane.showMessageDialog(this, "Debes ingresar las 3 dimensiones de tu pieza","Advertencia",JOptionPane.WARNING_MESSAGE);
-                }else{
+                if (txtDim1.getText().equals("") || txtDim2.getText().equals("") || txtDim3.getText().equals("")) {
+                    JOptionPane.showMessageDialog(this, "Debes ingresar las 3 dimensiones de tu pieza", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                } else {
                     return txtDim1.getText() + "x" + txtDim2.getText() + "x" + txtDim3.getText();
-                }   break;
+                }
+                break;
             case 2:
-                if(txtDim1.getText().equals("") || txtDim2.getText().equals("") || txtDim3.getText().equals("") || txtDim4.getText().equals("")){
-                    JOptionPane.showMessageDialog(this, "Debes ingresar las 4 dimensiones de tu pieza","Advertencia",JOptionPane.WARNING_MESSAGE);
-                }else{
+                if (txtDim1.getText().equals("") || txtDim2.getText().equals("") || txtDim3.getText().equals("") || txtDim4.getText().equals("")) {
+                    JOptionPane.showMessageDialog(this, "Debes ingresar las 4 dimensiones de tu pieza", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                } else {
                     return txtDim1.getText() + "x" + txtDim2.getText() + "x" + txtDim3.getText() + "x" + txtDim4.getText();
-                }   break;
+                }
+                break;
             default:
                 break;
         }
         return null;
     }
-    
-    public double obtenerCostos(){
-        double d1=parseDoubleSafe(txtDim1.getText());
-        double d2=parseDoubleSafe(txtDim2.getText());
-        double d3=parseDoubleSafe(txtDim3.getText());
-        double d4=parseDoubleSafe(txtDim4.getText());
+
+    public double obtenerCostos() {
+        double d1 = parseDoubleSafe(txtDim1.getText());
+        double d2 = parseDoubleSafe(txtDim2.getText());
+        double d3 = parseDoubleSafe(txtDim3.getText());
+        double d4 = parseDoubleSafe(txtDim4.getText());
         Volumen = 0;
         if (d1 > 0 && d2 > 0 && d3 == 0 && d4 == 0) {
             Volumen = d1 * d2;
-        } 
-        else if (d1 > 0 && d2 > 0 && d3 > 0 && d4 == 0) {          
+        } else if (d1 > 0 && d2 > 0 && d3 > 0 && d4 == 0) {
             Volumen = d1 * d2 * d3;
+        } else if (d1 > 0 && d2 > 0 && d3 > 0 && d4 > 0) {
+            Volumen = d1 * d2 * d3 * d4;
         }
-        else if (d1 > 0 && d2 > 0 && d3 > 0 && d4 > 0) {
-            Volumen = d1 * d2 * d3 *d4;
-        }
-        String Material=(String)cmbMaterial.getSelectedItem();
-        try{
+        String Material = (String) cmbMaterial.getSelectedItem();
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
-            String sql="Select Densidad, precio FROM materiales WHERE material = ?";
-            PreparedStatement pst=con.prepareStatement(sql);
-            pst.setString(1, Material);        
-            ResultSet rs=pst.executeQuery();
-            if(rs.next()){
-                Densidad=rs.getDouble("Densidad");
-                precioEstimado=rs.getDouble("Precio");
-                Peso=Volumen*Densidad;
-                costoFinal=Peso*precioEstimado;
+            String sql = "Select Densidad, precio FROM materiales WHERE material = ?";
+            PreparedStatement pst = con.prepareStatement(sql);
+            pst.setString(1, Material);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                Densidad = rs.getDouble("Densidad");
+                precioEstimado = rs.getDouble("Precio");
+                Peso = Volumen * Densidad;
+                costoFinal = Peso * precioEstimado;
                 return costoFinal;
-            }
-            else{
-                JOptionPane.showMessageDialog(null, "No se encontraron datos del material","Error",JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "No se encontraron datos del material", "Error", JOptionPane.ERROR_MESSAGE);
                 return 0;
             }
-        }
-        catch (SQLException ex) {
-            JOptionPane.showMessageDialog(null, "Error al consultar material: " + ex.getMessage(),"Error", JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(null, "Error al consultar material: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             return 0;
         }
     }
-    
-    private double parseDoubleSafe(String val){
-        if(val == null || val.trim().isEmpty()) return 0;
-        try{
+
+    private double parseDoubleSafe(String val) {
+        if (val == null || val.trim().isEmpty()) {
+            return 0;
+        }
+        try {
             return Double.parseDouble(val);
-        }
-        catch(NumberFormatException e){
+        } catch (NumberFormatException e) {
             return 0;
         }
     }
-    public void insertarHttp(Connection con) throws SQLException{
+
+    public void insertarHttp(Connection con) throws SQLException {
         String dimensiones = getDimensiones();
-        if (dimensiones != null){
+        if (dimensiones != null) {
             obtenerCostos();
             String sql = "insert into htpp (Fecha, NumEmpleado, Proyecto, Hora, Notas, Departamento, Dimensiones, Material,Costo, Cantidad, Maquina,Plano) values(?,?,?,?,?,?,?,?,?,?,?,?)";
             PreparedStatement pst = con.prepareStatement(sql);
@@ -491,16 +492,16 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                 String hora = "";
                 switch (botones.get(i)) {
                     case "Cnc":
-                        hora = lblTC.getText();
+                        hora = lblCnc.getText();
                         break;
                     case "Fresadora":
-                        hora = lblTF.getText();
+                        hora = lblFresa.getText();
                         break;
                     case "Torno":
-                        hora = lblTT.getText();
+                        hora = lblTorno.getText();
                         break;
                     case "Rectificado":
-                        hora = lblTR.getText();
+                        hora = lblRecti.getText();
                         break;
                     default:
                         break;
@@ -513,7 +514,7 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                 pst.setInt(6, 2);
                 pst.setString(7, dimensiones);
                 //pst.setString(8, txtMaterial.getText());
-                pst.setString(8,(String)cmbMaterial.getSelectedItem());
+                pst.setString(8, (String) cmbMaterial.getSelectedItem());
                 pst.setDouble(9, costoFinal);
                 pst.setString(10, txtCantidad.getText());
                 pst.setString(11, botones.get(i));
@@ -527,74 +528,8 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
             }
         }
     }
-    
-    public void setLabels(String dim1, String dim2, String dim3, String dim4){
-        Point x1 = null,x2 = null,x3 = null ,x4 = null;
-        if(dim2 != null){
-            x1 = new Point(26,147);
-            x2 = new Point(169,258);
-        }
-        if(dim3 != null){
-            x1 = new Point(25,213);
-            x2 = new Point(145,342);
-            x3 = new Point(311,278);
-        }
-        if(dim4 != null){
-            x1 = new Point(326,132);
-            x2 = new Point(33,76);
-            x3 = new Point(60,140);
-            x4 = new Point(193,158);
-        }
-        DecimalFormat df = new DecimalFormat("#,###.##");
-        JLabel labelVol = new JLabel();
-        if(dim1 != null){
-            JLabel lab = new JLabel("" + dim1);
-            lab.setFont(new Font("Roboto", Font.BOLD, 14));
-            lab.setPreferredSize(new Dimension(40, 20));
-            lab.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-            panelImagen.add(lab,new org.netbeans.lib.awtextra.AbsoluteConstraints((int)x1.getX(), (int) x1.getY(), -1, -1));
-        }
-        if(dim2 != null){
-            try{
-                double tot = Math.pow((Double.parseDouble(dim1) / 2),2) * 3.1416 * Double.parseDouble(dim2);
-                labelVol.setFont(new Font("Roboto", Font.BOLD, 14));
-                labelVol.setText("Volumen: " + df.format(tot));
-                labelVol.setPreferredSize(new Dimension(200, 20));
-                labelVol.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-                panelImagen.add(labelVol,new org.netbeans.lib.awtextra.AbsoluteConstraints((int)x2.getX() - 100, (int) x1.getY(), -1, -1));
-            }catch(Exception e){}
-            JLabel lab = new JLabel("" + dim2);
-            lab.setFont(new Font("Roboto", Font.BOLD, 14));
-            lab.setPreferredSize(new Dimension(40, 20));
-            lab.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-            panelImagen.add(lab,new org.netbeans.lib.awtextra.AbsoluteConstraints((int)x2.getX(), (int) x2.getY(), -1, -1));
-        }
-        if(dim3 != null){
-            try{
-                double tot = Double.parseDouble(dim1) * Double.parseDouble(dim2) * Double.parseDouble(dim3);
-                labelVol.setText("Volumen: " + df.format(tot));
-            }catch(Exception e){}
-            JLabel lab = new JLabel("" + dim3);
-            lab.setFont(new Font("Roboto", Font.BOLD, 14));
-            lab.setPreferredSize(new Dimension(40, 20));
-            lab.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-            panelImagen.add(lab, new org.netbeans.lib.awtextra.AbsoluteConstraints((int)x3.getX(), (int) x3.getY(), -1, -1));
-        }
-        if(dim4 != null){
-            try{
-                double tot = Double.parseDouble(dim1) * Double.parseDouble(dim2) * Double.parseDouble(dim3) * Double.parseDouble(dim4);
-                labelVol.setText("Volumen: " + df.format(tot));
-                panelImagen.add(labelVol,new org.netbeans.lib.awtextra.AbsoluteConstraints((int)x2.getX(), (int) x2.getY(), -1, -1));
-            }catch(Exception e){}
-            JLabel lab = new JLabel("" + dim4);
-            lab.setFont(new Font("Roboto", Font.BOLD, 14));
-            lab.setPreferredSize(new Dimension(40, 20));
-            lab.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-            panelImagen.add(lab,new org.netbeans.lib.awtextra.AbsoluteConstraints((int)x4.getX(), (int) x4.getY(), -1, -1));
-        }
-    }
-    
-    public final void visiblesFalse(){
+
+    public final void visiblesFalse() {
         txtDim1.setVisible(false);
         txtDim2.setVisible(false);
         txtDim3.setVisible(false);
@@ -603,74 +538,67 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         lblX2.setVisible(false);
         lblX3.setVisible(false);
     }
-    
-    public final void setImagen(){
-        String recurso;
-        if (txtDim4.isVisible()) {
-            recurso = "/Imagenes/angulo.png";
-        } else if (txtDim3.isVisible()) {
-            recurso = "/Imagenes/cuadrado.png";
-        } else {
-            recurso = "/Imagenes/redodno.png";
-        }
-        panelImagen.removeAll();
-        lblImagen = new javax.swing.JLabel();
-        lblImagen.setIcon(new javax.swing.ImageIcon(getClass().getResource(recurso)));
-        panelImagen.add(lblImagen, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 50, -1, -1));
-        revalidate();
-        repaint();
-        lblImagen.setLocation((panelImagen.getWidth()/2) - (lblImagen.getWidth() / 2), (panelImagen.getHeight()/2) - (lblImagen.getHeight()/ 2));
-        String dim1 = (txtDim1.isVisible()) ? txtDim1.getText() : null;
-        String dim2 = (txtDim2.isVisible()) ? txtDim2.getText() : null;
-        String dim3 = (txtDim3.isVisible()) ? txtDim3.getText() : null;
-        String dim4 = (txtDim4.isVisible()) ? txtDim4.getText() : null;
-        setLabels(dim1, dim2, dim3, dim4);
-    }
-    
-    public void transferirFoco(JTextField text, char cha ){
-        if(cha == 'x' || cha == 'X'){
+
+    public void transferirFoco(JTextField text, char cha) {
+        if (cha == 'x' || cha == 'X') {
             text.transferFocus();
         }
     }
-    
+
     public int verificarDimensiones() {
         int cont = 0;
-        if(txtDim1.isVisible()) {
-            if(!txtDim1.getText().equals("")){
+        if (txtDim1.isVisible()) {
+            if (!txtDim1.getText().equals("")) {
                 cont++;
             }
         }
-        if(txtDim2.isVisible()) {
-            if(!txtDim2.getText().equals("")){
+        if (txtDim2.isVisible()) {
+            if (!txtDim2.getText().equals("")) {
                 cont++;
             }
         }
-        if(txtDim3.isVisible()) {
-            if(!txtDim3.getText().equals("")){
+        if (txtDim3.isVisible()) {
+            if (!txtDim3.getText().equals("")) {
                 cont++;
             }
         }
-        if(txtDim4.isVisible()) {
-            if(!txtDim4.getText().equals("")){
+        if (txtDim4.isVisible()) {
+            if (!txtDim4.getText().equals("")) {
                 cont++;
             }
         }
         return cont;
     }
-    
+
     public final boolean verificarVolumen() {
         double dim1;
-        try{dim1 = Double.parseDouble(txtDim1.getText());}catch(NumberFormatException e){dim1=0;}
+        try {
+            dim1 = Double.parseDouble(txtDim1.getText());
+        } catch (NumberFormatException e) {
+            dim1 = 0;
+        }
         double dim2;
-        try{dim2 = Double.parseDouble(txtDim1.getText());}catch(NumberFormatException e){dim2=0;}
+        try {
+            dim2 = Double.parseDouble(txtDim1.getText());
+        } catch (NumberFormatException e) {
+            dim2 = 0;
+        }
         double dim3;
-        try{dim3 = Double.parseDouble(txtDim1.getText());}catch(NumberFormatException e){dim3=0;}
-        double dim4;    
-        try{dim4 = Double.parseDouble(txtDim1.getText());}catch(NumberFormatException e){dim4=0;}
-        
+        try {
+            dim3 = Double.parseDouble(txtDim1.getText());
+        } catch (NumberFormatException e) {
+            dim3 = 0;
+        }
+        double dim4;
+        try {
+            dim4 = Double.parseDouble(txtDim1.getText());
+        } catch (NumberFormatException e) {
+            dim4 = 0;
+        }
+
         return dim1 < 60 || dim2 < 60 || dim3 < 60 || dim4 < 60;
     }
-    
+
     public void terminarPlano(boolean calidad) {
         int opc;
         if (!verificarVolumen()) {
@@ -679,20 +607,20 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
             opc = 0;
         }
         if (opc == 0) {
-            if(txtPlano2.getText().equals("")){
-                JOptionPane.showMessageDialog(this, "Debes llenar el campo de plano","Advertencia",JOptionPane.WARNING_MESSAGE);
-            } else if(txtProyecto.getText().equals("")){
-                JOptionPane.showMessageDialog(this, "Debes llenar el campo de proyecto","Advertencia",JOptionPane.WARNING_MESSAGE);
-            } else if(txtCantidad.getText().equals("")){
-                JOptionPane.showMessageDialog(this, "Debes llenar el campo de cantidad","Advertencia",JOptionPane.WARNING_MESSAGE);
-            }  else if(cmbMaterial.getSelectedItem().equals("")){
-                JOptionPane.showMessageDialog(this, "Debes llenar el campo de material","Advertencia",JOptionPane.WARNING_MESSAGE);
-            } else if(extraerBotones().toString().equals("[]")){
-                JOptionPane.showMessageDialog(this, "Debes seleccionar por lo menos una maquina","Advertencia",JOptionPane.WARNING_MESSAGE);
-            } else if(verificarDimensiones() < 2){
-                JOptionPane.showMessageDialog(this, "Debes ingresar por lo menos 2 dimensiones","Advertencia",JOptionPane.WARNING_MESSAGE);
-            }else{
-                try{
+            if (txtPlano2.getText().equals("")) {
+                JOptionPane.showMessageDialog(this, "Debes llenar el campo de plano", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            } else if (txtProyecto.getText().equals("")) {
+                JOptionPane.showMessageDialog(this, "Debes llenar el campo de proyecto", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            } else if (txtCantidad.getText().equals("")) {
+                JOptionPane.showMessageDialog(this, "Debes llenar el campo de cantidad", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            } else if (cmbMaterial.getSelectedItem().equals("")) {
+                JOptionPane.showMessageDialog(this, "Debes llenar el campo de material", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            } else if (extraerBotones().toString().equals("[]")) {
+                JOptionPane.showMessageDialog(this, "Debes seleccionar por lo menos una maquina", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            } else if (verificarDimensiones() < 2) {
+                JOptionPane.showMessageDialog(this, "Debes ingresar por lo menos 2 dimensiones", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            } else {
+                try {
                     Connection con;
                     Conexion con1 = new Conexion();
                     con = con1.getConnection();
@@ -707,16 +635,16 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                         String hora = "";
                         switch (botones.get(i)) {
                             case "Cnc":
-                                hora = lblTC.getText();
+                                hora = lblCnc.getText();
                                 break;
                             case "Fresadora":
-                                hora = lblTF.getText();
+                                hora = lblFresa.getText();
                                 break;
                             case "Torno":
-                                hora = lblTT.getText();
+                                hora = lblTorno.getText();
                                 break;
                             case "Rectificado":
-                                hora = lblTR.getText();
+                                hora = lblRecti.getText();
                                 break;
                             default:
                                 break;
@@ -730,14 +658,75 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
                     }
                     limpiarFormulario();
 
-                }catch(SQLException e){
-                    JOptionPane.showMessageDialog(this, "Error: " + e,"Error",JOptionPane.ERROR_MESSAGE);
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
                 }
                 this.numEmpleado = getNumEmpleado();
             }
         }
     }
-    
+
+    private void iniciarCronometro(int numero) {
+        if (!corriendo[numero]) {
+            inicio[numero] = System.currentTimeMillis();
+            corriendo[numero] = true;
+            if (!timer.isRunning()) {
+                timer.start();
+            }
+        }
+    }
+
+    private void pausarCronometro(int numero) {
+        if (corriendo[numero]) {
+            acumulado[numero] += System.currentTimeMillis() - inicio[numero] + 360000;
+            corriendo[numero] = false;
+        }
+        detenerTimerSiNoHayCronometros();
+    }
+
+    private void reanudarCronometro(int numero) {
+        if (!corriendo[numero]) {
+            inicio[numero] = System.currentTimeMillis();
+            corriendo[numero] = true;
+            if (!timer.isRunning()) {
+                timer.start();
+            }
+        }
+    }
+
+    private void actualizarCronometros() {
+        JLabel[] labels = {
+            lblCnc,
+            lblFresa,
+            lblRecti,
+            lblTorno
+        };
+        long ahora = System.currentTimeMillis();
+        for (int i = 0; i < 4; i++) {
+            if (corriendo[i]) {
+                long tiempo = acumulado[i] + (ahora - inicio[i]);
+                labels[i].setText(formatearTiempo(tiempo));
+            }
+        }
+    }
+
+    private String formatearTiempo(long milisegundos) {
+        long segundos = milisegundos / 1000;
+        long horas = segundos / 3600;
+        long minutos = (segundos % 3600) / 60;
+        long segundosRestantes = segundos % 60;
+        return String.format("%02d:%02d:%02d", horas, minutos, segundosRestantes);
+    }
+
+    private void detenerTimerSiNoHayCronometros() {
+        for (boolean activo : corriendo) {
+            if (activo) {
+                return;
+            }
+        }
+        timer.stop();
+    }
+
     public Maquinados(String numEmpleado) {
         initComponents();
         this.numEmpleado = numEmpleado;
@@ -753,7 +742,6 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         txtDim1.setVisible(true);
         txtDim2.setVisible(true);
         lblX1.setVisible(true);
-        setImagen();
     }
 
     @SuppressWarnings("unchecked")
@@ -773,7 +761,6 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         jScrollPane5 = new javax.swing.JScrollPane();
         panelGastos = new javax.swing.JPanel();
         panelReporte = new scrollPane.PanelRound();
-        jButton2 = new javax.swing.JButton();
         jPanel7 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
@@ -786,10 +773,24 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         pnlPlano = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         txtPlano = new javax.swing.JTextField();
+        jLabel16 = new javax.swing.JLabel();
+        jLabel10 = new javax.swing.JLabel();
+        jPanel19 = new javax.swing.JPanel();
+        pnlRecti = new javax.swing.JPanel();
+        btnRecti = new javax.swing.JButton();
+        pnlTorno = new javax.swing.JPanel();
+        btnTorno = new javax.swing.JButton();
+        pnlCnc = new javax.swing.JPanel();
+        btnCnc = new javax.swing.JButton();
+        pnlFresa = new javax.swing.JPanel();
+        btnFresa = new javax.swing.JButton();
+        lblRecti = new javax.swing.JLabel();
+        lblTorno = new javax.swing.JLabel();
+        lblCnc = new javax.swing.JLabel();
+        lblFresa = new javax.swing.JLabel();
         jPanel11 = new javax.swing.JPanel();
         jLabel14 = new javax.swing.JLabel();
         jLabel15 = new javax.swing.JLabel();
-        jLabel16 = new javax.swing.JLabel();
         jLabel18 = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         txtPlano2 = new javax.swing.JTextField();
@@ -801,25 +802,9 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         txtCantidad = new javax.swing.JTextField();
         jLabel9 = new javax.swing.JLabel();
         txtComentarios = new javax.swing.JTextField();
-        jPanel19 = new javax.swing.JPanel();
-        lblTR = new javax.swing.JLabel();
-        lblTT = new javax.swing.JLabel();
-        lblTC = new javax.swing.JLabel();
-        lblTF = new javax.swing.JLabel();
-        pnlRecti = new javax.swing.JPanel();
-        btnRecti = new javax.swing.JButton();
-        pnlTorno = new javax.swing.JPanel();
-        btnTorno = new javax.swing.JButton();
-        pnlCnc = new javax.swing.JPanel();
-        btnCnc = new javax.swing.JButton();
-        pnlFresa = new javax.swing.JPanel();
-        btnFresa = new javax.swing.JButton();
-        jLabel10 = new javax.swing.JLabel();
         panelRound1 = new scrollPane.PanelRound();
         jButton1 = new javax.swing.JButton();
         lblEmpleado = new javax.swing.JLabel();
-        panelImagen = new javax.swing.JPanel();
-        lblImagen = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         jPanel6 = new javax.swing.JPanel();
         cmbDim = new javax.swing.JComboBox<>();
@@ -895,24 +880,6 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         panelReporte.setRoundTopLeft(20);
         panelReporte.setRoundTopRight(20);
         panelReporte.setLayout(new java.awt.BorderLayout());
-
-        jButton2.setBackground(new java.awt.Color(255, 255, 255));
-        jButton2.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        jButton2.setForeground(new java.awt.Color(255, 255, 255));
-        jButton2.setText("Ingresar Reporte");
-        jButton2.setBorder(null);
-        jButton2.setBorderPainted(false);
-        jButton2.setContentAreaFilled(false);
-        jButton2.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        jButton2.setFocusPainted(false);
-        jButton2.setPreferredSize(new java.awt.Dimension(150, 25));
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
-            }
-        });
-        panelReporte.add(jButton2, java.awt.BorderLayout.CENTER);
-
         panelGastos.add(panelReporte);
 
         jScrollPane5.setViewportView(panelGastos);
@@ -1013,8 +980,9 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         jLabel1.setText("Ingresa numero de Plano");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridwidth = 6;
+        gridBagConstraints.insets = new java.awt.Insets(20, 0, 2, 0);
         pnlPlano.add(jLabel1, gridBagConstraints);
 
         txtPlano.setFont(new java.awt.Font("Lexend", 0, 18)); // NOI18N
@@ -1036,12 +1004,155 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.gridwidth = java.awt.GridBagConstraints.RELATIVE;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridwidth = 6;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.ipadx = 336;
         gridBagConstraints.ipady = 5;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         pnlPlano.add(txtPlano, gridBagConstraints);
+
+        jLabel16.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
+        jLabel16.setForeground(new java.awt.Color(102, 0, 0));
+        jLabel16.setText("*");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.SOUTH;
+        pnlPlano.add(jLabel16, gridBagConstraints);
+
+        jLabel10.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(0, 102, 204));
+        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel10.setText("Seleccionar maquina");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 31;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.insets = new java.awt.Insets(24, 9, 0, 0);
+        pnlPlano.add(jLabel10, gridBagConstraints);
+
+        jPanel19.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel19.setPreferredSize(new java.awt.Dimension(414, 40));
+        java.awt.GridBagLayout jPanel19Layout = new java.awt.GridBagLayout();
+        jPanel19Layout.columnWeights = new double[] {1.0, 1.0, 1.0, 1.0};
+        jPanel19.setLayout(jPanel19Layout);
+
+        pnlRecti.setBackground(new java.awt.Color(255, 255, 255));
+
+        btnRecti.setBackground(new java.awt.Color(255, 255, 255));
+        btnRecti.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
+        btnRecti.setText("Rectificadora");
+        btnRecti.setBorder(null);
+        btnRecti.setBorderPainted(false);
+        btnRecti.setContentAreaFilled(false);
+        btnRecti.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnRecti.setFocusPainted(false);
+        btnRecti.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnRectiActionPerformed(evt);
+            }
+        });
+        pnlRecti.add(btnRecti);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        jPanel19.add(pnlRecti, gridBagConstraints);
+
+        pnlTorno.setBackground(new java.awt.Color(255, 255, 255));
+
+        btnTorno.setBackground(new java.awt.Color(255, 255, 255));
+        btnTorno.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
+        btnTorno.setText("Torno");
+        btnTorno.setBorder(null);
+        btnTorno.setBorderPainted(false);
+        btnTorno.setContentAreaFilled(false);
+        btnTorno.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnTorno.setFocusPainted(false);
+        btnTorno.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnTornoActionPerformed(evt);
+            }
+        });
+        pnlTorno.add(btnTorno);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        jPanel19.add(pnlTorno, gridBagConstraints);
+
+        pnlCnc.setBackground(new java.awt.Color(255, 255, 255));
+
+        btnCnc.setBackground(new java.awt.Color(255, 255, 255));
+        btnCnc.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
+        btnCnc.setText("Cnc");
+        btnCnc.setBorder(null);
+        btnCnc.setBorderPainted(false);
+        btnCnc.setContentAreaFilled(false);
+        btnCnc.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnCnc.setFocusPainted(false);
+        btnCnc.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnCncActionPerformed(evt);
+            }
+        });
+        pnlCnc.add(btnCnc);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        jPanel19.add(pnlCnc, gridBagConstraints);
+
+        pnlFresa.setBackground(new java.awt.Color(255, 255, 255));
+
+        btnFresa.setBackground(new java.awt.Color(255, 255, 255));
+        btnFresa.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
+        btnFresa.setText("Fresadora");
+        btnFresa.setBorder(null);
+        btnFresa.setBorderPainted(false);
+        btnFresa.setContentAreaFilled(false);
+        btnFresa.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnFresa.setFocusPainted(false);
+        btnFresa.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnFresaActionPerformed(evt);
+            }
+        });
+        pnlFresa.add(btnFresa);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        jPanel19.add(pnlFresa, gridBagConstraints);
+
+        lblRecti.setFont(new java.awt.Font("Roboto", 1, 24)); // NOI18N
+        lblRecti.setForeground(new java.awt.Color(0, 102, 204));
+        lblRecti.setText("00:00:00");
+        jPanel19.add(lblRecti, new java.awt.GridBagConstraints());
+
+        lblTorno.setFont(new java.awt.Font("Roboto", 1, 24)); // NOI18N
+        lblTorno.setForeground(new java.awt.Color(0, 102, 204));
+        lblTorno.setText("00:00:00");
+        jPanel19.add(lblTorno, new java.awt.GridBagConstraints());
+
+        lblCnc.setFont(new java.awt.Font("Roboto", 1, 24)); // NOI18N
+        lblCnc.setForeground(new java.awt.Color(0, 102, 204));
+        lblCnc.setText("00:00:00");
+        jPanel19.add(lblCnc, new java.awt.GridBagConstraints());
+
+        lblFresa.setFont(new java.awt.Font("Roboto", 1, 24)); // NOI18N
+        lblFresa.setForeground(new java.awt.Color(0, 102, 204));
+        lblFresa.setText("00:00:00");
+        jPanel19.add(lblFresa, new java.awt.GridBagConstraints());
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = 4;
+        gridBagConstraints.gridheight = 3;
+        gridBagConstraints.ipadx = 322;
+        gridBagConstraints.ipady = 11;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
+        gridBagConstraints.insets = new java.awt.Insets(7, 9, 0, 0);
+        pnlPlano.add(jPanel19, gridBagConstraints);
 
         jPanel9.add(pnlPlano, java.awt.BorderLayout.PAGE_START);
 
@@ -1062,18 +1173,9 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         jLabel15.setText("*");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 21;
         gridBagConstraints.gridheight = 2;
         jPanel11.add(jLabel15, gridBagConstraints);
-
-        jLabel16.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        jLabel16.setForeground(new java.awt.Color(102, 0, 0));
-        jLabel16.setText("*");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 20;
-        gridBagConstraints.gridheight = 2;
-        jPanel11.add(jLabel16, gridBagConstraints);
 
         jLabel18.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
         jLabel18.setForeground(new java.awt.Color(102, 0, 0));
@@ -1090,7 +1192,7 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         jLabel4.setText("Plano:");
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 21;
         gridBagConstraints.ipadx = 52;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         gridBagConstraints.insets = new java.awt.Insets(19, 9, 0, 0);
@@ -1105,7 +1207,7 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         txtPlano2.setPreferredSize(new java.awt.Dimension(300, 30));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 21;
         gridBagConstraints.gridwidth = 4;
         gridBagConstraints.gridheight = 3;
         gridBagConstraints.ipadx = 487;
@@ -1256,147 +1358,6 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         gridBagConstraints.insets = new java.awt.Insets(2, 9, 0, 0);
         jPanel11.add(txtComentarios, gridBagConstraints);
 
-        jPanel19.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel19.setPreferredSize(new java.awt.Dimension(414, 40));
-        java.awt.GridBagLayout jPanel19Layout = new java.awt.GridBagLayout();
-        jPanel19Layout.columnWeights = new double[] {1.0, 1.0, 1.0, 1.0};
-        jPanel19.setLayout(jPanel19Layout);
-
-        lblTR.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        lblTR.setForeground(new java.awt.Color(51, 51, 51));
-        lblTR.setText("TR");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 0;
-        jPanel19.add(lblTR, gridBagConstraints);
-
-        lblTT.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        lblTT.setForeground(new java.awt.Color(51, 51, 51));
-        lblTT.setText("TT");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 0;
-        jPanel19.add(lblTT, gridBagConstraints);
-
-        lblTC.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        lblTC.setForeground(new java.awt.Color(51, 51, 51));
-        lblTC.setText("TC");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 0;
-        jPanel19.add(lblTC, gridBagConstraints);
-
-        lblTF.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        lblTF.setForeground(new java.awt.Color(51, 51, 51));
-        lblTF.setText("TF");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 0;
-        jPanel19.add(lblTF, gridBagConstraints);
-
-        pnlRecti.setBackground(new java.awt.Color(255, 255, 255));
-
-        btnRecti.setBackground(new java.awt.Color(255, 255, 255));
-        btnRecti.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
-        btnRecti.setText("Rectificadora");
-        btnRecti.setBorder(null);
-        btnRecti.setBorderPainted(false);
-        btnRecti.setContentAreaFilled(false);
-        btnRecti.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnRecti.setFocusPainted(false);
-        btnRecti.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnRectiActionPerformed(evt);
-            }
-        });
-        pnlRecti.add(btnRecti);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 1;
-        jPanel19.add(pnlRecti, gridBagConstraints);
-
-        pnlTorno.setBackground(new java.awt.Color(255, 255, 255));
-
-        btnTorno.setBackground(new java.awt.Color(255, 255, 255));
-        btnTorno.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
-        btnTorno.setText("Torno");
-        btnTorno.setBorder(null);
-        btnTorno.setBorderPainted(false);
-        btnTorno.setContentAreaFilled(false);
-        btnTorno.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnTorno.setFocusPainted(false);
-        btnTorno.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnTornoActionPerformed(evt);
-            }
-        });
-        pnlTorno.add(btnTorno);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 1;
-        jPanel19.add(pnlTorno, gridBagConstraints);
-
-        pnlCnc.setBackground(new java.awt.Color(255, 255, 255));
-
-        btnCnc.setBackground(new java.awt.Color(255, 255, 255));
-        btnCnc.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
-        btnCnc.setText("Cnc");
-        btnCnc.setBorder(null);
-        btnCnc.setBorderPainted(false);
-        btnCnc.setContentAreaFilled(false);
-        btnCnc.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnCnc.setFocusPainted(false);
-        btnCnc.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnCncActionPerformed(evt);
-            }
-        });
-        pnlCnc.add(btnCnc);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 1;
-        jPanel19.add(pnlCnc, gridBagConstraints);
-
-        pnlFresa.setBackground(new java.awt.Color(255, 255, 255));
-
-        btnFresa.setBackground(new java.awt.Color(255, 255, 255));
-        btnFresa.setFont(new java.awt.Font("Lexend", 1, 12)); // NOI18N
-        btnFresa.setText("Fresadora");
-        btnFresa.setBorder(null);
-        btnFresa.setBorderPainted(false);
-        btnFresa.setContentAreaFilled(false);
-        btnFresa.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnFresa.setFocusPainted(false);
-        btnFresa.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnFresaActionPerformed(evt);
-            }
-        });
-        pnlFresa.add(btnFresa);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 1;
-        jPanel19.add(pnlFresa, gridBagConstraints);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 20;
-        gridBagConstraints.gridwidth = 4;
-        gridBagConstraints.gridheight = 3;
-        gridBagConstraints.ipadx = 322;
-        gridBagConstraints.ipady = 11;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(7, 9, 0, 0);
-        jPanel11.add(jPanel19, gridBagConstraints);
-
-        jLabel10.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel10.setForeground(new java.awt.Color(0, 102, 204));
-        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel10.setText("Maquina:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 20;
-        gridBagConstraints.ipadx = 31;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        gridBagConstraints.insets = new java.awt.Insets(24, 9, 0, 0);
-        jPanel11.add(jLabel10, gridBagConstraints);
-
         panelRound1.setBackground(new java.awt.Color(255, 0, 0));
         panelRound1.setRoundBottomRight(20);
         panelRound1.setRoundTopLeft(20);
@@ -1421,35 +1382,20 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         panelRound1.add(jButton1, java.awt.BorderLayout.CENTER);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.gridy = 2;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.ipadx = 80;
         gridBagConstraints.ipady = 13;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
         jPanel11.add(panelRound1, gridBagConstraints);
 
         lblEmpleado.setFont(new java.awt.Font("SansSerif", 1, 14)); // NOI18N
         lblEmpleado.setForeground(new java.awt.Color(51, 51, 51));
         lblEmpleado.setText("Empleado");
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 0;
-        jPanel11.add(lblEmpleado, gridBagConstraints);
-
-        panelImagen.setPreferredSize(new java.awt.Dimension(400, 400));
-        panelImagen.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                panelImagenMouseClicked(evt);
-            }
-        });
-        panelImagen.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
-        panelImagen.add(lblImagen, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 50, -1, -1));
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
         gridBagConstraints.gridy = 1;
-        gridBagConstraints.gridheight = 23;
-        jPanel11.add(panelImagen, gridBagConstraints);
+        jPanel11.add(lblEmpleado, gridBagConstraints);
 
         jLabel11.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
         jLabel11.setForeground(new java.awt.Color(0, 102, 204));
@@ -1570,55 +1516,58 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
     }//GEN-LAST:event_btnCalidadActionPerformed
 
     private void btnFresaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFresaActionPerformed
-        pnlFresa.setBackground(setBack(pnlFresa, lblTF, "TF"));
+        pnlFresa.setBackground(setBack(pnlFresa));
+        iniciarCronometro(1);
     }//GEN-LAST:event_btnFresaActionPerformed
 
     private void btnCncActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCncActionPerformed
-        pnlCnc.setBackground(setBack(pnlCnc,lblTC, "TC"));
+        pnlCnc.setBackground(setBack(pnlCnc));
+        iniciarCronometro(0);
     }//GEN-LAST:event_btnCncActionPerformed
 
     private void btnTornoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnTornoActionPerformed
-        pnlTorno.setBackground(setBack(pnlTorno,lblTT, "TT"));
+        pnlTorno.setBackground(setBack(pnlTorno));
+        iniciarCronometro(3);
     }//GEN-LAST:event_btnTornoActionPerformed
 
     private void btnRectiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRectiActionPerformed
-        pnlRecti.setBackground(setBack(pnlRecti,lblTR, "TR"));
+        pnlRecti.setBackground(setBack(pnlRecti));
+        iniciarCronometro(2);
     }//GEN-LAST:event_btnRectiActionPerformed
 
     private void txtPlanoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtPlanoActionPerformed
         limpiarFormulario();
-        try{
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
             traerMateriales();
             Statement st = con.createStatement();
             String plan = txtPlano.getText();
-            if(txtPlano.getText().contains("/")){
-                plan = plan.substring(0,plan.indexOf("/"));
+            if (txtPlano.getText().contains("/")) {
+                plan = plan.substring(0, plan.indexOf("/"));
             }
             String sql = "select Plano, Proyecto, Cantidad, Material from planos where Plano like '" + plan + "'";
             ResultSet rs = st.executeQuery(sql);
             String plano = null;
-            while(rs.next()){
+            while (rs.next()) {
                 plan = rs.getString("Plano");
                 txtPlano2.setText(plano);
                 txtProyecto.setText(rs.getString("Proyecto"));
                 txtCantidad.setText(rs.getString("Cantidad"));
-                //txtMaterial.setText(rs.getString("Material"))
                 String materialPlano = rs.getString("Material");
                 String materialDetectado = iterarMateriales(materialPlano);
                 cmbMaterial.setSelectedItem(materialDetectado);
             }
             KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
             manager.focusNextComponent();
-            if(plano == null){
-                plano = verificarNomenclatura(plan,PLANO );
+            if (plano == null) {
+                plano = verificarNomenclatura(plan, PLANO);
                 verPlano(plano);
             }
             txtPlano.setText("");
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "Error: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_txtPlanoActionPerformed
 
@@ -1654,53 +1603,53 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
     }//GEN-LAST:event_txtComentariosFocusLost
 
     private void btnCalidadMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidadMouseEntered
-        pnlCalidad.setBackground(new Color(0,102,255));
+        pnlCalidad.setBackground(new Color(0, 102, 255));
         btnCalidad.setForeground(Color.white);
     }//GEN-LAST:event_btnCalidadMouseEntered
 
     private void btnCalidadMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCalidadMouseExited
         pnlCalidad.setBackground(Color.white);
-        btnCalidad.setForeground(new Color(0,102,255));
+        btnCalidad.setForeground(new Color(0, 102, 255));
     }//GEN-LAST:event_btnCalidadMouseExited
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        if(txtPlano2.getText().equals("")){
-            JOptionPane.showMessageDialog(this, "Debes seleccionar un Plano","Advertencia",JOptionPane.WARNING_MESSAGE);
-        }else{
+        if (txtPlano2.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes seleccionar un Plano", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        } else {
             Thread hilo = new Thread() {
-                public void run(){
-                     espera.activar();
-                     espera.setVisible(true);
-                        try{
-                            java.sql.Connection con;
-                            Conexion con1 = new Conexion();
-                            con = con1.getConnection();
-                            Statement st = con.createStatement();
-                            String plano = txtPlano2.getText();
-                            String sql = "select Pdf,Plano from pdfplanos where Plano like '"+plano+"'";
-                            ResultSet rs = st.executeQuery(sql);
-                            byte[] b = null;
-                            while(rs.next()){
-                                b = rs.getBytes("Pdf");
+                public void run() {
+                    espera.activar();
+                    espera.setVisible(true);
+                    try {
+                        java.sql.Connection con;
+                        Conexion con1 = new Conexion();
+                        con = con1.getConnection();
+                        Statement st = con.createStatement();
+                        String plano = txtPlano2.getText();
+                        String sql = "select Pdf,Plano from pdfplanos where Plano like '" + plano + "'";
+                        ResultSet rs = st.executeQuery(sql);
+                        byte[] b = null;
+                        while (rs.next()) {
+                            b = rs.getBytes("Pdf");
+                        }
+                        try (InputStream bos = new ByteArrayInputStream(b)) {
+                            int tamInput = bos.available();
+                            byte[] datosPdf = new byte[tamInput];
+                            bos.read(datosPdf, 0, tamInput);
+                            try (OutputStream out = new FileOutputStream("new.pdf")) {
+                                out.write(datosPdf);
                             }
-                             try (InputStream bos = new ByteArrayInputStream(b)) {
-                                int tamInput = bos.available();
-                                byte[] datosPdf = new byte[tamInput];
-                                bos.read(datosPdf, 0, tamInput);
-                                try (OutputStream out = new FileOutputStream("new.pdf")) {
-                                    out.write(datosPdf);
-                                }
-                             Desktop.getDesktop().open(new File("new.pdf"));
-                             }catch(Exception e){
-                                espera.band = false;
-                                espera.dispose();
-                                JOptionPane.showMessageDialog(null, "No se encontro el archivo","Error",JOptionPane.ERROR_MESSAGE);
-                             }
-                        }catch(SQLException | NumberFormatException   e){
+                            Desktop.getDesktop().open(new File("new.pdf"));
+                        } catch (Exception e) {
                             espera.band = false;
                             espera.dispose();
-                            JOptionPane.showMessageDialog(null,"ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+                            JOptionPane.showMessageDialog(null, "No se encontro el archivo", "Error", JOptionPane.ERROR_MESSAGE);
                         }
+                    } catch (SQLException | NumberFormatException e) {
+                        espera.band = false;
+                        espera.dispose();
+                        JOptionPane.showMessageDialog(null, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
+                    }
                     espera.band = false;
                     espera.dispose();
                 }
@@ -1709,29 +1658,20 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
         }
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        ReporteMaquinados reporte = new ReporteMaquinados(f, true);
-        reporte.setLocationRelativeTo(f);
-        reporte.setVisible(true);
-    }//GEN-LAST:event_jButton2ActionPerformed
-
     private void cmbDimActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbDimActionPerformed
-        if(cmbDim.getSelectedItem().toString().equals("2")){
+        if (cmbDim.getSelectedItem().toString().equals("2")) {
             visiblesFalse();
             txtDim1.setVisible(true);
             txtDim2.setVisible(true);
             lblX1.setVisible(true);
-            setImagen();
-        } else if(cmbDim.getSelectedItem().toString().equals("3")){
+        } else if (cmbDim.getSelectedItem().toString().equals("3")) {
             visiblesFalse();
             txtDim1.setVisible(true);
             txtDim2.setVisible(true);
             txtDim3.setVisible(true);
             lblX1.setVisible(true);
             lblX2.setVisible(true);
-            setImagen();
-        } else if(cmbDim.getSelectedItem().toString().equals("4")){
+        } else if (cmbDim.getSelectedItem().toString().equals("4")) {
             visiblesFalse();
             txtDim1.setVisible(true);
             txtDim2.setVisible(true);
@@ -1740,39 +1680,34 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
             lblX1.setVisible(true);
             lblX2.setVisible(true);
             lblX3.setVisible(true);
-            setImagen();
         }
     }//GEN-LAST:event_cmbDimActionPerformed
 
     private void txtDim1KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDim1KeyReleased
         transferirFoco(txtDim1, evt.getKeyChar());
-        setImagen();
-        
+
     }//GEN-LAST:event_txtDim1KeyReleased
 
     private void txtDim2KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDim2KeyReleased
         transferirFoco(txtDim2, evt.getKeyChar());
-        setImagen();
     }//GEN-LAST:event_txtDim2KeyReleased
 
     private void txtDim3KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDim3KeyReleased
         transferirFoco(txtDim3, evt.getKeyChar());
-        setImagen();
     }//GEN-LAST:event_txtDim3KeyReleased
 
     private void txtDim4KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDim4KeyReleased
         transferirFoco(txtDim4, evt.getKeyChar());
-        setImagen();
     }//GEN-LAST:event_txtDim4KeyReleased
 
     private void btnEstacionMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstacionMouseEntered
-        pnlEstacion.setBackground(new Color(255,102,0));
+        pnlEstacion.setBackground(new Color(255, 102, 0));
         btnEstacion.setForeground(Color.white);
     }//GEN-LAST:event_btnEstacionMouseEntered
 
     private void btnEstacionMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnEstacionMouseExited
         pnlEstacion.setBackground(Color.white);
-        btnEstacion.setForeground(new Color(255,102,0));
+        btnEstacion.setForeground(new Color(255, 102, 0));
     }//GEN-LAST:event_btnEstacionMouseExited
 
     private void btnEstacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstacionActionPerformed
@@ -1782,10 +1717,6 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
     private void cmbMaterialActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbMaterialActionPerformed
 
     }//GEN-LAST:event_cmbMaterialActionPerformed
-
-    private void panelImagenMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_panelImagenMouseClicked
-
-    }//GEN-LAST:event_panelImagenMouseClicked
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnCalidad;
@@ -1797,7 +1728,6 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
     private javax.swing.JComboBox<String> cmbDim;
     private javax.swing.JComboBox<String> cmbMaterial;
     private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -1826,19 +1756,17 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
     private javax.swing.JPanel jPanel8;
     private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane5;
+    private javax.swing.JLabel lblCnc;
     private javax.swing.JLabel lblEmpleado;
-    private javax.swing.JLabel lblImagen;
+    private javax.swing.JLabel lblFresa;
+    private javax.swing.JLabel lblRecti;
     private javax.swing.JLabel lblSalir;
-    private javax.swing.JLabel lblTC;
-    private javax.swing.JLabel lblTF;
-    private javax.swing.JLabel lblTR;
-    private javax.swing.JLabel lblTT;
+    private javax.swing.JLabel lblTorno;
     private javax.swing.JLabel lblX1;
     private javax.swing.JLabel lblX2;
     private javax.swing.JLabel lblX3;
     private javax.swing.JPanel pan;
     private javax.swing.JPanel panelGastos;
-    private javax.swing.JPanel panelImagen;
     private scrollPane.PanelRound panelReporte;
     private scrollPane.PanelRound panelRound1;
     private javax.swing.JPanel panelSalir;
@@ -1862,15 +1790,15 @@ public class Maquinados extends javax.swing.JInternalFrame implements ActionList
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if(btnEmpleado != null){
+        if (btnEmpleado != null) {
             for (int i = 0; i < btnEmpleado.size(); i++) {
-                if(e.getSource() == btnEmpleado.get(i)){
+                if (e.getSource() == btnEmpleado.get(i)) {
                     numEmpleado = getNumEmpleado();
                 }
             }
         }
-        if(emp != null){
-            if(e.getSource() == emp.btnX){
+        if (emp != null) {
+            if (e.getSource() == emp.btnX) {
                 this.dispose();
                 emp.dispose();
             }

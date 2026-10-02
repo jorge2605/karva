@@ -778,7 +778,8 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
             }
 
             //---------------------DOCUMENTOS PARA AGREGAR-----------------------------------
-            Image img = Image.getInstance("C:\\Pruebas\\BD\\3i.png");
+            
+            Image img = Image.getInstance("src/Img/siyms.png");
             img.setAbsolutePosition(25, 500);
             img.scaleAbsolute(new Rectangle(140, 50));
 
@@ -2007,16 +2008,16 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
 
     private void btnSubir1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSubir1ActionPerformed
         if (Tabla1.getRowCount() < 0) {
-            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR UN HORARIO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Debes seleccionar un horario", "Advertencia", JOptionPane.WARNING_MESSAGE);
         } else {
-            int opc = JOptionPane.showConfirmDialog(this, "ESTAS SEGURO DE GUARDAR ESTE HORARIO?");
+            int opc = JOptionPane.showConfirmDialog(this, "Estas seguro de guardar este horario?");
             if (opc == 0) {
                 try {
                     //--------------------------------------------------------------------------------------------------------------------------------
                     int n1 = 0;
-                    String sql2 = "insert into incidencias_checador(NumSemana, Inicio, X, NumEmpleado, Comentario, Hora) values(?,?,?,?,?,?)"
+                    String sql2 = "INSERT INTO incidencias_checador(NumSemana, Inicio, X, NumEmpleado, Comentario, Hora) VALUES(?,?,?,?,?,?) as nuevo "
                             + "on duplicate key update "
-                            + "Comentario = values(Comentario), Hora = values(Hora)";
+                            + "Comentario = nuevo.Comentario, Hora = nuevo.Hora";
                     PreparedStatement pst2 = con.prepareStatement(sql2);
 
                     for (int i = 0; i < matrizIncidencias.length; i++) {
@@ -2034,10 +2035,11 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                         }
                     }
 
-                    String sql = "update dias lunes = ?, martes = ?, miercoles = ?, jueves = ?, viernes = ?, sabado = ?, domingo = ?, slunes = ?, "
+                    String sql = "update dias set lunes = ?, martes = ?, miercoles = ?, jueves = ?, viernes = ?, sabado = ?, domingo = ?, slunes = ?, "
                             + "smartes = ?, smiercoles = ?, sjueves = ?, sviernes = ?, ssabado = ?, sdomingo = ? where NumEmpleado = ? and Inicio = ?";
                     PreparedStatement pst = con.prepareStatement(sql);
 
+                    int n = 0;
                     for (int i = 0; i < Tabla1.getRowCount(); i++) {
                         pst.setString(1, evaluarNull(Tabla1.getValueAt(i, 2)));
                         pst.setString(2, evaluarNull(Tabla1.getValueAt(i, 5)));
@@ -2053,19 +2055,20 @@ public final class Checador extends javax.swing.JInternalFrame implements Action
                         pst.setString(12, evaluarNull(Tabla1.getValueAt(i, 15)));
                         pst.setString(13, evaluarNull(Tabla1.getValueAt(i, 18)));
                         pst.setString(14, evaluarNull(Tabla1.getValueAt(i, 21)));
-                        pst.setString(15, evaluarNull(Tabla1.getValueAt(i, 0
-                        )));
+                        pst.setString(15, evaluarNull(Tabla1.getValueAt(i, 0)));
                         pst.setString(16, fecha.get(cmbSemana.getSelectedIndex()));
+                        
+                        n = pst.executeUpdate();
                     }
 
                     if (n1 > 0) {
-                        JOptionPane.showMessageDialog(this, "DATOS GUARDADOS");
-                        crearPdf();
+                        JOptionPane.showMessageDialog(this, "Guardados correctamente");
                     } else {
-                        crearPdf();
+                        JOptionPane.showMessageDialog(this, "Sin cambios", "Advertencia", JOptionPane.WARNING_MESSAGE);
                     }
+                    crearPdf();
                 } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Error al guardar datos de checador: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }
