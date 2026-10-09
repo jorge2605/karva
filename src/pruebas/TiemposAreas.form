@@ -64,7 +64,7 @@
                 <Property name="horizontalGap" type="int" value="50"/>
               </Layout>
               <SubComponents>
-                <Component class="javax.swing.JLabel" name="jLabel12">
+                <Component class="javax.swing.JLabel" name="lblTitulo">
                   <Properties>
                     <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
                       <Font name="Roboto" size="14" style="1"/>
@@ -72,7 +72,7 @@
                     <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                       <Color blue="fc" green="a5" red="0" type="rgb"/>
                     </Property>
-                    <Property name="text" type="java.lang.String" value="Maquinados"/>
+                    <Property name="text" type="java.lang.String" value="T&#xed;tulo"/>
                   </Properties>
                 </Component>
               </SubComponents>
@@ -107,7 +107,7 @@
                         </Property>
                         <Property name="text" type="java.lang.String" value=" X "/>
                         <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
-                          <Color id="Cursor Por defecto"/>
+                          <Color id="Default Cursor"/>
                         </Property>
                       </Properties>
                       <Events>

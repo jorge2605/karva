@@ -5,7 +5,7 @@ import java.awt.Color;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-public class Corte extends javax.swing.JInternalFrame {
+public class TiemposAreas extends javax.swing.JInternalFrame {
     
     private final javax.swing.Timer timer = new javax.swing.Timer(100, e -> actualizarCronometros());
     private final java.util.List<Long> inicio = new java.util.ArrayList<>();
@@ -14,12 +14,18 @@ public class Corte extends javax.swing.JInternalFrame {
     private final java.util.List<javax.swing.JLabel> pilaCronos = new java.util.ArrayList<>();
     private String numEmpleado = "210";
     
-    public Corte(String numEmpleado) {
+    private String area = "Corte"; // Área por defecto
+
+    public TiemposAreas(String numEmpleado, String area) {
         this.numEmpleado = numEmpleado;
+        this.area = area;
         initComponents();
+        lblTitulo.setText(area); // Actualiza el JLabel de la interfaz
         ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
         limpiarPanel();
         jScrollPane1.getVerticalScrollBar().setUnitIncrement(15);
+        
+        cargarPlanosActivos();
     }
     
     private void iniciarCronometro(int numero) {
@@ -50,7 +56,7 @@ public class Corte extends javax.swing.JInternalFrame {
         for (int i = 0; i < pilaCronos.size(); i++) {
             if (corriendo.get(i)) {
                 long tiempo = acumulado.get(i) + (ahora - inicio.get(i));
-                pilaCronos.get(i).setText(formatearTiempo(tiempo));
+                pilaCronos.get(i).setText(formatearTiempo(tiempo)); // Solo actualiza el texto
             }
         }
     }
@@ -193,25 +199,221 @@ public class Corte extends javax.swing.JInternalFrame {
         repaint();
     }
     
+//    public void procesarEscaneo(String planoEscaneado) {
+//        if (planoEscaneado == null || planoEscaneado.trim().isEmpty()) {
+//            return;
+//        }
+//
+//        String planoClean = planoEscaneado.trim();
+//
+//        // 1. Guardar/Transferir en la BD (cierra el anterior y abre el nuevo)
+//        registrarOTransferirPlano(planoClean, this.area);
+//
+//        // 2. Renderizar la tarjeta en pantalla e iniciar el cronómetro visual
+//        int nuevoIndice = pilaCronos.size();
+//        crearPanelTiempo(this.numEmpleado, planoClean, this.area, "00:00:00", nuevoIndice);
+//        iniciarCronometro(nuevoIndice);
+//    }
+//    
+    public void registrarOTransferirPlano(String plano, String nombreEstadoActual) {
+        int idEstadoNuevo = obtenerIdEstado(nombreEstadoActual);
+        if (idEstadoNuevo == -1) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Estado no encontrado: " + nombreEstadoActual, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (java.sql.Connection con = new Conexiones.Conexion().getConnection()) {
+            con.setAutoCommit(false); // Iniciar transacción
+
+            // 1. Cerrar el registro anterior calculando el tiempo transcurrido (Cronometro)
+            String sqlCerrarPrevio = "UPDATE TiemposAreas " +
+                                    "SET TiempoFinal = NOW(), " +
+                                    "    Cronometro = TIMEDIFF(NOW(), TiempoInicio) " +
+                                    "WHERE Plano = ? AND TiempoFinal IS NULL";
+
+            try (java.sql.PreparedStatement psCerrar = con.prepareStatement(sqlCerrarPrevio)) {
+                psCerrar.setString(1, plano);
+                psCerrar.executeUpdate();
+            }
+
+            // 2. Insertar el nuevo registro para el área/estado actual
+            String sqlInsertarNuevo = "INSERT INTO TiemposAreas (Plano, TiempoInicio, idEstado) VALUES (?, NOW(), ?)";
+            try (java.sql.PreparedStatement psInsertar = con.prepareStatement(sqlInsertarNuevo)) {
+                psInsertar.setString(1, plano);
+                psInsertar.setInt(2, idEstadoNuevo);
+                psInsertar.executeUpdate();
+            }
+
+            con.commit(); // Confirmar cambios en la BD
+        } catch (java.sql.SQLException e) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error al registrar/transferir plano: " + e, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private int obtenerIdEstado(String nombreEstado) {
+        int id = -1;
+        String sql = "SELECT id FROM Estados WHERE nombre = ?";
+        try (java.sql.Connection con = new Conexiones.Conexion().getConnection();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, nombreEstado);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    id = rs.getInt("id");
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error al obtener ID del estado: " + e, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+        return id;
+    }
+
+    public void cargarPlanosActivos() {
+        limpiarPanel();
+
+        // Iniciar hilo en segundo plano para no congelar la GUI
+        new javax.swing.SwingWorker<java.util.List<Object[]>, Void>() {
+            @Override
+            protected java.util.List<Object[]> doInBackground() throws Exception {
+                java.util.List<Object[]> listaPlanos = new java.util.ArrayList<>();
+
+                String sql = "SELECT t.Plano, t.TiempoInicio " +
+                             "FROM TiemposAreas t " +
+                             "INNER JOIN Estados e ON t.idEstado = e.id " +
+                             "WHERE e.nombre = ? AND t.TiempoFinal IS NULL";
+
+                try (java.sql.Connection con = new Conexiones.Conexion().getConnection();
+                     java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
+                    ps.setString(1, area);
+                    try (java.sql.ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            String plano = rs.getString("Plano");
+                            java.sql.Timestamp inicioTS = rs.getTimestamp("TiempoInicio");
+                            long transcurrido = System.currentTimeMillis() - inicioTS.getTime();
+
+                            listaPlanos.add(new Object[]{plano, transcurrido});
+                        }
+                    }
+                }
+                return listaPlanos;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.List<Object[]> listaPlanos = get();
+                    int index = 0;
+                    for (Object[] fila : listaPlanos) {
+                        String plano = (String) fila[0];
+                        long tiempoTranscurrido = (long) fila[1];
+
+                        crearPanelTiempo(numEmpleado, plano, area, formatearTiempo(tiempoTranscurrido), index);
+                        acumulado.set(index, tiempoTranscurrido);
+                        iniciarCronometro(index);
+                        index++;
+                    }
+                } catch (Exception e) {
+                    javax.swing.JOptionPane.showMessageDialog(TiemposAreas.this, 
+                        "Error al cargar planos activos: " + e, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
+    }
+    
+    // 1. Obtiene el nombre del estado actual del plano desde la BD
+    private String obtenerEstadoActualPlano(String plano) {
+        String estadoActual = null;
+        String sql = "SELECT e.nombre FROM TiemposAreas t " +
+                     "INNER JOIN Estados e ON t.idEstado = e.id " +
+                     "WHERE t.Plano = ? AND t.TiempoFinal IS NULL";
+        try (java.sql.Connection con = new Conexiones.Conexion().getConnection();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, plano);
+            try (java.sql.ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    estadoActual = rs.getString("nombre");
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Error al consultar estado del plano: " + e, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+        return estadoActual;
+    }
+
+    // 2. Valida la secuencia del flujo según los nombres exactos de la BD
+    private boolean esTransicionValida(String estadoOrigen, String estadoDestino) {
+        if (estadoOrigen == null) {
+            return estadoDestino.equalsIgnoreCase("Corte");
+        }
+
+        switch (estadoDestino) {
+            case "Corte":
+                return estadoOrigen.equalsIgnoreCase("Programacion") || estadoOrigen.equalsIgnoreCase("Corte");
+
+            case "Maquinado CNC":
+                return estadoOrigen.equalsIgnoreCase("Corte");
+
+            case "Fresadora":
+                return estadoOrigen.equalsIgnoreCase("Maquinado CNC");
+
+            case "Torno":
+                return estadoOrigen.equalsIgnoreCase("Fresadora");
+
+            case "Rectificado":
+                return estadoOrigen.equalsIgnoreCase("Torno");
+
+            // Calidad Proceso ocurre únicamente después de Rectificado
+            case "Calidad Proceso":
+                return estadoOrigen.equalsIgnoreCase("Rectificado");
+
+            case "Ensamble":
+                return estadoOrigen.equalsIgnoreCase("Calidad Proceso");
+
+            case "Estampado":
+                return estadoOrigen.equalsIgnoreCase("Ensamble");
+
+            // Calidad Final ocurre únicamente después de Estampado
+            case "Calidad Final":
+                return estadoOrigen.equalsIgnoreCase("Estampado");
+
+            case "Envios":
+            case "Envíos":
+                return estadoOrigen.equalsIgnoreCase("Calidad Final");
+
+            default:
+                return false;
+        }
+    }
+    
+    // 3. Método procesarEscaneo con las validaciones activas
     public void procesarEscaneo(String planoEscaneado) {
         if (planoEscaneado == null || planoEscaneado.trim().isEmpty()) {
             return;
         }
 
-        int nuevoIndice = pilaCronos.size();
-        
-        // Crear panel con el texto del plano escaneado
-        crearPanelTiempo(this.numEmpleado, planoEscaneado.trim(), "Corte", "00:00:00", nuevoIndice);
+        String planoClean = planoEscaneado.trim();
 
-        // Iniciar el cronómetro de forma automática
+        // Validar secuencia
+        String estadoActual = obtenerEstadoActualPlano(planoClean);
+        if (!esTransicionValida(estadoActual, this.area)) {
+            String msg = (estadoActual == null) 
+                ? "El plano " + planoClean + " debe iniciar en el área de Corte."
+                : "Secuencia no permitida: El plano " + planoClean + " está en '" + estadoActual + "' y no puede pasar a '" + this.area + "'.";
+
+            javax.swing.JOptionPane.showMessageDialog(this, msg, "Secuencia Incorrecta", javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 1. Guardar/Transferir en la BD (cierra el anterior y abre el nuevo)
+        registrarOTransferirPlano(planoClean, this.area);
+
+        // 2. Renderizar la tarjeta en pantalla e iniciar el cronómetro visual
+        int nuevoIndice = pilaCronos.size();
+        crearPanelTiempo(this.numEmpleado, planoClean, this.area, "00:00:00", nuevoIndice);
         iniciarCronometro(nuevoIndice);
     }
-    
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -220,7 +422,7 @@ public class Corte extends javax.swing.JInternalFrame {
         jPanel1 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
-        jLabel12 = new javax.swing.JLabel();
+        lblTitulo = new javax.swing.JLabel();
         pan = new javax.swing.JPanel();
         panelSalir = new javax.swing.JPanel();
         lblSalir = new javax.swing.JLabel();
@@ -272,10 +474,10 @@ public class Corte extends javax.swing.JInternalFrame {
         jPanel5.setBackground(new java.awt.Color(255, 255, 255));
         jPanel5.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 50, 5));
 
-        jLabel12.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel12.setForeground(new java.awt.Color(0, 165, 252));
-        jLabel12.setText("Maquinados");
-        jPanel5.add(jLabel12);
+        lblTitulo.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        lblTitulo.setForeground(new java.awt.Color(0, 165, 252));
+        lblTitulo.setText("Título");
+        jPanel5.add(lblTitulo);
 
         jPanel4.add(jPanel5, java.awt.BorderLayout.CENTER);
 
@@ -641,15 +843,6 @@ public class Corte extends javax.swing.JInternalFrame {
         lblSalir.setForeground(Color.black);
     }//GEN-LAST:event_lblSalirMouseExited
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-    }//GEN-LAST:event_jButton2ActionPerformed
-
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-    }//GEN-LAST:event_jButton3ActionPerformed
-
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
     }//GEN-LAST:event_jButton4ActionPerformed
 
@@ -688,6 +881,18 @@ public class Corte extends javax.swing.JInternalFrame {
         txtEscaner.setText(""); // Limpia para el siguiente escaneo
     }//GEN-LAST:event_txtEscanerActionPerformed
 
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
+
+    }//GEN-LAST:event_jButton3ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+
+    }//GEN-LAST:event_jButton1ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
@@ -704,7 +909,6 @@ public class Corte extends javax.swing.JInternalFrame {
     private javax.swing.JButton jButton9;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel11;
-    private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
@@ -726,6 +930,7 @@ public class Corte extends javax.swing.JInternalFrame {
     private javax.swing.JLabel lblFresa;
     private javax.swing.JLabel lblRecti;
     private javax.swing.JLabel lblSalir;
+    private javax.swing.JLabel lblTitulo;
     private javax.swing.JLabel lblTorno;
     private javax.swing.JPanel pan;
     private scrollPane.PanelRound panelRound1;
@@ -736,36 +941,5 @@ public class Corte extends javax.swing.JInternalFrame {
     private javax.swing.JPanel pnlPrincipal;
     private javax.swing.JTextField txtEscaner;
     // End of variables declaration//GEN-END:variables
-    public static void main(String args[]) {
-        /* Aplica el diseño/tema del sistema si está disponible */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Corte.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-
-        /* Crea un JFrame contenedor para poder mostrar el JInternalFrame */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                javax.swing.JFrame frame = new javax.swing.JFrame("Prueba Corte");
-                javax.swing.JDesktopPane desktop = new javax.swing.JDesktopPane();
-                
-                Corte corte = new Corte("210");
-                corte.setVisible(true);
-                
-                desktop.add(corte);
-                frame.add(desktop);
-                
-                frame.setSize(1000, 700);
-                frame.setLocationRelativeTo(null);
-                frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
-                frame.setVisible(true);
-            }
-        });
-    }
+    
 }

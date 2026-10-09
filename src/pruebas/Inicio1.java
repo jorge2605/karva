@@ -86,6 +86,20 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     private final Color COLOR_NORMAL = Color.WHITE;
     private final Color COLOR_HOVER = new Color(234, 244, 255);
     private final Color COLOR_SELECCIONADO = new Color(123, 192, 255);
+    // Guarda una sola instancia por cada nombre de área
+    private final java.util.Map<String, TiemposAreas> mapaModulosTiempos = new java.util.HashMap<>();
+    
+    private TiemposAreas getModuloTiempos(String area) {
+        // Si la ventana del área aún no se ha creado, la instanciamos
+        if (!mapaModulosTiempos.containsKey(area)) {
+            TiemposAreas nuevaVentana = new TiemposAreas(lblId.getText(), area);
+            mapaModulosTiempos.put(area, nuevaVentana);
+        } else {
+            // Si ya existe, recargamos los datos activos sin volver a crear componentes Swing
+            mapaModulosTiempos.get(area).cargarPlanosActivos();
+        }
+        return mapaModulosTiempos.get(area);
+    }
 
     public void activar() {
         Thread hilo = new Thread() {
@@ -561,6 +575,41 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         agregarMenuProduccion("Pedidos", 31, "/Img/pedidos_16.png", () -> new Pedidos(lblId.getText()));
         agregarMenuProduccion("Entregas", 32, "/Img/entregas_16.png", () -> new EntregaRequisicion(lblId.getText()));
         agregarMenuProduccion("Liberacion", 33, "/Img/liberacion_16.png", () -> new Almacen(lblId.getText()));
+
+        // Procesos de corte y maquinado
+        agregarMenuProduccion("Corte", 34, "/Img/liberacion_16.png", () -> getModuloTiempos("Corte"));
+        agregarMenuProduccion("Maquinado CNC", 35, "/Img/liberacion_16.png", () -> getModuloTiempos("Maquinado CNC"));
+        agregarMenuProduccion("Fresadora", 36, "/Img/liberacion_16.png", () -> getModuloTiempos("Fresadora"));
+        agregarMenuProduccion("Torno", 37, "/Img/liberacion_16.png", () -> getModuloTiempos("Torno"));
+        agregarMenuProduccion("Rectificado", 38, "/Img/liberacion_16.png", () -> getModuloTiempos("Rectificado"));
+
+        // Calidad unificado en un solo botón
+        agregarMenuProduccion("Calidad", 39, "/Img/liberacion_16.png", () -> getModuloCalidadConPestañas());
+
+        // Resto del flujo
+        agregarMenuProduccion("Ensamble", 40, "/Img/liberacion_16.png", () -> getModuloTiempos("Ensamble"));
+        agregarMenuProduccion("Estampado", 41, "/Img/liberacion_16.png", () -> getModuloTiempos("Estampado"));
+        agregarMenuProduccion("Envíos", 42, "/Img/liberacion_16.png", () -> getModuloTiempos("Envios"));
+    }
+    
+    private javax.swing.JInternalFrame getModuloCalidadConPestañas() {
+        javax.swing.JInternalFrame frameContenedor = new javax.swing.JInternalFrame("Módulo de Calidad", true, true, true, true);
+        ((javax.swing.plaf.basic.BasicInternalFrameUI) frameContenedor.getUI()).setNorthPane(null); // Quita la barra superior si la manejas personalizada
+
+        javax.swing.JTabbedPane tabbedPane = new javax.swing.JTabbedPane();
+        tabbedPane.setFont(new java.awt.Font("Roboto", java.awt.Font.BOLD, 14));
+
+        // Instancia 1: Calidad Proceso
+        TiemposAreas calidadProceso = new TiemposAreas(num, "Calidad Proceso");
+        // Instancia 2: Calidad Final
+        TiemposAreas calidadFinal = new TiemposAreas(num, "Calidad Final");
+
+        // Extraemos el contenido principal de cada JInternalFrame para meterlo como pestaña
+        tabbedPane.addTab("Calidad en Proceso", calidadProceso.getContentPane());
+        tabbedPane.addTab("Calidad Final", calidadFinal.getContentPane());
+
+        frameContenedor.add(tabbedPane);
+        return frameContenedor;
     }
 
     public final void verFrame(javax.swing.JInternalFrame c) {
