@@ -89,17 +89,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     // Guarda una sola instancia por cada nombre de área
     private final java.util.Map<String, TiemposAreas> mapaModulosTiempos = new java.util.HashMap<>();
     
-    private TiemposAreas getModuloTiempos(String area) {
-        // Si la ventana del área aún no se ha creado, la instanciamos
-        if (!mapaModulosTiempos.containsKey(area)) {
-            TiemposAreas nuevaVentana = new TiemposAreas(lblId.getText(), area);
-            mapaModulosTiempos.put(area, nuevaVentana);
-        } else {
-            // Si ya existe, recargamos los datos activos sin volver a crear componentes Swing
-            mapaModulosTiempos.get(area).cargarPlanosActivos();
-        }
-        return mapaModulosTiempos.get(area);
-    }
 
     public void activar() {
         Thread hilo = new Thread() {
@@ -592,9 +581,22 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         agregarMenuProduccion("Envíos", 42, "/Img/liberacion_16.png", () -> getModuloTiempos("Envios"));
     }
     
+    private TiemposAreas getModuloTiempos(String area) {
+        // Si la ventana del área aún no se ha creado, la instanciamos
+        if (!mapaModulosTiempos.containsKey(area)) {
+            TiemposAreas nuevaVentana = new TiemposAreas(lblId.getText(), area);
+            mapaModulosTiempos.put(area, nuevaVentana);
+        } else {
+            // Si ya existe, recargamos los datos activos sin volver a crear componentes Swing
+            mapaModulosTiempos.get(area).cargarPlanosActivos();
+        }
+        return mapaModulosTiempos.get(area);
+    }
+    
     private javax.swing.JInternalFrame getModuloCalidadConPestañas() {
         javax.swing.JInternalFrame frameContenedor = new javax.swing.JInternalFrame("Módulo de Calidad", true, true, true, true);
-        ((javax.swing.plaf.basic.BasicInternalFrameUI) frameContenedor.getUI()).setNorthPane(null); // Quita la barra superior si la manejas personalizada
+        
+        ((javax.swing.plaf.basic.BasicInternalFrameUI) frameContenedor.getUI()).setNorthPane(null);
 
         javax.swing.JTabbedPane tabbedPane = new javax.swing.JTabbedPane();
         tabbedPane.setFont(new java.awt.Font("Roboto", java.awt.Font.BOLD, 14));

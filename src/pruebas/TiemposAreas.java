@@ -156,6 +156,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.insets = new java.awt.Insets(0, 6, 0, 6);
         pnlInicial.add(btnPlay, gridBagConstraints);
+        btnPlay.setVisible(false);
 
         // Botón Pausa
         javax.swing.JButton btnPausa = new javax.swing.JButton();
@@ -167,6 +168,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.insets = new java.awt.Insets(0, 6, 0, 6);
         pnlInicial.add(btnPausa, gridBagConstraints);
+        btnPausa.setVisible(false);
 
         // Botón Detener
         javax.swing.JButton btnDetener = new javax.swing.JButton();
@@ -178,6 +180,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.insets = new java.awt.Insets(0, 6, 0, 6);
         pnlInicial.add(btnDetener, gridBagConstraints);
+        btnDetener.setVisible(false);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridy = i;
@@ -225,19 +228,20 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
         try (java.sql.Connection con = new Conexiones.Conexion().getConnection()) {
             con.setAutoCommit(false); // Iniciar transacción
 
-            // 1. Cerrar el registro anterior calculando el tiempo transcurrido (Cronometro)
+            // 1. Cerrar el registro anterior: actualiza FechaFinal, HoraFinal y calcula el Cronometro (diferencia entre hora inicio y fin del mismo día o combinadas)
             String sqlCerrarPrevio = "UPDATE TiemposAreas " +
-                                    "SET TiempoFinal = NOW(), " +
-                                    "    Cronometro = TIMEDIFF(NOW(), TiempoInicio) " +
-                                    "WHERE Plano = ? AND TiempoFinal IS NULL";
+                                    "SET FechaFinal = CURDATE(), " +
+                                    "    HoraFinal = CURTIME(), " +
+                                    "    Cronometro = TIMEDIFF(NOW(), TIMESTAMP(FechaInicio, HoraInicio)) " +
+                                    "WHERE Plano = ? AND FechaFinal IS NULL";
 
             try (java.sql.PreparedStatement psCerrar = con.prepareStatement(sqlCerrarPrevio)) {
                 psCerrar.setString(1, plano);
                 psCerrar.executeUpdate();
             }
 
-            // 2. Insertar el nuevo registro para el área/estado actual
-            String sqlInsertarNuevo = "INSERT INTO TiemposAreas (Plano, TiempoInicio, idEstado) VALUES (?, NOW(), ?)";
+            // 2. Insertar el nuevo registro separando FechaInicio y HoraInicio
+            String sqlInsertarNuevo = "INSERT INTO TiemposAreas (Plano, FechaInicio, HoraInicio, idEstado) VALUES (?, CURDATE(), CURTIME(), ?)";
             try (java.sql.PreparedStatement psInsertar = con.prepareStatement(sqlInsertarNuevo)) {
                 psInsertar.setString(1, plano);
                 psInsertar.setInt(2, idEstadoNuevo);
@@ -249,7 +253,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
             javax.swing.JOptionPane.showMessageDialog(this, "Error al registrar/transferir plano: " + e, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }
-
+    
     private int obtenerIdEstado(String nombreEstado) {
         int id = -1;
         String sql = "SELECT id FROM Estados WHERE nombre = ?";
@@ -277,10 +281,11 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
             protected java.util.List<Object[]> doInBackground() throws Exception {
                 java.util.List<Object[]> listaPlanos = new java.util.ArrayList<>();
 
-                String sql = "SELECT t.Plano, t.TiempoInicio " +
+                // Consultamos FechaInicio y HoraInicio por separado
+                String sql = "SELECT t.Plano, t.FechaInicio, t.HoraInicio " +
                              "FROM TiemposAreas t " +
                              "INNER JOIN Estados e ON t.idEstado = e.id " +
-                             "WHERE e.nombre = ? AND t.TiempoFinal IS NULL";
+                             "WHERE e.nombre = ? AND t.FechaFinal IS NULL";
 
                 try (java.sql.Connection con = new Conexiones.Conexion().getConnection();
                      java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
@@ -289,8 +294,12 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
                     try (java.sql.ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
                             String plano = rs.getString("Plano");
-                            java.sql.Timestamp inicioTS = rs.getTimestamp("TiempoInicio");
-                            long transcurrido = System.currentTimeMillis() - inicioTS.getTime();
+                            java.sql.Date fecha = rs.getDate("FechaInicio");
+                            java.sql.Time hora = rs.getTime("HoraInicio");
+
+                            // Unimos fecha y hora para calcular los milisegundos transcurridos
+                            long inicioMillis = java.sql.Timestamp.valueOf(fecha.toString() + " " + hora.toString()).getTime();
+                            long transcurrido = System.currentTimeMillis() - inicioMillis;
 
                             listaPlanos.add(new Object[]{plano, transcurrido});
                         }
@@ -326,7 +335,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
         String estadoActual = null;
         String sql = "SELECT e.nombre FROM TiemposAreas t " +
                      "INNER JOIN Estados e ON t.idEstado = e.id " +
-                     "WHERE t.Plano = ? AND t.TiempoFinal IS NULL";
+                     "WHERE t.Plano = ? AND t.FechaFinal IS NULL";
         try (java.sql.Connection con = new Conexiones.Conexion().getConnection();
              java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, plano);
