@@ -26,8 +26,10 @@ public class InicioSesion extends javax.swing.JFrame {
 
     int x, y;
     Espera espera = new Espera();
-    boolean avanzar;
-    public int ERROR_AL_CONECTARSE = 1;
+//    boolean avanzar;
+//    public int ERROR_AL_CONECTARSE = 1;
+    boolean avanzar = true;
+    public int ERROR_AL_CONECTARSE = 0;
 
     public void Acceso() throws ClassNotFoundException {
         if (ERROR_AL_CONECTARSE == 1) {
@@ -119,16 +121,16 @@ public class InicioSesion extends javax.swing.JFrame {
                         } catch (Exception e) {
                             espera.dispose();
                         }
-                        String sql4 = "select * from actualizacion";
-                        Connection con2 = null;
-                        ConexionChat c = new ConexionChat();
-                        con2 = c.getConnection();
-                        Statement st4 = con2.createStatement();
-                        ResultSet rs4 = st4.executeQuery(sql4);
-                        String ver = "";
-                        while (rs4.next()) {
-                            ver = rs4.getString("Version");
-                        }
+//                        String sql4 = "select * from actualizacion";
+//                        Connection con2 = null;
+//                        ConexionChat c = new ConexionChat();
+//                        con2 = c.getConnection();
+//                        Statement st4 = con2.createStatement();
+//                        ResultSet rs4 = st4.executeQuery(sql4);
+//                        String ver = "";
+//                        while (rs4.next()) {
+//                            ver = rs4.getString("Version");
+//                        }
 
                         i.setVisible(true);
                         //       Inicio.lblId.setText(datos[0]);
@@ -338,31 +340,31 @@ public class InicioSesion extends javax.swing.JFrame {
         Thread hilo = new Thread(new Runnable() {
             public void run() {
                 boolean band = false;
-                try {
-                    Connection con;
-                    ConexionChat con1 = new ConexionChat();
-                    con = con1.getConnection();
-                    Statement st = con.createStatement();
-                    String sql = "select * from actualizacion";
-                    ResultSet rs = st.executeQuery(sql);
-                    String version = "";
-                    while (rs.next()) {
-                        version = rs.getString("Version");
-                        avanzar = rs.getBoolean("Avanzar");
-                    }
-                    if (version.equals(lblVersion.getText())) {
-                        band = true;
-                        avanzar = true;
-                    }
-                    ERROR_AL_CONECTARSE = 0;
-                } catch (SQLException e) {
-                    JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
-                    ERROR_AL_CONECTARSE = 1;
-                } catch (ClassNotFoundException ex) {
-                    JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
-                    ERROR_AL_CONECTARSE = 1;
-                    Logger.getLogger(InicioSesion.class.getName()).log(Level.SEVERE, null, ex);
-                }
+//                try {
+//                    Connection con;
+//                    ConexionChat con1 = new ConexionChat();
+//                    con = con1.getConnection();
+//                    Statement st = con.createStatement();
+//                    String sql = "select * from actualizacion";
+//                    ResultSet rs = st.executeQuery(sql);
+//                    String version = "";
+//                    while (rs.next()) {
+//                        version = rs.getString("Version");
+//                        avanzar = rs.getBoolean("Avanzar");
+//                    }
+//                    if (version.equals(lblVersion.getText())) {
+//                        band = true;
+//                        avanzar = true;
+//                    }
+//                    ERROR_AL_CONECTARSE = 0;
+//                } catch (SQLException e) {
+//                    JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
+//                    ERROR_AL_CONECTARSE = 1;
+//                } catch (ClassNotFoundException ex) {
+//                    JOptionPane.showMessageDialog(null, "Error al conectarse a la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
+//                    ERROR_AL_CONECTARSE = 1;
+//                    Logger.getLogger(InicioSesion.class.getName()).log(Level.SEVERE, null, ex);
+//                }
                 if (ERROR_AL_CONECTARSE != 1) {
                     if (band == false) {
                         panelVersion.setVisible(true);
