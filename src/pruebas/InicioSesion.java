@@ -482,7 +482,7 @@ public class InicioSesion extends javax.swing.JFrame {
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/karva-logo.png"))); // NOI18N
-        panelP.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 30, 170, 70));
+        panelP.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 360, 170, 70));
 
         lblVersion.setBackground(new java.awt.Color(204, 204, 204));
         lblVersion.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
@@ -530,14 +530,14 @@ public class InicioSesion extends javax.swing.JFrame {
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/fondo_1.png"))); // NOI18N
         panelP.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 0, 300, 450));
 
-        btnEntrar.setBackground(new java.awt.Color(0, 165, 252));
+        btnEntrar.setBackground(new java.awt.Color(0, 102, 204));
         btnEntrar.setLayout(new java.awt.BorderLayout());
 
-        lblEntrar.setBackground(new java.awt.Color(0, 124, 249));
-        lblEntrar.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
+        lblEntrar.setBackground(new java.awt.Color(0, 102, 204));
+        lblEntrar.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
         lblEntrar.setForeground(new java.awt.Color(255, 255, 255));
         lblEntrar.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lblEntrar.setText("ENTRAR");
+        lblEntrar.setText("Ingresar");
         lblEntrar.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         lblEntrar.setNextFocusableComponent(Usuario);
         lblEntrar.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -693,7 +693,7 @@ public class InicioSesion extends javax.swing.JFrame {
     }//GEN-LAST:event_lblEntrarMouseEntered
 
     private void lblEntrarMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblEntrarMouseExited
-        Color bajo = new Color(0, 165, 252);
+        Color bajo = new Color(0,102,204);
         btnEntrar.setBackground(bajo);
     }//GEN-LAST:event_lblEntrarMouseExited
 

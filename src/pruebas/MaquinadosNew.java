@@ -287,7 +287,7 @@ public class MaquinadosNew extends javax.swing.JInternalFrame {
 
         jLabel12.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
         jLabel12.setForeground(new java.awt.Color(0, 165, 252));
-        jLabel12.setText("Maquinados");
+        jLabel12.setText("Mecanizado");
         jPanel5.add(jLabel12);
 
         jPanel4.add(jPanel5, java.awt.BorderLayout.CENTER);

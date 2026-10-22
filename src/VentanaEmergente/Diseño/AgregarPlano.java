@@ -121,11 +121,11 @@ public class AgregarPlano extends javax.swing.JDialog {
     public final void guardarTemplete() {
         try {
             Connection con = new Conexion().getConnection();
-            String sql = "insert into templetediseno (empresa, pdfplano, disenador, cliente, revision, parte, descripcion, material, dureza, ensamble, tratamiento, cantidad, logo, codigo) "
-                    + "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            String sql = "insert into templetediseno (empresa, pdfplano, disenador, cliente, revision, parte, descripcion, material, dureza, ensamble, tratamiento, cantidad, logo, codigo, bom) "
+                    + "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             if (!lblId.getText().equals("")) {
                 sql = "update templetediseno set empresa = ?, pdfplano = ?, disenador = ?, cliente = ?, revision = ?, parte = ?, descripcion = ?, material = ?,"
-                        + " dureza = ?, ensamble = ?, tratamiento = ?, cantidad = ?, logo = ?, codigo = ? where idtempletediseno = ?";
+                        + " dureza = ?, ensamble = ?, tratamiento = ?, cantidad = ?, logo = ?, codigo = ?, bom = ? where idtempletediseno = ?";
             }
             PreparedStatement pst = con.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
 
@@ -143,8 +143,9 @@ public class AgregarPlano extends javax.swing.JDialog {
             pst.setString(12, txtCantidad.getText());
             pst.setString(13, txtLogo.getText());
             pst.setString(14, txtCodigo.getText());
+            pst.setString(15, txtBOM.getText());
             if (!lblId.getText().equals("")) {
-                pst.setString(15, lblId.getText());
+                pst.setString(16, lblId.getText());
             }
 
             int n = pst.executeUpdate();
@@ -196,6 +197,7 @@ public class AgregarPlano extends javax.swing.JDialog {
                 txtTratamiento.setText(rs.getString("tratamiento"));
                 txtCantidad.setText(rs.getString("cantidad"));
                 txtCodigo.setText(rs.getString("codigo"));
+                txtBOM.setText(rs.getString("bom"));
                 txtEmpresa.setEnabled(false);
                 lblId.setText(rs.getString("idtempletediseno"));
             }
@@ -217,6 +219,7 @@ public class AgregarPlano extends javax.swing.JDialog {
         txtTratamiento.setText("");
         txtCantidad.setText("");
         txtCodigo.setText("");
+        txtBOM.setText("");
         lblId.setText("");
         txtLogo.setText("");
         txtEmpresa.setEnabled(true);
@@ -284,6 +287,9 @@ public class AgregarPlano extends javax.swing.JDialog {
         jLabel15 = new javax.swing.JLabel();
         txtCodigo = new javax.swing.JTextField();
         btnTratamiento1 = new javax.swing.JButton();
+        jLabel16 = new javax.swing.JLabel();
+        txtBOM = new javax.swing.JTextField();
+        btnBOM = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
@@ -810,6 +816,39 @@ public class AgregarPlano extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 40);
         jPanel2.add(btnTratamiento1, gridBagConstraints);
 
+        jLabel16.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel16.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel16.setText("BOM:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.insets = new java.awt.Insets(0, 40, 0, 0);
+        jPanel2.add(jLabel16, gridBagConstraints);
+
+        txtBOM.setEditable(false);
+        txtBOM.setBackground(new java.awt.Color(255, 255, 255));
+        txtBOM.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 4;
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        jPanel2.add(txtBOM, gridBagConstraints);
+
+        btnBOM.setBackground(new java.awt.Color(255, 255, 255));
+        btnBOM.setText("...");
+        btnBOM.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnBOMActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 40);
+        jPanel2.add(btnBOM, gridBagConstraints);
+
         jPanel1.add(jPanel2, java.awt.BorderLayout.CENTER);
 
         jPanel5.setBackground(new java.awt.Color(255, 255, 255));
@@ -925,6 +964,10 @@ public class AgregarPlano extends javax.swing.JDialog {
         agregarCoordenadas(txtCodigo, "Codigo de barras");
     }//GEN-LAST:event_btnTratamiento1ActionPerformed
 
+    private void btnBOMActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBOMActionPerformed
+        agregarCoordenadas(txtBOM, "Bom de materiales");
+    }//GEN-LAST:event_btnBOMActionPerformed
+
     public static void main(String args[]) {
 
         java.awt.EventQueue.invokeLater(() -> {
@@ -940,6 +983,7 @@ public class AgregarPlano extends javax.swing.JDialog {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnBOM;
     private javax.swing.JButton btnCantidad;
     private javax.swing.JButton btnCliente;
     private javax.swing.JButton btnDescripcion;
@@ -962,6 +1006,7 @@ public class AgregarPlano extends javax.swing.JDialog {
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
     private javax.swing.JLabel jLabel15;
+    private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -979,6 +1024,7 @@ public class AgregarPlano extends javax.swing.JDialog {
     private javax.swing.JLabel lblId;
     private javax.swing.JLabel lblLogo;
     private javax.swing.JLabel lblguardado;
+    private javax.swing.JTextField txtBOM;
     private javax.swing.JTextField txtCantidad;
     private javax.swing.JTextField txtCliente;
     private javax.swing.JTextField txtCodigo;

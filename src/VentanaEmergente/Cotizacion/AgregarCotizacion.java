@@ -3,6 +3,7 @@ package VentanaEmergente.Cotizacion;
 import Conexiones.Conexion;
 import Controlador.compras.Producto;
 import Controlador.cotizaciones.CotizacionSiyms;
+import VentanaEmergente.Diseño.DatosHoras;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
@@ -102,15 +103,16 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     {null, null, null, null, null, null}
                 },
                 new String[]{
-                    "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
+                    "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id", "Margen minimo"
                 }
         ) {
             Class[] types = new Class[]{
                 java.lang.Integer.class, java.lang.Object.class, java.lang.Object.class, java.lang.Float.class,
-                java.lang.Float.class, java.lang.Object.class, java.lang.Float.class, java.lang.Float.class, java.lang.Object.class
+                java.lang.Float.class, java.lang.Object.class, java.lang.Float.class, java.lang.Float.class, java.lang.Object.class,
+                java.lang.Integer.class
             };
             boolean[] canEdit = new boolean[]{
-                false, true, true, true, true, true, false, false, false
+                false, true, false, true, false, true, false, false, false, false
             };
 
             public Class getColumnClass(int columnIndex) {
@@ -164,17 +166,20 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                 if (columna == 3 || columna == 4) {
                     try {
                         float cantidad = Float.parseFloat(Tabla1.getValueAt(fila, 3).toString());
-                        float precio = Float.parseFloat(Tabla1.getValueAt(fila, 4).toString());
+                        String precios[] = Tabla1.getValueAt(fila, 4).toString().split("/");
+                        float precio = Float.parseFloat(precios[0].trim());
+                        float margen = Float.parseFloat(precios[1].trim());
                         float iva = Float.parseFloat(jcbIva.getSelectedItem().toString());
 
-                        float subtotal = cantidad * precio;
+                        float subtotal = (precio * cantidad) + ((cantidad) * (((precio * margen) / 100)));
                         float impuesto = (subtotal * iva) / 100;
                         float importe = subtotal + impuesto;
 
-                        Tabla1.setValueAt(impuesto, fila, 6);  // columna Impuestos
-                        Tabla1.setValueAt(importe, fila, 7);   // columna Importe
+                        Tabla1.setValueAt(impuesto, fila, 6);
+                        Tabla1.setValueAt(importe, fila, 7);
 
                     } catch (Exception ex) {
+                        System.out.println("error en limpiar tabla " + ex);
                     }
                 }
             }
@@ -539,7 +544,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     public final void agregarItems() {
         try (Connection con = new Conexion().getConnection()) {
             Statement st = con.createStatement();
-            String sql = "select codigo from items_cotizacion order by codigo asc";
+            String sql = "select codigo from codigoscotizaciones where activo is true order by codigo asc";
             ResultSet rs = st.executeQuery(sql);
             array = new ArrayList();
             while (rs.next()) {
@@ -609,8 +614,9 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     this.contacto = rs.getString("contacto");
                 }
                 if (email != null) {
-                    if (!email.equals(""))
+                    if (!email.equals("")) {
                         btnCorreo.setEnabled(true);
+                    }
                 } else {
                     btnCorreo.setEnabled(false);
                 }
@@ -625,7 +631,10 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             try (Connection con = new Conexion().getConnection()) {
                 lblCotizacion.setText("Cotizacion: " + id);
                 Statement st = con.createStatement();
-                String sql = "select * from items_cotizacion where idcotizacion like '" + id + "'";
+                String sql = "select co.activo, it.idItems_cotizacion, it.activo, it.codigo, it.descripcion, it.cantidad, it.precio, it.um, it.margen, "
+                        + "co.margen as mar from items_cotizacion as it "
+                        + "inner join codigoscotizaciones as co on co.codigo = it.codigo "
+                        + "where it.idcotizacion like '" + id + "' and it.activo is true and co.activo is true order by iditems_cotizacion asc";
                 ResultSet rs = st.executeQuery(sql);
                 DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
                 Object datos[] = new Object[10];
@@ -638,14 +647,18 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                     datos[1] = rs.getString("codigo");
                     datos[2] = rs.getString("descripcion");
                     datos[3] = rs.getFloat("cantidad");
-                    datos[4] = rs.getFloat("precio");
+                    datos[4] = rs.getFloat("precio") + " / " + rs.getString("margen");
                     datos[5] = rs.getString("um");
+                    datos[9] = rs.getString("mar");
                     try {
                         float cantidad = Float.parseFloat(datos[3].toString());
-                        float precio = Float.parseFloat(datos[4].toString());
+
+                        String precios[] = datos[4].toString().split("/");
+                        float precio = Float.parseFloat(precios[0].trim());
+                        float margen = Float.parseFloat(precios[1].trim());
                         float iva = Float.parseFloat(jcbIva.getSelectedItem().toString());
 
-                        float subtotal = cantidad * precio;
+                        float subtotal = (precio * cantidad) + ((cantidad) * (((precio * margen) / 100)));
                         float impuesto = (subtotal * iva) / 100;
                         float importe = subtotal + impuesto;
 
@@ -653,6 +666,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                         datos[7] = importe;   // columna Importe
 
                     } catch (Exception ex) {
+                        System.out.println(ex);
                     }
                     datos[8] = rs.getString("idItems_cotizacion");
                     boolean act = rs.getBoolean("activo");
@@ -687,9 +701,9 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     public final void guardarItems() {
         try {
             Connection con = new Conexion().getConnection();
-            String sql = "insert into items_cotizacion (idcotizacion, codigo, descripcion, precio, cantidad, activo, um) values (?,?,?,?,?,?,?)";
+            String sql = "insert into items_cotizacion (idcotizacion, codigo, descripcion, precio, cantidad, activo, um, margen) values (?,?,?,?,?,?,?,?)";
             PreparedStatement pst = con.prepareStatement(sql);
-            String sql2 = "update items_cotizacion set codigo = ?, descripcion = ?, precio = ?, cantidad = ?, um = ? where iditems_cotizacion = ?";
+            String sql2 = "update items_cotizacion set codigo = ?, descripcion = ?, precio = ?, cantidad = ?, um = ?, margen = ? where iditems_cotizacion = ?";
             PreparedStatement pst2 = con.prepareStatement(sql2);
 
             if (lblCotizacion.getText().equals("Cotizacion: ")) {
@@ -716,49 +730,52 @@ public class AgregarCotizacion extends javax.swing.JDialog {
                         lblCotizacion.setText("Cotizacion: " + id);
                     }
                 }
-
             }
 
             for (int i = 0; i < Tabla1.getRowCount() - 1; i++) {
-//                      0       1           2              3              4              5      6            7         8
-//                "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
                 String codigo = formatearString(Tabla1.getValueAt(i, 1));
                 String descripcion = formatearString(Tabla1.getValueAt(i, 2));
                 String um = formatearString(Tabla1.getValueAt(i, 5));
                 float cantidad = Tabla1.getValueAt(i, 3) != null ? Float.parseFloat(Tabla1.getValueAt(i, 3).toString()) : 0;
-                float precio = Tabla1.getValueAt(i, 4) != null ? Float.parseFloat(Tabla1.getValueAt(i, 4).toString()) : 0;
+                float precio = Tabla1.getValueAt(i, 4) != null ? Float.parseFloat(Tabla1.getValueAt(i, 4).toString().split("/")[0].trim()) : 0;
+                float margen = Tabla1.getValueAt(i, 4) != null ? Float.parseFloat(Tabla1.getValueAt(i, 4).toString().split("/")[1].trim()) : 0;
                 String id = formatearString(Tabla1.getValueAt(i, 8));
 
-                int n;
-                System.out.println(id);
-                if (!descripcion.equals("")) {
+                int n = 0;
+                if (!codigo.equals("")) {
                     if (id.equals("")) {
-                        pst.setString(1, lblCotizacion.getText().replace("Cotizacion: ", ""));
-                        pst.setString(2, codigo);
-                        pst.setString(3, descripcion);
-                        pst.setFloat(4, precio);
-                        pst.setFloat(5, cantidad);
-                        pst.setBoolean(6, true);
-                        pst.setString(7, um);
+                        if (array.contains(codigo)) {
+                            pst.setString(1, lblCotizacion.getText().replace("Cotizacion: ", ""));
+                            pst.setString(2, codigo);
+                            pst.setString(3, descripcion);
+                            pst.setFloat(4, precio);
+                            pst.setFloat(5, cantidad);
+                            pst.setBoolean(6, true);
+                            pst.setString(7, um);
+                            pst.setString(8, String.valueOf(margen).replace(".0", ""));
 
-                        n = pst.executeUpdate();
+                            n = pst.executeUpdate();
+                        }
                     } else {
-                        pst2.setString(1, codigo);
-                        pst2.setString(2, descripcion);
-                        pst2.setFloat(3, precio);
-                        pst2.setFloat(4, cantidad);
-                        pst2.setString(5, um);
-                        pst2.setString(6, id);
+                        if (array.contains(codigo)) {
+                            pst2.setString(1, codigo);
+                            pst2.setString(2, descripcion);
+                            pst2.setFloat(3, precio);
+                            pst2.setFloat(4, cantidad);
+                            pst2.setString(5, um);
+                            pst2.setString(6, String.valueOf(margen).replace(".0", ""));
+                            pst2.setString(7, id);
 
-                        n = pst2.executeUpdate();
+                            n = pst2.executeUpdate();
+                        }
                     }
-
                     if (n < 1) {
                         JOptionPane.showMessageDialog(this, "El item : " + codigo + " no se guardo exitosamente", "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             }
-
+            limpiarTabla();
+            verItems(lblCotizacion.getText().replace("Cotizacion: ", ""));
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al guardar item: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -767,23 +784,25 @@ public class AgregarCotizacion extends javax.swing.JDialog {
     public final void inhabilitarItem() {
         try {
             Connection con = new Conexion().getConnection();
-            String sql = "update items_cotizacion set activo = ? where iditems = ?";
+            String sql = "update items_cotizacion set activo = ? where iditems_cotizacion = ?";
             PreparedStatement pst = con.prepareStatement(sql);
+            DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
+            for (int i = Tabla1.getSelectedRows().length - 1; i >= 0; i--) {
+                if (Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 8) != null) {
+                    pst.setBoolean(1, false);
+                    pst.setString(2, Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 8).toString());
 
-//                      0       1           2              3              4              5      6            7         8
-//                "No. item", "Codigo", "Descripcion", "Cantidad", "Precio Unitario", "U.M.", "Impuestos", "Importe", "Id"
-            for (int i = 0; i < Tabla1.getSelectedRows().length; i++) {
-                pst.setBoolean(1, false);
-                System.out.println(Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 8).toString());
-                pst.setString(2, Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 8).toString());
+                    int n = pst.executeUpdate();
 
-                int n = pst.executeUpdate();
-
-                if (n < 1) {
-                    JOptionPane.showMessageDialog(this, "Error al eliminar item: " + Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 1).toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                    if (n < 1) {
+                        JOptionPane.showMessageDialog(this, "Error al eliminar item: " + Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 1).toString(), "Error", JOptionPane.ERROR_MESSAGE);
+                    } else {
+                        miModelo.removeRow(Tabla1.getSelectedRows()[i]);
+                    }
+                } else {
+                    miModelo.removeRow(Tabla1.getSelectedRows()[i]);
                 }
             }
-
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error al borrar articulo: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -796,9 +815,30 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         enviar.lblNombreCliente.setText(nombre);
         enviar.cotizacion = cotizacion;
         enviar.coti = coti;
-        System.out.println(coti);
         enviar.setLocationRelativeTo(f);
         enviar.setVisible(true);
+    }
+
+    public final void calcularTotales() {
+        for (int i = 0; i < Tabla1.getRowCount() - 1; i++) {
+            try {
+                float cantidad = Float.parseFloat(Tabla1.getValueAt(i, 3).toString());
+                String precios[] = Tabla1.getValueAt(i, 4).toString().split("/");
+                float precio = Float.parseFloat(precios[0].trim());
+                float margen = Float.parseFloat(precios[1].trim());
+                float iva = Float.parseFloat(jcbIva.getSelectedItem().toString());
+
+                float subtotal = (precio * cantidad) + ((cantidad) * (((precio * margen) / 100)));
+                float impuesto = (subtotal * iva) / 100;
+                float importe = subtotal + impuesto;
+
+                Tabla1.setValueAt(impuesto, i, 6);
+                Tabla1.setValueAt(importe, i, 7);
+
+            } catch (Exception ex) {
+                System.out.println("error en limpiar tabla " + ex);
+            }
+        }
     }
 
     public final void agregarPdf(String pdf1, String pdf2, String salida) {
@@ -833,7 +873,7 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             this.dispose();
             inicio.dispose();
             crearPdfSyims(false);
-            Ventas c = new Ventas();
+            Ventas c = new Ventas(this.numEmpleado);
             inicio1.jDesktopPane1.add(c);
             c.addCliente();
             c.cmbCliente.setSelectedItem(nombre);
@@ -851,6 +891,27 @@ public class AgregarCotizacion extends javax.swing.JDialog {
             }
             c.setVisible(true);
         }
+    }
+
+    public int cambiarMargen(int row, int margen) {
+        try {
+            String[] mar = Tabla1.getValueAt(row, 4).toString().split("/");
+            int margenMinimo = Integer.parseInt(Tabla1.getValueAt(row, 9).toString());
+            int marg = Integer.parseInt(mar[1].trim());
+            marg += margen;
+            if (marg < margenMinimo) {
+                JOptionPane.showMessageDialog(this, "No se permite bajar del minimo", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                return 0;
+            }
+            Tabla1.setValueAt(mar[0] + " / " + marg, row, 4);
+            Tabla1.revalidate();
+            Tabla1.repaint();
+            calcularTotales();
+            return marg;
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return 0;
     }
 
     public AgregarCotizacion(java.awt.Frame parent, boolean modal, String numEmpleado, boolean band, InicioCotizacion inicio, Inicio1 inicio1) {
@@ -873,6 +934,10 @@ public class AgregarCotizacion extends javax.swing.JDialog {
 
         jPopupMenu1 = new javax.swing.JPopupMenu();
         btnEliminar = new javax.swing.JMenuItem();
+        btnSubirMargenTodos = new javax.swing.JMenuItem();
+        btnBajarMargenTodos = new javax.swing.JMenuItem();
+        btnSubirMargenAll = new javax.swing.JMenuItem();
+        btnBajarMargenAll = new javax.swing.JMenuItem();
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         lblCotizacion = new javax.swing.JLabel();
@@ -904,13 +969,45 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         jMenuBar1 = new javax.swing.JMenuBar();
 
         btnEliminar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/error.png"))); // NOI18N
-        btnEliminar.setText("Eliminar fila (s)                                      ");
+        btnEliminar.setText("Eliminar fila (s)                                                                    ");
         btnEliminar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnEliminarActionPerformed(evt);
             }
         });
         jPopupMenu1.add(btnEliminar);
+
+        btnSubirMargenTodos.setText("Subir margen a todos 5%");
+        btnSubirMargenTodos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSubirMargenTodosActionPerformed(evt);
+            }
+        });
+        jPopupMenu1.add(btnSubirMargenTodos);
+
+        btnBajarMargenTodos.setText("Subir margen a todos 5%");
+        btnBajarMargenTodos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnBajarMargenTodosActionPerformed(evt);
+            }
+        });
+        jPopupMenu1.add(btnBajarMargenTodos);
+
+        btnSubirMargenAll.setText("Subir margen a todos");
+        btnSubirMargenAll.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSubirMargenAllActionPerformed(evt);
+            }
+        });
+        jPopupMenu1.add(btnSubirMargenAll);
+
+        btnBajarMargenAll.setText("Bajar margen a todos");
+        btnBajarMargenAll.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnBajarMargenAllActionPerformed(evt);
+            }
+        });
+        jPopupMenu1.add(btnBajarMargenAll);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setPreferredSize(new java.awt.Dimension(1323, 747));
@@ -1145,8 +1242,10 @@ public class AgregarCotizacion extends javax.swing.JDialog {
 
     private void btnEliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEliminarActionPerformed
         inhabilitarItem();
-        limpiarTabla();
-        verItems(lblCotizacion.getText().replace("Cotizacion: ", ""));
+//        if (!lblCotizacion.getText().equals("Cotizacion: ")) {
+//            limpiarTabla();
+//            verItems(lblCotizacion.getText().replace("Cotizacion: ", ""));
+//        }
     }//GEN-LAST:event_btnEliminarActionPerformed
 
     private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
@@ -1184,6 +1283,54 @@ public class AgregarCotizacion extends javax.swing.JDialog {
         abrirVentanaVentas();
     }//GEN-LAST:event_btnProyectoActionPerformed
 
+    private void btnSubirMargenAllActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSubirMargenAllActionPerformed
+        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+        DatosHoras dat = new DatosHoras(f, true);
+        dat.setLocationRelativeTo(f);
+        dat.jLabel11.setText("Ingresa margen +: ");
+        int margen = 0;
+        try {
+            margen = Integer.parseInt(dat.getCantidad());
+            for (int i = 0; i < Tabla1.getSelectedRows().length; i++) {
+                cambiarMargen(Tabla1.getSelectedRows()[i], margen);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Solo se aceptan enteros");
+        }
+    }//GEN-LAST:event_btnSubirMargenAllActionPerformed
+
+    private void btnBajarMargenAllActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBajarMargenAllActionPerformed
+        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+        DatosHoras dat = new DatosHoras(f, true);
+        dat.setLocationRelativeTo(f);
+        dat.jLabel11.setText("Ingresa margen -: ");
+        int margen;
+        try {
+            margen = Integer.parseInt(dat.getCantidad());
+            for (int i = 0; i < Tabla1.getSelectedRows().length; i++) {
+                cambiarMargen(Tabla1.getSelectedRows()[i], -margen);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Solo se aceptan enteros");
+        }
+    }//GEN-LAST:event_btnBajarMargenAllActionPerformed
+
+    private void btnBajarMargenTodosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBajarMargenTodosActionPerformed
+        for (int i = 0; i < Tabla1.getSelectedRows().length; i++) {
+            if (Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 4) != null) {
+                cambiarMargen(Tabla1.getSelectedRows()[i], -5);
+            }
+        }
+    }//GEN-LAST:event_btnBajarMargenTodosActionPerformed
+
+    private void btnSubirMargenTodosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSubirMargenTodosActionPerformed
+        for (int i = 0; i < Tabla1.getSelectedRows().length; i++) {
+            if (Tabla1.getValueAt(Tabla1.getSelectedRows()[i], 4) != null) {
+                cambiarMargen(Tabla1.getSelectedRows()[i], 5);
+            }
+        }
+    }//GEN-LAST:event_btnSubirMargenTodosActionPerformed
+
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -1201,11 +1348,15 @@ public class AgregarCotizacion extends javax.swing.JDialog {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable Tabla1;
+    private javax.swing.JMenuItem btnBajarMargenAll;
+    private javax.swing.JMenuItem btnBajarMargenTodos;
     private javax.swing.JButton btnCorreo;
     private javax.swing.JMenuItem btnEliminar;
     private javax.swing.JButton btnGuardar;
     private javax.swing.JButton btnImprimir;
     private javax.swing.JButton btnProyecto;
+    private javax.swing.JMenuItem btnSubirMargenAll;
+    private javax.swing.JMenuItem btnSubirMargenTodos;
     private javax.swing.JButton jButton4;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

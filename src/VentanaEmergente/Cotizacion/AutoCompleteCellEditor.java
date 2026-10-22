@@ -17,12 +17,13 @@ public class AutoCompleteCellEditor extends DefaultCellEditor {
     private TextAutoCompleter completer;
 
     private void agregarNP(String descripcion, int fila, JTable tab) {
-        String sql = "select * from items_cotizacion where codigo like '" + descripcion + "'";
+        String sql = "select * from codigoscotizaciones where activo is true and codigo like '" + descripcion + "'";
         try (Connection conn = new Conexion().getConnection(); Statement st = conn.createStatement()) {
             ResultSet rs = st.executeQuery(sql);
             while (rs.next()) {
-                tab.setValueAt(rs.getString("precio"), fila, 4);
+                tab.setValueAt(rs.getString("precio_real") + " / " + (rs.getString("margen")), fila, 4);
                 tab.setValueAt(rs.getString("descripcion"), fila, 2);
+                tab.setValueAt(rs.getString("margen"), fila, 9);
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);

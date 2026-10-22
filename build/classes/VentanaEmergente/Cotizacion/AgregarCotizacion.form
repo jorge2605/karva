@@ -13,10 +13,42 @@
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
               <Image iconType="3" name="/Iconos/error.png"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="Eliminar fila (s)                                      "/>
+            <Property name="text" type="java.lang.String" value="Eliminar fila (s)                                                                    "/>
           </Properties>
           <Events>
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnEliminarActionPerformed"/>
+          </Events>
+        </MenuItem>
+        <MenuItem class="javax.swing.JMenuItem" name="btnSubirMargenTodos">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Subir margen a todos 5%"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnSubirMargenTodosActionPerformed"/>
+          </Events>
+        </MenuItem>
+        <MenuItem class="javax.swing.JMenuItem" name="btnBajarMargenTodos">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Subir margen a todos 5%"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnBajarMargenTodosActionPerformed"/>
+          </Events>
+        </MenuItem>
+        <MenuItem class="javax.swing.JMenuItem" name="btnSubirMargenAll">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Subir margen a todos"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnSubirMargenAllActionPerformed"/>
+          </Events>
+        </MenuItem>
+        <MenuItem class="javax.swing.JMenuItem" name="btnBajarMargenAll">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="Bajar margen a todos"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnBajarMargenAllActionPerformed"/>
           </Events>
         </MenuItem>
       </SubComponents>

@@ -252,7 +252,7 @@ public class EditarArticuloRequisicion extends java.awt.Dialog {
                 edit[4] = txtProyecto.getText();
                 edit[5] = txtUM.getText();
                 edit[6] = txtProveedor.getText();
-                try { edit[8] = sdf.format(txtFecha.getDatoFecha()); } catch (Exception e) {edit[8] = "";}
+                try { edit[8] = sdf.format(txtFecha.getDatoFecha()); } catch (Exception e) {edit[8] = null;}
                 dispose();
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Debes ingresar cantidad correcta","Error",JOptionPane.ERROR_MESSAGE);

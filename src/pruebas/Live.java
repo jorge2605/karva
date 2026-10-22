@@ -1,22 +1,25 @@
 package pruebas;
 
 import Conexiones.Conexion;
+import VentanaEmergente.Cotizacion.TablaCoti;
 import grafica.PieChartPanel;
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import org.jdesktop.swingx.JXTable;
-import org.knowm.xchart.PieChart;
 
 public class Live extends javax.swing.JInternalFrame {
 
@@ -46,19 +49,37 @@ public class Live extends javax.swing.JInternalFrame {
         }
     }
 
+    public int diasRestantes(String inicio, String termino) {
+        String fechaCreacion = inicio;
+        String fechaEntrega = termino;
+
+        DateTimeFormatter formato = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate creacion = LocalDate.parse(fechaCreacion, formato);
+        LocalDate entrega = LocalDate.parse(fechaEntrega, formato);
+        long dias = ChronoUnit.DAYS.between(creacion, entrega);
+
+        return Integer.parseInt(dias + "");
+    }
+
     public final void verDatos() {
         try {
             Connection con = new Conexion().getConnection();
             Statement st = con.createStatement();
-            String sql = "select plano, id, estado from planos order by id desc limit 500";
+            String sql = "select plano, pl.id, estado, pl.proyecto, pr.fechacreacion, pr.fechaentrega from planos as pl "
+                    + "inner join proyectos as pr on pl.proyecto = pr.proyecto "
+                    + "order by id desc limit 500";
             ResultSet rs = st.executeQuery(sql);
-            String datos[] = new String[10];
+            Object datos[] = new Object[10];
             DefaultTableModel miModelo = (DefaultTableModel) tabla1.getModel();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            String fecha = sdf.format(new Date());
             while (rs.next()) {
                 datos[0] = rs.getString("Plano");
-//                datos[1] = rs.getString("");
-//                datos[2] = rs.getString("");
-                datos[3] = rs.getString("estado");
+                datos[1] = rs.getString("proyecto");
+                datos[2] = rs.getString("estado");
+                datos[3] = rs.getString("fechacreacion");
+                datos[4] = rs.getString("fechaentrega");
+                try {datos[5] = diasRestantes(fecha, datos[4].toString());} catch(Exception e){}
                 miModelo.addRow(datos);
             }
         } catch (SQLException e) {
@@ -188,22 +209,25 @@ public class Live extends javax.swing.JInternalFrame {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "Numero de parte", "Proyecto", "Fecha de requerimiento", "Fecha de aprobacion", "Fecha de entrega", "Dias restantes"
+                "Numero de parte", "Proyecto", "Ubicacion", "Fecha de aprobacion", "Fecha de entrega", "Dias restantes"
             }
         ) {
+            Class[] types = new Class [] {
+                java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Object.class, java.lang.Integer.class
+            };
             boolean[] canEdit = new boolean [] {
                 false, false, false, false, false, false
             };
+
+            public Class getColumnClass(int columnIndex) {
+                return types [columnIndex];
+            }
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
                 return canEdit [columnIndex];
             }
         });
         jScrollPane2.setViewportView(tabla1);
-        if (tabla1.getColumnModel().getColumnCount() > 0) {
-            tabla1.getColumnModel().getColumn(4).setHeaderValue("Fecha de entrega");
-            tabla1.getColumnModel().getColumn(5).setHeaderValue("Dias restantes");
-        }
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridy = 2;

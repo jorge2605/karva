@@ -21,28 +21,33 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import Controlador.FileTransferHandler;
 import Modelo.javamail;
 import VentanaEmergente.Cotizacion.AgregarCliente;
+import VentanaEmergente.Ventas.CrearOrdenTrabajo;
 import VentanaEmergente.Ventas.correos;
+import com.mxrck.autocompleter.TextAutoCompleter;
 import java.awt.Window;
+import java.time.format.DateTimeFormatter;
 import java.util.Stack;
 import javax.swing.DropMode;
 import javax.swing.SwingUtilities;
 
-public class Ventas extends javax.swing.JInternalFrame{
+public class Ventas extends javax.swing.JInternalFrame {
 
-    JFileChooser seleccionar;
-    JFileChooser selec;
-    JFileChooser sel;
-    File archivo = null;
-    File cotizacion = null;
-    File oc = null;
-    FileTransferHandler trOC;
-    FileTransferHandler trSpe;
+    public JFileChooser seleccionar;
+    public JFileChooser selec;
+    public JFileChooser sel;
+    public File archivo = null;
+    public File cotizacion = null;
+    public File oc = null;
+    public FileTransferHandler trOC;
+    public FileTransferHandler trSpe;
     public FileTransferHandler trCot;
-    
-    public final String aumento(){
+    private TextAutoCompleter auResponsables;
+    public String numEmpleado;
+
+    public final String aumento() {
         int in = 0;
         String fin = "";
-        try{
+        try {
             Date fecha = new Date();
             SimpleDateFormat sdf = new SimpleDateFormat("ddMMyy");
             String fecha1 = sdf.format(fecha);
@@ -53,21 +58,21 @@ public class Ventas extends javax.swing.JInternalFrame{
             String sql = "select Proyecto from proyectos";
             ResultSet rs = st.executeQuery(sql);
             String datos[] = new String[10];
-            while(rs.next()){
+            while (rs.next()) {
                 datos[0] = rs.getString("Proyecto");
             }
             int pos = datos[0].indexOf(' ');
-            String aco = datos[0].substring(0,pos);
+            String aco = datos[0].substring(0, pos);
             in = Integer.parseInt(aco);
             in++;
-            fin = in+" "+fecha1;
-            
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e);
+            fin = in + " " + fecha1;
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e);
         }
         return fin;
     }
-    
+
     public final void verNumero() {
         try {
             Connection con = null;
@@ -85,20 +90,20 @@ public class Ventas extends javax.swing.JInternalFrame{
             JOptionPane.showMessageDialog(this, "ERROR AL INICIAR SIGUIENTE VENTA " + E);
         }
     }
-    
-    public final void addTransfer(){
+
+    public final void addTransfer() {
         trOC = new FileTransferHandler();
         txtOC.setDragEnabled(true);
         txtOC.setDropMode(DropMode.INSERT);
         trOC.setComponent(txtOC);
         txtOC.setTransferHandler(trOC);
-        
+
         trSpe = new FileTransferHandler();
         txtSpec.setDragEnabled(true);
         txtSpec.setDropMode(DropMode.INSERT);
         trSpe.setComponent(txtSpec);
         txtSpec.setTransferHandler(trSpe);
-        
+
         trCot = new FileTransferHandler();
         txtCoti.setDragEnabled(true);
         txtCoti.setDropMode(DropMode.INSERT);
@@ -106,24 +111,24 @@ public class Ventas extends javax.swing.JInternalFrame{
         txtCoti.setTransferHandler(trCot);
     }
 
-    public final String revisarProyecto(String proyecto){
+    public final String revisarProyecto(String proyecto) {
         String proy = null;
-        try{
+        try {
             Connection con;
             Conexion con1 = new Conexion();
             con = con1.getConnection();
             Statement st = con.createStatement();
-            String sql = "select * from proyectos where Proyecto like '"+proyecto+"'";
+            String sql = "select * from proyectos where Proyecto like '" + proyecto + "'";
             ResultSet rs = st.executeQuery(sql);
-            while(rs.next()){
+            while (rs.next()) {
                 proy = rs.getString("Proyecto");
             }
-        }catch(SQLException e){
-            JOptionPane.showMessageDialog(this, "ERROR: "+e,"ERROR",JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e, "ERROR", JOptionPane.ERROR_MESSAGE);
         }
         return proy;
     }
-    
+
     public final void agregarClientes() {
         try {
             Connection con = new Conexion().getConnection();
@@ -139,7 +144,7 @@ public class Ventas extends javax.swing.JInternalFrame{
             JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     public final void addCliente() {
         try {
             try (Connection con = new Conexion().getConnection()) {
@@ -159,15 +164,306 @@ public class Ventas extends javax.swing.JInternalFrame{
             JOptionPane.showMessageDialog(this, "Error al ver cliente: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    public Ventas() {
+
+    public final void agregarUsuarioResponsables() {
+        try {
+            Connection con = new Conexion().getConnection();
+            String sql = "select nombre, apellido, numempleado from registroempleados order by nombre";
+            Statement st = con.createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            if (auResponsables != null) {
+                auResponsables.removeAllItems();
+            }
+            auResponsables = new TextAutoCompleter(txtResponsable);
+            while (rs.next()) {
+                auResponsables.addItem(rs.getString("nombre") + " " + rs.getString("apellido") + " - " + rs.getString("numempleado"));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al agregar responsables de proyecto: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public final void limpiarFormulario() {
+        int opc = JOptionPane.showConfirmDialog(this, "Estas seguro de limpiar el formulario?", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        if (opc == JOptionPane.OK_OPTION) {
+            txtProyecto.setText("");
+            txtCoti.setText("");
+            txtCotizacion.setText("");
+            txtOrden.setText("");
+            txtOC.setText("");
+            txtSpec.setText("");
+            txtValor.setText("");
+            txtDescripcion.setText("");
+            jcbMoneda.setSelectedIndex(0);
+            cmbCliente.setSelectedIndex(0);
+            txtFecha.setText(null);
+            txtProyecto.setText("" + aumento());
+            txtResponsable.setText("");
+            txtResponsable.setEnabled(true);
+            archivo = null;
+            this.oc = null;
+            cotizacion = null;
+            btnX.setVisible(false);
+        }
+    } 
+
+    public final void guardarDatos() {
+        if (txtCotizacion.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar el campo de cotizacion", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtResponsable.isEnabled()) {
+            JOptionPane.showMessageDialog(this, "Debes presionar enter para verificar responsable", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtProyecto.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar numero de proyecto", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtOrden.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar la orden de compra", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtDescripcion.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar el campo de descripcion", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (cmbCliente.getSelectedIndex() == 0) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar el campo de cliente", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtValor.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar el campo de valor", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtFecha.getDate() == null) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar la fecha de entrega", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (jcbMoneda.getSelectedItem().equals("SELECCIONAR")) {
+            JOptionPane.showMessageDialog(this, "Debes ingresar seleccionar la moneda", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else if (txtCoti.getText().equals("")) {
+            JOptionPane.showMessageDialog(this, "Debes seleccionar el archivo de cotizacion", "ERROR", JOptionPane.ERROR_MESSAGE);
+        } else {
+            Date fe = new Date();
+            DateTimeFormatter sdf = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String feca = sdf.format(txtFecha.getDate());
+            if (revisarProyecto(txtProyecto.getText()) != null) {
+                txtProyecto.setText(aumento());
+            }
+            try {
+                Connection con = null;
+                Conexion con1 = new Conexion();
+                con = con1.getConnection();
+                Statement st = con.createStatement();
+                String sql1 = "select id from ventas";
+                ResultSet rs = st.executeQuery(sql1);
+                String datos[] = new String[10];
+                while (rs.next()) {
+                    datos[1] = rs.getString("Id");
+                }
+
+                byte[] pe = null;
+                byte[] cotiz = null;
+                byte[] orden = null;
+
+                if (archivo == null) {
+                    File archivo = null;
+                    if (trSpe.getRuta() != null) {
+                        archivo = new File(trSpe.getRuta());
+                    } else {
+                        archivo = new File("");
+                    }
+                    pe = new byte[(int) archivo.length()];
+
+                    try {
+                        InputStream input = new FileInputStream(archivo);
+                        input.read(pe);
+                    } catch (IOException e) {
+                        System.out.println("Error: " + e);
+                    }
+                } else {
+                    pe = new byte[(int) archivo.length()];
+
+                    try {
+                        InputStream input = new FileInputStream(archivo);
+                        input.read(pe);
+                    } catch (IOException e) {
+                        System.out.println("Error: " + e);
+                    }
+                }
+
+                File cotizacion = null;
+                if (this.cotizacion == null) {
+                    cotizacion = new File(trCot.getRuta());
+                    cotiz = new byte[(int) cotizacion.length()];
+
+                    try {
+                        InputStream input = new FileInputStream(cotizacion);
+                        input.read(cotiz);
+                    } catch (IOException e) {
+                        System.out.println("Error: " + e);
+                    }
+                } else {
+                    cotiz = new byte[(int) this.cotizacion.length()];
+
+                    try {
+                        InputStream input = new FileInputStream(this.cotizacion);
+                        input.read(cotiz);
+                    } catch (IOException e) {
+                        System.out.println("Error: " + e);
+                    }
+                }
+
+                File oc = null;
+                if (this.oc == null && trOC.getRuta() != null) {
+                    oc = new File(trOC.getRuta());
+                    orden = new byte[(int) oc.length()];
+
+                    try {
+                        InputStream input = new FileInputStream(oc);
+                        input.read(orden);
+                    } catch (IOException e) {
+                        System.out.println("Error: " + e);
+                    }
+                } else {
+                    if (oc != null) {
+                        orden = new byte[(int) this.oc.length()];
+
+                        try {
+                            InputStream input = new FileInputStream(this.oc);
+                            input.read(orden);
+                        } catch (IOException e) {
+                            System.out.println("Error: " + e);
+                        }
+                    }
+                }
+
+                String sql2 = "insert into archivosproyectos (NombreArchivo, Fecha, Proyecto, Documento, Archivo) values (?,?,?,?,?)";
+                PreparedStatement pst2 = con.prepareStatement(sql2);
+                Date d = new Date();
+                SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
+                String fecha2 = sdf2.format(d);
+                int n1 = 0;
+                for (int i = 0; i < 3; i++) {
+                    String nombre;
+                    String doc;
+                    byte[] arch;
+                    switch (i) {
+                        case 0:
+                            arch = pe;
+                            doc = "0";
+                            nombre = txtSpec.getText();
+                            break;
+                        case 1:
+                            arch = cotiz;
+                            doc = "1";
+                            nombre = txtCoti.getText();
+                            break;
+                        default:
+                            arch = orden;
+                            doc = "2";
+                            nombre = txtOC.getText();
+                            break;
+                    }
+                    pst2.setString(1, nombre);
+                    pst2.setString(2, fecha2);
+                    pst2.setString(3, txtProyecto.getText());
+                    pst2.setString(4, doc);
+                    pst2.setBytes(5, arch);
+
+                    n1 = pst2.executeUpdate();
+                }
+
+                int s = Integer.parseInt(datos[1]);
+                String sql = "insert into proyectos (Proyecto,FechaCreacion,Planta,Ingeniero,FechaEntrega,Prioridad,"
+                        + "Descripcion,Mostrar,Liberado,NumCotizacion,Costo,OC,Moneda,Estatus, Facturado) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                PreparedStatement pst = con.prepareStatement(sql);
+                int i = Integer.parseInt(datos[1]);
+
+                SimpleDateFormat sdf3 = new SimpleDateFormat("dd/MM/yyyy");
+                Date da = new Date();
+
+                pst.setString(1, txtProyecto.getText());
+                pst.setString(2, sdf3.format(da));
+                pst.setString(3, cmbCliente.getSelectedItem().toString());
+                pst.setString(4, txtResponsable.getText().split("-")[1].trim());
+                pst.setString(5, feca);
+                pst.setString(6, "");
+                pst.setString(7, txtDescripcion.getText());
+                pst.setString(8, "SI");
+                pst.setString(9, "NO");
+                pst.setString(10, txtCotizacion.getText());
+                pst.setString(11, txtValor.getText());
+                pst.setString(12, txtOrden.getText());
+                pst.setString(13, "" + jcbMoneda.getSelectedItem());
+                pst.setString(14, "DETENIDO");
+                pst.setString(15, "NO");
+
+                DateTimeFormatter sdf1 = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+                String fecha1 = sdf1.format(txtFecha.getDate());
+
+                int n = pst.executeUpdate();
+                if (n1 == 0) {
+                    JOptionPane.showMessageDialog(this, "ARCHIVOS NO GUARDADOS", "ADVERTENCIA", JOptionPane.ERROR_MESSAGE);
+                }
+                if (n > 0) {
+
+                    javamail enviar = new javamail();
+                    String asunto = "Proyecto: " + txtProyecto.getText() + " " + txtDescripcion.getText();
+                    String descripcion = "<p>Proyecto No. " + txtProyecto.getText() + "</p><p>Descripcion: " + txtDescripcion.getText() + "</p>"
+                            + "\n"
+                            + "<p>Cotizacion: " + txtCotizacion.getText() + "</p>"
+                            + "<p>Orden de compra: " + txtOrden.getText() + "</p>"
+                            + "<p>Cliente: " + cmbCliente.getSelectedItem().toString() + "</p>"
+                            + "<p>Fecha de entrega: " + fecha1 + "</p>"
+                            + "<p>Importe: " + txtValor.getText() + "</p>"
+                            + "<p>Moneda: " + jcbMoneda.getSelectedItem() + "</p>";
+                    String sql3 = "select * from enviocorreos where Departamento like 'VENTAS'";
+                    Statement st3 = con.createStatement();
+                    ResultSet rs3 = st3.executeQuery(sql3);
+                    Stack<String> copia = new Stack<>();
+                    String to = "";
+                    int cont = 0;
+                    while (rs3.next()) {
+                        String c = rs3.getString("Correo");
+                        String ubi = rs3.getString("Ubi");
+                        if (ubi.equals("CC")) {
+                            if (cont == 0) {
+                                copia.push(c);
+                            } else {
+                                copia.push(c);
+                            }
+                        } else {
+                            to += "," + to;
+                        }
+                        cont++;
+                    }
+                    String mns = "";
+                    try {
+//                        enviar.sendVentas(copia, "juan.rayos@si3i.com"+to, asunto, descripcion, oc,cotizacion.getAbsolutePath());
+                    } catch (Exception e) {
+                        mns = ", El correo no fue enviado: \n" + e;
+                    }
+                    JOptionPane.showMessageDialog(this, "Datos guardados correctamente" + mns);
+                }
+                JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+                CrearOrdenTrabajo crear = new CrearOrdenTrabajo(f, true, this.numEmpleado);
+                crear.txtProyecto.setText(txtProyecto.getText());
+                crear.txtResponsable.setText(txtResponsable.getText());
+                crear.setLocationRelativeTo(f);
+                crear.setVisible(true);
+                limpiarFormulario();
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(this, "Error al crear proyecto: " + e);
+            }
+        }
+    }
+
+    public final void verificarUsuarioResponsable() {
+        if (auResponsables.itemExists(txtResponsable.getText())) {
+            txtResponsable.setEnabled(false);
+            btnX.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(this, "El usuario que ingresaste no existe", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    public Ventas(String numEmpleado) {
         initComponents();
-        txtProyecto.setText(""+aumento());
+        this.numEmpleado = numEmpleado;
+        txtProyecto.setText("" + aumento());
         verNumero();
         addTransfer();
         agregarClientes();
         ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
         addCliente();
+        agregarUsuarioResponsables();
+        btnX.setVisible(false);
     }
 
     @SuppressWarnings("unchecked")
@@ -209,11 +505,12 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel12 = new javax.swing.JPanel();
         jLabel17 = new javax.swing.JLabel();
         jLabel25 = new javax.swing.JLabel();
-        txtFecha = new rojeru_san.rsdate.RSDateChooser();
+        txtFecha = new com.github.lgooddatepicker.components.DatePicker();
         jPanel19 = new javax.swing.JPanel();
         jPanel14 = new javax.swing.JPanel();
         txtValor = new RSComponentShade.RSFormatFieldShade();
         jLabel24 = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
         jPanel16 = new javax.swing.JPanel();
         jPanel15 = new javax.swing.JPanel();
         jLabel26 = new javax.swing.JLabel();
@@ -223,6 +520,11 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel17 = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
+        jPanel27 = new javax.swing.JPanel();
+        jLabel10 = new javax.swing.JLabel();
+        txtResponsable = new RSMaterialComponent.RSTextFieldMaterial();
+        jPanel6 = new javax.swing.JPanel();
+        btnX = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         txtDescripcion = new javax.swing.JTextArea();
         jPanel24 = new javax.swing.JPanel();
@@ -233,8 +535,8 @@ public class Ventas extends javax.swing.JInternalFrame{
         panelSalir = new javax.swing.JPanel();
         lblSalir = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
-        btnGuardar = new javax.swing.JPanel();
-        lblGuardar = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         jMenuItem1 = new javax.swing.JMenuItem();
@@ -251,7 +553,10 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel2.setLayout(new java.awt.BorderLayout());
 
         jPanel23.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel23.setLayout(new java.awt.GridBagLayout());
+        java.awt.GridBagLayout jPanel23Layout = new java.awt.GridBagLayout();
+        jPanel23Layout.columnWeights = new double[] {1.0};
+        jPanel23Layout.rowWeights = new double[] {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0};
+        jPanel23.setLayout(jPanel23Layout);
 
         jPanel7.setBackground(new java.awt.Color(255, 255, 255));
         jPanel7.setLayout(new java.awt.BorderLayout(10, 0));
@@ -264,10 +569,10 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         txtProyecto.setEditable(false);
         txtProyecto.setBackground(new java.awt.Color(255, 255, 255));
-        txtProyecto.setForeground(new java.awt.Color(51, 51, 51));
         txtProyecto.setColorMaterial(new java.awt.Color(153, 204, 255));
         txtProyecto.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        txtProyecto.setPhColor(new java.awt.Color(51, 153, 255));
+        txtProyecto.setForeground(new java.awt.Color(51, 51, 51));
+        txtProyecto.setPhColor(new java.awt.Color(153, 153, 153));
         txtProyecto.setPlaceholder("Numero de proyecto");
         txtProyecto.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -277,9 +582,10 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel7.add(txtProyecto, java.awt.BorderLayout.CENTER);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.insets = new java.awt.Insets(20, 0, 20, 0);
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 20, 100);
         jPanel23.add(jPanel7, gridBagConstraints);
 
         jPanel22.setBackground(new java.awt.Color(255, 255, 255));
@@ -295,10 +601,10 @@ public class Ventas extends javax.swing.JInternalFrame{
         jLabel20.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
         jPanel4.add(jLabel20, java.awt.BorderLayout.WEST);
 
-        txtCotizacion.setForeground(new java.awt.Color(51, 51, 51));
         txtCotizacion.setColorMaterial(new java.awt.Color(153, 204, 255));
         txtCotizacion.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        txtCotizacion.setPhColor(new java.awt.Color(51, 153, 255));
+        txtCotizacion.setForeground(new java.awt.Color(51, 51, 51));
+        txtCotizacion.setPhColor(new java.awt.Color(153, 153, 153));
         txtCotizacion.setPlaceholder("Numero de cotizacion");
         jPanel4.add(txtCotizacion, java.awt.BorderLayout.CENTER);
 
@@ -316,10 +622,10 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         txtCoti.setEditable(false);
         txtCoti.setBackground(new java.awt.Color(255, 255, 255));
-        txtCoti.setForeground(new java.awt.Color(51, 51, 51));
         txtCoti.setColorMaterial(new java.awt.Color(153, 204, 255));
         txtCoti.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        txtCoti.setPhColor(new java.awt.Color(51, 153, 255));
+        txtCoti.setForeground(new java.awt.Color(51, 51, 51));
+        txtCoti.setPhColor(new java.awt.Color(153, 153, 153));
         txtCoti.setPlaceholder("Subir cotizacion");
         txtCoti.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -329,9 +635,9 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel8.add(txtCoti, java.awt.BorderLayout.CENTER);
 
         btnCoti.setBackground(new java.awt.Color(255, 255, 255));
-        btnCoti.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
-        btnCoti.setForeground(new java.awt.Color(0, 153, 255));
-        btnCoti.setText("SUBIR");
+        btnCoti.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnCoti.setForeground(new java.awt.Color(51, 51, 51));
+        btnCoti.setText("Subir");
         btnCoti.setBorder(null);
         btnCoti.setBorderPainted(false);
         btnCoti.setContentAreaFilled(false);
@@ -357,9 +663,9 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.insets = new java.awt.Insets(20, 0, 20, 0);
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 20, 100);
         jPanel23.add(jPanel22, gridBagConstraints);
 
         jPanel21.setBackground(new java.awt.Color(255, 255, 255));
@@ -371,7 +677,7 @@ public class Ventas extends javax.swing.JInternalFrame{
         txtOrden.setForeground(new java.awt.Color(51, 51, 51));
         txtOrden.setColorMaterial(new java.awt.Color(153, 204, 255));
         txtOrden.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        txtOrden.setPhColor(new java.awt.Color(51, 153, 255));
+        txtOrden.setPhColor(new java.awt.Color(153, 153, 153));
         txtOrden.setPlaceholder("Orden de compra");
         txtOrden.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
@@ -396,14 +702,14 @@ public class Ventas extends javax.swing.JInternalFrame{
         txtOC.setForeground(new java.awt.Color(51, 51, 51));
         txtOC.setColorMaterial(new java.awt.Color(153, 204, 255));
         txtOC.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        txtOC.setPhColor(new java.awt.Color(51, 153, 255));
+        txtOC.setPhColor(new java.awt.Color(153, 153, 153));
         txtOC.setPlaceholder("Subir Orden");
         jPanel9.add(txtOC, java.awt.BorderLayout.CENTER);
 
         btnOC.setBackground(new java.awt.Color(255, 255, 255));
-        btnOC.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
-        btnOC.setForeground(new java.awt.Color(0, 153, 255));
-        btnOC.setText("SUBIR");
+        btnOC.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnOC.setForeground(new java.awt.Color(51, 51, 51));
+        btnOC.setText("Subir");
         btnOC.setBorder(null);
         btnOC.setBorderPainted(false);
         btnOC.setContentAreaFilled(false);
@@ -436,14 +742,14 @@ public class Ventas extends javax.swing.JInternalFrame{
         txtSpec.setForeground(new java.awt.Color(51, 51, 51));
         txtSpec.setColorMaterial(new java.awt.Color(153, 204, 255));
         txtSpec.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        txtSpec.setPhColor(new java.awt.Color(51, 153, 255));
+        txtSpec.setPhColor(new java.awt.Color(153, 153, 153));
         txtSpec.setPlaceholder("Subir SPEC");
         jPanel10.add(txtSpec, java.awt.BorderLayout.CENTER);
 
         btnSubir.setBackground(new java.awt.Color(255, 255, 255));
-        btnSubir.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
-        btnSubir.setForeground(new java.awt.Color(0, 153, 255));
-        btnSubir.setText("SUBIR");
+        btnSubir.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnSubir.setForeground(new java.awt.Color(51, 51, 51));
+        btnSubir.setText("Subir");
         btnSubir.setBorder(null);
         btnSubir.setBorderPainted(false);
         btnSubir.setContentAreaFilled(false);
@@ -469,9 +775,9 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.insets = new java.awt.Insets(20, 0, 20, 0);
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 20, 100);
         jPanel23.add(jPanel21, gridBagConstraints);
 
         jPanel20.setBackground(new java.awt.Color(255, 255, 255));
@@ -495,6 +801,8 @@ public class Ventas extends javax.swing.JInternalFrame{
         cmbCliente.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Seleccionar" }));
         cmbCliente.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(204, 204, 204)));
         gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 1;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.ipady = 10;
         jPanel11.add(cmbCliente, gridBagConstraints);
@@ -509,14 +817,22 @@ public class Ventas extends javax.swing.JInternalFrame{
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 1;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         jPanel11.add(jButton4, gridBagConstraints);
 
         jLabel18.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel18.setForeground(new java.awt.Color(51, 153, 255));
+        jLabel18.setForeground(new java.awt.Color(0, 102, 204));
         jLabel18.setText("Cliente");
         jLabel18.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
-        jPanel11.add(jLabel18, new java.awt.GridBagConstraints());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(0, 8, 0, 8);
+        jPanel11.add(jLabel18, gridBagConstraints);
 
         jPanel20.add(jPanel11);
 
@@ -527,7 +843,7 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel12.setLayout(new java.awt.BorderLayout(10, 0));
 
         jLabel17.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel17.setForeground(new java.awt.Color(51, 153, 255));
+        jLabel17.setForeground(new java.awt.Color(0, 102, 204));
         jLabel17.setText("Fecha de entrega");
         jLabel17.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
         jPanel12.add(jLabel17, java.awt.BorderLayout.CENTER);
@@ -539,18 +855,15 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel12.add(jLabel25, java.awt.BorderLayout.WEST);
 
         jPanel13.add(jPanel12, java.awt.BorderLayout.NORTH);
-
-        txtFecha.setForeground(new java.awt.Color(51, 153, 255));
-        txtFecha.setColorForeground(new java.awt.Color(51, 153, 255));
         jPanel13.add(txtFecha, java.awt.BorderLayout.CENTER);
 
         jPanel20.add(jPanel13);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.insets = new java.awt.Insets(20, 0, 20, 0);
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 20, 100);
         jPanel23.add(jPanel20, gridBagConstraints);
 
         jPanel19.setBackground(new java.awt.Color(255, 255, 255));
@@ -570,6 +883,10 @@ public class Ventas extends javax.swing.JInternalFrame{
         jLabel24.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
         jPanel14.add(jLabel24, java.awt.BorderLayout.WEST);
 
+        jLabel1.setText(" ");
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        jPanel14.add(jLabel1, java.awt.BorderLayout.PAGE_START);
+
         jPanel19.add(jPanel14);
 
         jPanel16.setBackground(new java.awt.Color(255, 255, 255));
@@ -583,9 +900,9 @@ public class Ventas extends javax.swing.JInternalFrame{
         jLabel26.setText("*");
         jPanel15.add(jLabel26, java.awt.BorderLayout.WEST);
 
-        jLabel16.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel16.setForeground(new java.awt.Color(51, 153, 255));
         jLabel16.setText("Moneda");
+        jLabel16.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel16.setForeground(new java.awt.Color(0, 102, 204));
         jPanel15.add(jLabel16, java.awt.BorderLayout.CENTER);
 
         jPanel16.add(jPanel15, java.awt.BorderLayout.NORTH);
@@ -597,9 +914,9 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.insets = new java.awt.Insets(20, 0, 20, 0);
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 20, 100);
         jPanel23.add(jPanel19, gridBagConstraints);
 
         jPanel18.setBackground(new java.awt.Color(255, 255, 255));
@@ -608,26 +925,80 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel17.setBackground(new java.awt.Color(255, 255, 255));
         jPanel17.setLayout(new java.awt.BorderLayout(10, 0));
 
+        jLabel4.setText("*");
         jLabel4.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(204, 0, 0));
-        jLabel4.setText("*");
         jPanel17.add(jLabel4, java.awt.BorderLayout.WEST);
 
-        jLabel7.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel7.setForeground(new java.awt.Color(51, 153, 255));
         jLabel7.setText("Descripcion");
+        jLabel7.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel7.setForeground(new java.awt.Color(0, 102, 204));
         jPanel17.add(jLabel7, java.awt.BorderLayout.CENTER);
 
         jPanel18.add(jPanel17, java.awt.BorderLayout.NORTH);
 
-        jScrollPane1.setBorder(null);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 0, 100);
+        jPanel23.add(jPanel18, gridBagConstraints);
 
-        txtDescripcion.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel27.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel27.setLayout(new java.awt.BorderLayout(10, 0));
+
+        jLabel10.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel10.setForeground(new java.awt.Color(204, 0, 0));
+        jLabel10.setText("*");
+        jLabel10.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
+        jPanel27.add(jLabel10, java.awt.BorderLayout.WEST);
+
+        txtResponsable.setColorMaterial(new java.awt.Color(153, 204, 255));
+        txtResponsable.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        txtResponsable.setForeground(new java.awt.Color(51, 51, 51));
+        txtResponsable.setPhColor(new java.awt.Color(153, 153, 153));
+        txtResponsable.setPlaceholder("Responsable");
+        txtResponsable.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                txtResponsableMouseClicked(evt);
+            }
+        });
+        txtResponsable.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtResponsableActionPerformed(evt);
+            }
+        });
+        jPanel27.add(txtResponsable, java.awt.BorderLayout.CENTER);
+
+        jPanel6.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel6.setLayout(new java.awt.BorderLayout());
+
+        btnX.setBackground(new java.awt.Color(204, 0, 0));
+        btnX.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnX.setForeground(new java.awt.Color(255, 255, 255));
+        btnX.setText("x");
+        btnX.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnXActionPerformed(evt);
+            }
+        });
+        jPanel6.add(btnX, java.awt.BorderLayout.SOUTH);
+
+        jPanel27.add(jPanel6, java.awt.BorderLayout.EAST);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.insets = new java.awt.Insets(20, 100, 20, 100);
+        jPanel23.add(jPanel27, gridBagConstraints);
+
         txtDescripcion.setColumns(20);
-        txtDescripcion.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
         txtDescripcion.setLineWrap(true);
         txtDescripcion.setRows(5);
-        txtDescripcion.setBorder(null);
+        txtDescripcion.setWrapStyleWord(true);
+        txtDescripcion.setBackground(new java.awt.Color(255, 255, 255));
+        txtDescripcion.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
         txtDescripcion.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
                 txtDescripcionKeyTyped(evt);
@@ -635,14 +1006,12 @@ public class Ventas extends javax.swing.JInternalFrame{
         });
         jScrollPane1.setViewportView(txtDescripcion);
 
-        jPanel18.add(jScrollPane1, java.awt.BorderLayout.CENTER);
-
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.insets = new java.awt.Insets(20, 0, 20, 0);
-        jPanel23.add(jPanel18, gridBagConstraints);
+        gridBagConstraints.gridy = 7;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.ipady = 20;
+        gridBagConstraints.insets = new java.awt.Insets(10, 100, 10, 100);
+        jPanel23.add(jScrollPane1, gridBagConstraints);
 
         jPanel2.add(jPanel23, java.awt.BorderLayout.CENTER);
 
@@ -650,12 +1019,13 @@ public class Ventas extends javax.swing.JInternalFrame{
         jPanel24.setLayout(new java.awt.BorderLayout());
 
         jPanel25.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel25.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
 
         jPanel26.setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel12.setFont(new java.awt.Font("Lexend", 1, 24)); // NOI18N
-        jLabel12.setForeground(new java.awt.Color(0, 165, 252));
-        jLabel12.setText("VENTAS");
+        jLabel12.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel12.setForeground(new java.awt.Color(0, 102, 204));
+        jLabel12.setText("Ventas");
         jPanel26.add(jLabel12);
 
         jPanel25.add(jPanel26);
@@ -666,10 +1036,10 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         panelSalir.setBackground(new java.awt.Color(255, 255, 255));
 
-        lblSalir.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        lblSalir.setForeground(new java.awt.Color(0, 0, 0));
         lblSalir.setText(" X ");
         lblSalir.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        lblSalir.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        lblSalir.setForeground(new java.awt.Color(0, 0, 0));
         lblSalir.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 lblSalirMouseClicked(evt);
@@ -691,29 +1061,29 @@ public class Ventas extends javax.swing.JInternalFrame{
 
         jPanel3.setBackground(new java.awt.Color(255, 255, 255));
 
-        btnGuardar.setBackground(new java.awt.Color(0, 165, 252));
-        btnGuardar.setPreferredSize(new java.awt.Dimension(150, 30));
-
-        lblGuardar.setFont(new java.awt.Font("Lexend", 1, 14)); // NOI18N
-        lblGuardar.setForeground(new java.awt.Color(255, 255, 255));
-        lblGuardar.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lblGuardar.setText("GUARDAR");
-        lblGuardar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        lblGuardar.setPreferredSize(new java.awt.Dimension(100, 20));
-        lblGuardar.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                lblGuardarMouseClicked(evt);
-            }
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                lblGuardarMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                lblGuardarMouseExited(evt);
+        jButton1.setBackground(new java.awt.Color(0, 102, 204));
+        jButton1.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jButton1.setForeground(new java.awt.Color(255, 255, 255));
+        jButton1.setText("Guardar");
+        jButton1.setPreferredSize(new java.awt.Dimension(200, 40));
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
             }
         });
-        btnGuardar.add(lblGuardar);
+        jPanel3.add(jButton1);
 
-        jPanel3.add(btnGuardar);
+        jButton2.setBackground(new java.awt.Color(51, 51, 51));
+        jButton2.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jButton2.setForeground(new java.awt.Color(255, 255, 255));
+        jButton2.setText("Limpiar formulario");
+        jButton2.setPreferredSize(new java.awt.Dimension(200, 40));
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
+        jPanel3.add(jButton2);
 
         jPanel2.add(jPanel3, java.awt.BorderLayout.SOUTH);
 
@@ -747,27 +1117,27 @@ public class Ventas extends javax.swing.JInternalFrame{
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 1572, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 802, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 773, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 674, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-    
+
     private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
         JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        dialog v = new dialog(f,true);
+        dialog v = new dialog(f, true);
         v.setVisible(true);
     }//GEN-LAST:event_jMenuItem1ActionPerformed
 
     private void btnOCActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOCActionPerformed
         selec = new JFileChooser();
         oc = null;
-        selec.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)","pdf"));
-        if(selec.showDialog(null, "SELECCIONAR ARCHIVO") == JFileChooser.APPROVE_OPTION){
+        selec.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)", "pdf"));
+        if (selec.showDialog(null, "SELECCIONAR ARCHIVO") == JFileChooser.APPROVE_OPTION) {
             oc = selec.getSelectedFile();
             txtOC.setText(oc.getName());
         }
@@ -784,8 +1154,8 @@ public class Ventas extends javax.swing.JInternalFrame{
     private void btnCotiActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCotiActionPerformed
         sel = new JFileChooser();
         cotizacion = null;
-        sel.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)","pdf"));
-        if(sel.showDialog(null, "SELECCIONAR ARCHIVO") == JFileChooser.APPROVE_OPTION){
+        sel.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)", "pdf"));
+        if (sel.showDialog(null, "SELECCIONAR ARCHIVO") == JFileChooser.APPROVE_OPTION) {
             cotizacion = sel.getSelectedFile();
             txtCoti.setText(cotizacion.getName());
 
@@ -803,8 +1173,8 @@ public class Ventas extends javax.swing.JInternalFrame{
     private void btnSubirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSubirActionPerformed
         seleccionar = new JFileChooser();
         archivo = null;
-        seleccionar.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)","pdf"));
-        if(seleccionar.showDialog(null, "SELECCIONAR ARCHIVO") == JFileChooser.APPROVE_OPTION){
+        seleccionar.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)", "pdf"));
+        if (seleccionar.showDialog(null, "SELECCIONAR ARCHIVO") == JFileChooser.APPROVE_OPTION) {
             archivo = seleccionar.getSelectedFile();
             txtSpec.setText(archivo.getName());
         }
@@ -818,267 +1188,10 @@ public class Ventas extends javax.swing.JInternalFrame{
         btnSubir.setForeground(new java.awt.Color(0, 0, 204));
     }//GEN-LAST:event_btnSubirMouseEntered
 
-    private void lblGuardarMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblGuardarMouseExited
-        btnGuardar.setBackground(new Color(0, 165, 252));
-    }//GEN-LAST:event_lblGuardarMouseExited
-
-    private void lblGuardarMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblGuardarMouseEntered
-        btnGuardar.setBackground(new Color(0, 100, 155));
-    }//GEN-LAST:event_lblGuardarMouseEntered
-
-    private void lblGuardarMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblGuardarMouseClicked
-        if (txtCotizacion.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE COTIZACION","ERROR",JOptionPane.ERROR_MESSAGE);
-        } else if (txtProyecto.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE PROYECTO","ERROR",JOptionPane.ERROR_MESSAGE);
-        } else if (txtOrden.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE ORDEN DE COMPRA","ERROR",JOptionPane.ERROR_MESSAGE);
-        } else if (txtDescripcion.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE DESCRIPCION","ERROR",JOptionPane.ERROR_MESSAGE);
-        }  else if (cmbCliente.getSelectedIndex() == 0) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE CLIENTE","ERROR",JOptionPane.ERROR_MESSAGE);
-        } else if (txtValor.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE VALOR","ERROR",JOptionPane.ERROR_MESSAGE);
-        } else if (txtFecha.getDatoFecha() == null) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE FECHA DE ENTREGA","ERROR",JOptionPane.ERROR_MESSAGE);
-        } else if (jcbMoneda.getSelectedItem().equals("SELECCIONAR")) {
-            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR TIPO DE MONEDA","ERROR",JOptionPane.ERROR_MESSAGE);
-        }else if (txtCoti.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES SUBIR ARCHIVO DE COTIZACION","ERROR",JOptionPane.ERROR_MESSAGE);
-        }
-        else{
-            Date fe = new Date();
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-            String feca = sdf.format(txtFecha.getDatoFecha());
-            if(revisarProyecto(txtProyecto.getText()) != null){
-                txtProyecto.setText(aumento());
-            }
-            try {
-                Connection con = null;
-                Conexion con1 = new Conexion();
-                con = con1.getConnection();
-                Statement st = con.createStatement();
-                String sql1 = "select * from ventas";
-                ResultSet rs = st.executeQuery(sql1);
-                String datos[] = new String[10];
-                while (rs.next()) {
-                    datos[1] = rs.getString("Id");
-                }
-
-                byte[] pe = null;
-                byte[] cotiz = null;
-                byte[] orden = null;
-
-                if(archivo == null){
-                    File archivo = null;
-                    if(trSpe.getRuta() != null){
-                        archivo = new File(trSpe.getRuta());
-                    }else{
-                        archivo = new File("");
-                    }
-                    pe = new byte[(int) archivo.length()];
-
-                    try{
-                        InputStream input = new FileInputStream(archivo);
-                        input.read(pe);
-                    }catch(IOException e){
-                        System.out.println("Error: "+e);
-                    }
-                }else{
-                    pe = new byte[(int) archivo.length()];
-
-                    try{
-                        InputStream input = new FileInputStream(archivo);
-                        input.read(pe);
-                    }catch(IOException e){
-                        System.out.println("Error: "+e);
-                    }
-                }
-                
-                File cotizacion = null;
-                if(this.cotizacion == null){
-                    cotizacion = new File(trCot.getRuta());
-                    cotiz = new byte[(int) cotizacion.length()];
-
-                    try{
-                        InputStream input = new FileInputStream(cotizacion);
-                        input.read(cotiz);
-                    }catch(IOException e){
-                        System.out.println("Error: "+e);
-                    }
-                }else{
-                    cotiz = new byte[(int) this.cotizacion.length()];
-
-                    try{
-                        InputStream input = new FileInputStream(this.cotizacion);
-                        input.read(cotiz);
-                    }catch(IOException e){
-                        System.out.println("Error: "+e);
-                    }
-                }
-                
-                File oc = null;
-                if(this.oc == null && trOC.getRuta() != null){
-                    oc = new File(trOC.getRuta());
-                    orden = new byte[(int) oc.length()];
-
-                    try{
-                        InputStream input = new FileInputStream(oc);
-                        input.read(orden);
-                    }catch(IOException e){
-                        System.out.println("Error: "+e);
-                    }
-                }else{
-                    if(oc != null){
-                        orden = new byte[(int) this.oc.length()];
-
-                        try{
-                            InputStream input = new FileInputStream(this.oc);
-                            input.read(orden);
-                        }catch(IOException e){
-                            System.out.println("Error: "+e);
-                        }
-                    }
-                }
-
-                String sql2 = "insert into archivosproyectos (NombreArchivo, Fecha, Proyecto, Documento, Archivo) values (?,?,?,?,?)";
-                PreparedStatement pst2 = con.prepareStatement(sql2);
-                Date d = new Date();
-                SimpleDateFormat sdf2 = new SimpleDateFormat("dd/MM/yyyy");
-                String fecha2 = sdf2.format(d);
-                int n1 = 0;
-                for (int i = 0; i < 3; i++) {
-                    String nombre;
-                    String doc;
-                    byte[] arch;
-                    switch (i) {
-                        case 0:
-                        arch = pe;
-                        doc = "0";
-                        nombre = txtSpec.getText();
-                        break;
-                        case 1:
-                        arch = cotiz;
-                        doc = "1";
-                        nombre = txtCoti.getText();
-                        break;
-                        default:
-                        arch = orden;
-                        doc = "2";
-                        nombre = txtOC.getText();
-                        break;
-                    }
-                    pst2.setString(1, nombre);
-                    pst2.setString(2, fecha2);
-                    pst2.setString(3, txtProyecto.getText());
-                    pst2.setString(4, doc);
-                    pst2.setBytes(5, arch);
-
-                    n1 = pst2.executeUpdate();
-                }
-
-                int s = Integer.parseInt(datos[1]);
-                String sql = "insert into proyectos (Proyecto,FechaCreacion,Planta,Ingeniero,FechaEntrega,Prioridad,Descripcion,Mostrar,Liberado,NumCotizacion,Costo,OC,Moneda,Estatus, Facturado) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                PreparedStatement pst = con.prepareStatement(sql);
-                int i = Integer.parseInt(datos[1]);
-                
-                SimpleDateFormat sdf3 = new SimpleDateFormat("dd/MM/yyyy");
-                Date da = new Date();
-                
-                pst.setString(1, txtProyecto.getText());
-                pst.setString(2, sdf3.format(da));
-                pst.setString(3, cmbCliente.getSelectedItem().toString());
-                pst.setString(4, "");
-                pst.setString(5, feca);
-                pst.setString(6, "");
-                pst.setString(7, txtDescripcion.getText());
-                pst.setString(8, "SI");
-                pst.setString(9, "NO");
-                pst.setString(10, txtCotizacion.getText());
-                pst.setString(11, txtValor.getText());
-                pst.setString(12, txtOrden.getText());
-                pst.setString(13, ""+jcbMoneda.getSelectedItem());
-                pst.setString(14, "DETENIDO");
-                pst.setString(15, "NO");
-                
-                SimpleDateFormat sdf1 = new SimpleDateFormat("dd-MM-yyyy");
-                String fecha1 = sdf1.format(txtFecha.getDatoFecha());
-                
-                int n = pst.executeUpdate();
-                if(n1 == 0){
-                    JOptionPane.showMessageDialog(this, "ARCHIVOS NO GUARDADOS","ADVERTENCIA",JOptionPane.ERROR_MESSAGE);
-                }
-                if (n > 0) {
-                    
-                    javamail enviar = new javamail();
-                    String asunto = "Proyecto: "+txtProyecto.getText() + " "+txtDescripcion.getText();
-                    String descripcion = "<p>Proyecto No. "+txtProyecto.getText() + "</p><p>Descripcion: " + txtDescripcion.getText()+"</p>"
-                            + "\n"
-                            + "<p>Cotizacion: "+txtCotizacion.getText() + "</p>"
-                            + "<p>Orden de compra: "+txtOrden.getText() + "</p>"
-                            + "<p>Cliente: "+ cmbCliente.getSelectedItem().toString() + "</p>"
-                            + "<p>Fecha de entrega: "+ fecha1 + "</p>"
-                            + "<p>Importe: "+ txtValor.getText() + "</p>"
-                            + "<p>Moneda: "+ jcbMoneda.getSelectedItem()+ "</p>"
-                            ;
-                    String sql3 = "select * from enviocorreos where Departamento like 'VENTAS'";
-                    Statement st3 = con.createStatement();
-                    ResultSet rs3 = st3.executeQuery(sql3);
-                    Stack<String> copia = new Stack<>();
-                    String to = "";
-                    int cont = 0;
-                    while(rs3.next()){
-                        String c = rs3.getString("Correo");
-                        String ubi = rs3.getString("Ubi");
-                        if(ubi.equals("CC")){
-                            if(cont == 0){
-                                copia.push(c);
-                            }else{
-                                copia.push(c);
-                            }
-                        }else{
-                            to += "," + to;
-                        }
-                        cont++;
-                    }
-                    String mns = "";
-                    try{
-                        enviar.sendVentas(copia, "juan.rayos@si3i.com"+to, asunto, descripcion, oc,cotizacion.getAbsolutePath());
-                    }catch(Exception e){
-                        mns = ", El correo no fue enviado: \n" + e;
-                    }
-                    JOptionPane.showMessageDialog(this, "Datos guardados correctamente"+mns);
-                    verNumero();
-                    cmbCliente.setSelectedIndex(0);
-                    txtValor.setText("");
-                    txtOrden.setText("");
-                    txtDescripcion.setText("");
-                    txtProyecto.setText("");
-                    txtCotizacion.setText("");
-                    txtProyecto.setText(""+aumento());
-                    jcbMoneda.removeAllItems();
-                    jcbMoneda.addItem("SELECCIONAR");
-                    jcbMoneda.addItem("MXN");
-                    jcbMoneda.addItem("DLLS");
-                    txtSpec.setText("");
-                    txtCoti.setText("");
-                    txtOC.setText("");
-                    archivo = null;
-                    this.oc = null;
-                    cotizacion = null;
-                    
-                }
-            } catch (SQLException e) {
-                JOptionPane.showMessageDialog(this, "ERROR AL  INSERTAR DATOS EN VENTAS " + e);
-            }
-        }
-    }//GEN-LAST:event_lblGuardarMouseClicked
-
     private void txtDescripcionKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDescripcionKeyTyped
         char c = evt.getKeyChar();
-        if(Character.isLowerCase(c))
-        {
-            String cad = (""+c).toUpperCase();
+        if (Character.isLowerCase(c)) {
+            String cad = ("" + c).toUpperCase();
             c = cad.charAt(0);
             evt.setKeyChar(c);
         }
@@ -1086,21 +1199,20 @@ public class Ventas extends javax.swing.JInternalFrame{
 
     private void txtOrdenKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtOrdenKeyTyped
         char c = evt.getKeyChar();
-        if(Character.isLowerCase(c))
-        {
-            String cad = (""+c).toUpperCase();
+        if (Character.isLowerCase(c)) {
+            String cad = ("" + c).toUpperCase();
             c = cad.charAt(0);
             evt.setKeyChar(c);
         }
     }//GEN-LAST:event_txtOrdenKeyTyped
 
     private void txtProyectoMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_txtProyectoMouseClicked
-        
+
     }//GEN-LAST:event_txtProyectoMouseClicked
 
     private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
         JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-        correos c = new correos(f,true,"VENTAS");
+        correos c = new correos(f, true, "VENTAS");
         c.setLocationRelativeTo(null);
         c.setVisible(true);
     }//GEN-LAST:event_jMenuItem2ActionPerformed
@@ -1134,14 +1246,40 @@ public class Ventas extends javax.swing.JInternalFrame{
         addCliente();
     }//GEN-LAST:event_jButton4ActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        guardarDatos();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        limpiarFormulario();
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void txtResponsableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_txtResponsableMouseClicked
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtResponsableMouseClicked
+
+    private void txtResponsableActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtResponsableActionPerformed
+        verificarUsuarioResponsable();
+    }//GEN-LAST:event_txtResponsableActionPerformed
+
+    private void btnXActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnXActionPerformed
+        txtResponsable.setText("");
+        txtResponsable.setEnabled(true);
+        btnX.setVisible(false);
+    }//GEN-LAST:event_btnXActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnCoti;
-    private javax.swing.JPanel btnGuardar;
     private javax.swing.JButton btnOC;
     private javax.swing.JButton btnSubir;
+    private javax.swing.JButton btnX;
     public javax.swing.JComboBox<String> cmbCliente;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton4;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
@@ -1179,27 +1317,30 @@ public class Ventas extends javax.swing.JInternalFrame{
     private javax.swing.JPanel jPanel24;
     private javax.swing.JPanel jPanel25;
     private javax.swing.JPanel jPanel26;
+    private javax.swing.JPanel jPanel27;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
     public RSMaterialComponent.RSComboBoxMaterial jcbMoneda;
-    private javax.swing.JLabel lblGuardar;
     private javax.swing.JLabel lblSalir;
     private javax.swing.JPanel pan;
     private javax.swing.JPanel panelSalir;
     public RSMaterialComponent.RSTextFieldMaterial txtCoti;
     public RSMaterialComponent.RSTextFieldMaterial txtCotizacion;
     private javax.swing.JTextArea txtDescripcion;
-    private rojeru_san.rsdate.RSDateChooser txtFecha;
+    private com.github.lgooddatepicker.components.DatePicker txtFecha;
     private RSMaterialComponent.RSTextFieldMaterial txtOC;
     private RSMaterialComponent.RSTextFieldMaterial txtOrden;
     private RSMaterialComponent.RSTextFieldMaterial txtProyecto;
+    private RSMaterialComponent.RSTextFieldMaterial txtResponsable;
     private RSMaterialComponent.RSTextFieldMaterial txtSpec;
     public RSComponentShade.RSFormatFieldShade txtValor;
     // End of variables declaration//GEN-END:variables
+
 }

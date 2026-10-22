@@ -5,11 +5,14 @@ import Controlador.FileTransferHandler;
 import Controlador.maquinados.revisarPlanos;
 import VO.ArchivosVO;
 import VentanaEmergente.Diseño.DatosHoras;
+import VentanaEmergente.Diseño.EditarTablaBOM;
 import VentanaEmergente.Diseño.InicioDiseño;
+import VentanaEmergente.Diseño.PlanoDetectado;
 import VentanaEmergente.Diseño.TempleteDiseno;
 import VentanaEmergente.Diseño.codigoBarras;
 import VentanaEmergente.Diseño.subirBOM;
 import VentanaEmergente.Reportes.dis;
+import com.google.zxing.BarcodeFormat;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -18,11 +21,7 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.mxrck.autocompleter.TextAutoCompleter;
 import java.awt.Color;
-import java.awt.Desktop;
 import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Image;
-import java.awt.Label;
 import java.awt.Rectangle;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -54,39 +53,54 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.Stack;
 import javax.swing.BorderFactory;
-import javax.swing.DropMode;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.TransferHandler;
-import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableModel;
 import mivisorpdf.MiVisorPDF;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
-import org.krysalis.barcode4j.impl.code39.Code39Bean;
-import org.krysalis.barcode4j.output.bitmap.BitmapCanvasProvider;
 import technology.tabula.ObjectExtractor;
 import technology.tabula.Page;
+import technology.tabula.PageIterator;
 import technology.tabula.RectangularTextContainer;
 import technology.tabula.Table;
 import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.common.ByteMatrix;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.itextpdf.text.pdf.PdfPage;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Hashtable;
+import org.krysalis.barcode4j.impl.code39.Code39Bean;
+import org.krysalis.barcode4j.output.bitmap.BitmapCanvasProvider;
 
 public final class Disenio1 extends InternalFrameImagen implements ActionListener, MouseListener {
 
     int contador = 0;
+    public String numEmpleado;
     codigoBarras barras;
     private ArrayList<ArchivosVO> ListaComponente;
     MiVisorPDF pn = new MiVisorPDF();
@@ -113,8 +127,8 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
 
     public final void insertarImagen(String url, JButton lbl) {
         ImageIcon icon = new ImageIcon(url);
-        Image imagen = icon.getImage();
-        Image imagenEscalada = imagen.getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+        java.awt.Image imagen = icon.getImage();
+        java.awt.Image imagenEscalada = imagen.getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
 
         lbl.setIcon(new ImageIcon(imagenEscalada));
     }
@@ -178,93 +192,241 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         return canvas.getBufferedImage();
     }
 
-    public String convertirPdf(File selectedFile, String path, Dimension dim, int consecutivo) {
+    public void crearPdfPagina(File archivoOriginal, int numeroPagina, File archivoSalida, String id, technology.tabula.Rectangle dim) {
         try {
-            String numeroProyecto = txtProyecto.getText().trim();
-            String remplazo;
-//            remplazo = txtProyecto.getText() + " " + String.format("%03d", consecutivo);
-            String nombrePdf = selectedFile.getName().replace(".pdf", "");
-
-            String[] partes = nombrePdf.split(" ");
-            String numFinal = partes[partes.length - 1];
-
-            String numeroPlano = numeroProyecto + " " + numFinal;
-            String plan = numeroPlano;
-//            if (empresa.equals("align")) {
-//                plan = remplazo;
-//                numeroPlano = selectedFile.getName().replace(".pdf", "");
-//            }
-
-            BufferedImage barcodeImage = generateBarcode(plan);
-            try (FileOutputStream out = new FileOutputStream("barcode.png")) {
-                javax.imageio.ImageIO.write(barcodeImage, "png", out);
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Error al convertir pdf" + e, "Error", JOptionPane.ERROR_MESSAGE);
-            }
-
-            try {
-                File tempFile = File.createTempFile("barcode", ".png");
-                javax.imageio.ImageIO.write(barcodeImage, "png", tempFile);
-
-                PdfDocument pdfDoc = new PdfDocument(new PdfReader(selectedFile), new PdfWriter("\\" + path + "\\" + numeroPlano + ".pdf"));
-                Document doc = new Document(pdfDoc);
-                ImageData imageData = ImageDataFactory.create(tempFile.getAbsolutePath());
-                com.itextpdf.layout.element.Image im = new com.itextpdf.layout.element.Image(imageData);
-                im.setFixedPosition(dim.width, dim.height);
-                doc.add(im);
-
-                pdfDoc.close();
-                tempFile.delete();
-                return "\\" + path + "\\" + numeroPlano + ".pdf";
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Error al convertir pdf" + ex, "Error", JOptionPane.ERROR_MESSAGE);
-            }
+            PdfReader reader = new PdfReader(archivoOriginal);
+            PdfDocument pdfOriginal = new PdfDocument(reader);
+            PdfWriter writer = new PdfWriter(archivoSalida);
+            PdfDocument pdfNuevo = new PdfDocument(writer);
+            pdfOriginal.copyPagesTo(numeroPagina, numeroPagina, pdfNuevo);
+            pdfOriginal.close();
+            pdfNuevo.close();
+            agregarCodigoBarras(archivoSalida, id, dim);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error al convertir pdf" + e, "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al crear el plano: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+//    private void agregarCodigoBarras(File archivo, String id, Dimension dim) {
+//        File archivoTemporal = new File(archivo.getParent(), archivo.getName().replace(".pdf", "_temp.pdf"));
+//        try {
+//            BufferedImage barcodeImage = generateBarcode(id);
+//            File tempBarcode = File.createTempFile("barcode", ".png");
+//            javax.imageio.ImageIO.write(barcodeImage, "png", tempBarcode);
+//            PdfReader reader = new PdfReader(archivo);
+//            PdfWriter writer = new PdfWriter(archivoTemporal);
+//            PdfDocument pdfDoc = new PdfDocument(reader, writer);
+//            Document doc = new Document(pdfDoc);
+//            ImageData imageData = ImageDataFactory.create(tempBarcode.getAbsolutePath());
+//            com.itextpdf.layout.element.Image im = new com.itextpdf.layout.element.Image(imageData);
+//            im.setFixedPosition(dim.width, dim.height);
+//            doc.add(im);
+//            doc.close();
+//            tempBarcode.delete();
+//            if (archivo.delete()) {
+//                archivoTemporal.renameTo(archivo);
+//            }
+//
+//        } catch (IOException e) {
+//            JOptionPane.showMessageDialog(this, "Error al agregar código de barras: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+//        }
+//    }
+    private BufferedImage generateQRCode(String texto) {
+        try {
+            int ancho = 300;
+            int altoQR = 300;
+            int altoTexto = 45;
+
+            QRCodeWriter qrWriter = new QRCodeWriter();
+            Hashtable<EncodeHintType, Object> hints = new Hashtable<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.MARGIN, 1);
+
+            BitMatrix matrix = qrWriter.encode(texto, BarcodeFormat.QR_CODE, ancho, altoQR, hints);
+            BufferedImage imagen = new BufferedImage(ancho, altoQR + altoTexto, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g = imagen.createGraphics();
+
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, ancho, altoQR + altoTexto);
+
+            for (int y = 0; y < altoQR; y++) {
+                for (int x = 0; x < ancho; x++) {
+                    g.setColor(matrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                    g.fillRect(x, y, 1, 1);
+                }
+            }
+
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("Arial", Font.BOLD, 20));
+            FontMetrics fm = g.getFontMetrics();
+            int xTexto = (ancho - fm.stringWidth(texto)) / 2;
+            g.drawString(texto, Math.max(0, xTexto), altoQR + 30);
+            g.dispose();
+
+            return imagen;
+        } catch (WriterException ex) {
+            Logger.getLogger(Disenio1.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
     }
 
-    public void importarDocs() {
-        if (txtProyecto.isEnabled()) {
-            JOptionPane.showMessageDialog(this, "Debes seleccionar un proyecto", "Advertencia", JOptionPane.WARNING_MESSAGE);
-            txtProyecto.requestFocusInWindow();
-        } else {
-            limpiarBotones();
-            JFileChooser SelectArchivo = new JFileChooser();
-            SelectArchivo.setFileFilter(new FileNameExtensionFilter("PDF (*.pdf)", "pdf"));
-            SelectArchivo.setMultiSelectionEnabled(true);
-            if (SelectArchivo.showDialog(null, "Seleccionar Archivo") == JFileChooser.APPROVE_OPTION) {
-                archivos = SelectArchivo.getSelectedFiles();
-                String direccion = getDirectorio(txtProyecto.getText());
-                File[] archivosNuevos = new File[archivos.length];
-                Dimension dim = new Dimension(10, 750);
-                if (empresa.equals("durol")) {
-                    dim = new Dimension(5, 570);
-                }
-                if (empresa.equals("durol")) {
+    private void agregarCodigoBarras(File archivo, String id, technology.tabula.Rectangle rec) {
+        File archivoTemporal = new File(archivo.getParent(), archivo.getName().replace(".pdf", "_temp.pdf"));
+        File tempQR = null;
 
-                }
-                int consecutivo = nomenclaturaAlign();
-                for (int i = 0; i < archivos.length; i++) {
-                    archivosNuevos[i] = new File(convertirPdf(archivos[i], direccion, dim, consecutivo));
-                    consecutivo++;
-                }
-                archivos = archivosNuevos;
-                botones = new JButton[archivos.length];
-                for (int i = 0; i < archivos.length; i++) {
-                    String name;
-                    botones[i] = new JButton();
-                    name = templete.getCliente();
-                    crearBoton(botones[i], archivos[i].getName(), name);
-//                    verificarPlanoEnFila(archivos[i].getName().replace(".pdf", ""));
-                    jPanel10.add(botones[i]);
-                    revalidate();
-                    repaint();
-                }
-                iniciar();
+        try {
+            BufferedImage qrImage = generateQRCode(id);
+            tempQR = File.createTempFile("qrcode", ".png");
+            javax.imageio.ImageIO.write(qrImage, "png", tempQR);
+
+            PdfReader reader = new PdfReader(archivo);
+            PdfWriter writer = new PdfWriter(archivoTemporal);
+            PdfDocument pdfDoc = new PdfDocument(reader, writer);
+            Document doc = new Document(pdfDoc);
+
+            com.itextpdf.kernel.pdf.PdfPage page = pdfDoc.getPage(1);
+            com.itextpdf.kernel.geom.Rectangle pageSize = page.getPageSize();
+
+            float pageHeight = pageSize.getHeight();
+            float y = (float) (pageHeight - rec.x) - rec.width;
+
+            ImageData imageData = ImageDataFactory.create(tempQR.getAbsolutePath());
+            com.itextpdf.layout.element.Image im = new com.itextpdf.layout.element.Image(imageData);
+            im.scaleToFit(rec.width, rec.width);
+            im.setFixedPosition(rec.y, y);
+
+            doc.add(im);
+            doc.close();
+            tempQR.delete();
+
+            if (archivo.delete()) {
+                archivoTemporal.renameTo(archivo);
+            }
+
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al agregar código QR: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            if (tempQR != null && tempQR.exists()) {
+                tempQR.delete();
             }
         }
+
+    }
+
+    private String limpiarNombreArchivo(String nombre) {
+        nombre = nombre.replace("\\", "_");
+        nombre = nombre.replace("/", "_");
+        nombre = nombre.replace(":", "_");
+        nombre = nombre.replace("*", "_");
+        nombre = nombre.replace("?", "_");
+        nombre = nombre.replace("\"", "_");
+        nombre = nombre.replace("<", "_");
+        nombre = nombre.replace(">", "_");
+        nombre = nombre.replace("|", "_");
+
+        return nombre.trim();
+    }
+
+    public List<PlanoDetectado> convertirPdf(File selectedFile, String path, technology.tabula.Rectangle dim) {
+        List<PlanoDetectado> planos = new ArrayList<>();
+        try {
+            PdfReader reader = new PdfReader(selectedFile);
+            PdfDocument pdfDoc = new PdfDocument(reader);
+            int numeroPaginas = pdfDoc.getNumberOfPages();
+            String numeroParte = "";
+            for (int pagina = 1; pagina <= numeroPaginas; pagina++) {
+                if (numeroParte.isEmpty()) {
+                    numeroParte = txtProyecto.getText().trim();
+                }
+                int consecutivo = pagina;
+                PlanoDetectado plano = new PlanoDetectado(selectedFile, pagina, numeroParte, consecutivo);
+                String id = plano.getId();
+                String nombreArchivo = limpiarNombreArchivo(id);
+                File archivoSalida = new File(path, nombreArchivo + ".pdf");
+                int cont = 1;
+                while (archivoSalida.exists()) {
+                    archivoSalida = new File(path, nombreArchivo + " (" + cont + ").pdf");
+                    cont++;
+                }
+                crearPdfPagina(selectedFile, pagina, archivoSalida, id, dim);
+                plano.setArchivoGenerado(archivoSalida.getAbsolutePath());
+                planos.add(plano);
+            }
+            pdfDoc.close();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error al convertir PDF: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return planos;
+    }
+
+    private List<String[]> obtenerTabla(File file) {
+        List<String[]> tabla = new ArrayList<>();
+        try (PDDocument document = PDDocument.load(file)) {
+            ObjectExtractor extractor = new ObjectExtractor(document);
+            PageIterator pages = extractor.extract();
+            Page page = pages.next();
+            String[] bom = templete.getBom().split(",");
+            technology.tabula.Rectangle area = new technology.tabula.Rectangle(Integer.parseInt(bom[1]), Integer.parseInt(bom[0]), Integer.parseInt(bom[2]), Integer.parseInt(bom[3]));
+            Page pageArea = page.getArea(area);
+            SpreadsheetExtractionAlgorithm algorithm = new SpreadsheetExtractionAlgorithm();
+            List<Table> tables = algorithm.extract(pageArea);
+            for (Table table : tables) {
+                for (List<RectangularTextContainer> row : table.getRows()) {
+                    List<String> columnas = new ArrayList<>();
+                    for (RectangularTextContainer cell : row) {
+                        String texto = cell.getText().replace("\r", " ").replace("\n", " ").trim();
+                        columnas.add(texto);
+                    }
+                    if (!columnas.isEmpty() && columnas.stream().anyMatch(s -> !s.isBlank())) {
+                        tabla.add(columnas.toArray(new String[0]));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error al obtener tabla: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return tabla;
+    }
+
+    private void cargarJTable(JTable jTable, List<String[]> tabla) {
+        if (tabla == null || tabla.isEmpty()) {
+            jTable.setModel(new DefaultTableModel());
+            return;
+        }
+        int filaEncabezado = -1;
+        for (int i = 0; i < tabla.size(); i++) {
+            String fila = String.join(" ", tabla.get(i)).toUpperCase();
+            if (fila.contains("ELEMENTO") || fila.contains("PIEZA")
+                    || fila.contains("DESCRIPCI") || fila.contains("CANTIDAD")) {
+                filaEncabezado = i;
+                break;
+            }
+        }
+        if (filaEncabezado == -1) {
+            JOptionPane.showMessageDialog(this, "No se encontraron los encabezados de la tabla en el PDF.");
+            return;
+        }
+        String[] encabezados = tabla.get(filaEncabezado);
+        DefaultTableModel modelo = new DefaultTableModel(encabezados, 0);
+        for (int i = filaEncabezado + 1; i < tabla.size(); i++) {
+            String[] fila = tabla.get(i);
+            Object[] datos = new Object[encabezados.length];
+            for (int j = 0; j < datos.length; j++) {
+                datos[j] = j < fila.length ? fila[j] : "";
+            }
+            modelo.addRow(datos);
+        }
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem item = new JMenuItem("Eliminar articulo(s) de la lista      ");
+        item.addActionListener((e) -> {
+            for (int i = jTable.getSelectedRows().length - 1; i >= 0; i--) {
+                modelo.removeRow(jTable.getSelectedRows()[i]);
+            }
+        });
+        item.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/eliminar (1).png")));
+        menu.add(item);
+        jTable.setComponentPopupMenu(menu);
+        jTable.setModel(modelo);
     }
 
     public void setBorde() {
@@ -281,6 +443,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
 
             @Override
             public void drop(DropTargetDropEvent dtde) {
+                JFrame f = (JFrame) JOptionPane.getFrameForComponent(Disenio1.this);
                 jPanel10.setBorder(null);
                 if (txtProyecto.isEnabled()) {
                     JOptionPane.showMessageDialog(null, "Debes seleccionar un proyecto", "Advertencia", JOptionPane.WARNING_MESSAGE);
@@ -289,53 +452,78 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                     limpiarBotones();
                     try {
                         Transferable transferable = dtde.getTransferable();
+                        List<String[]> listaBOM = null;
                         if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                             dtde.acceptDrop(DnDConstants.ACTION_COPY);
                             List<File> files = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
-                            botones = new JButton[files.size()];
-                            archivos = new File[files.size()];
                             String direccion = getDirectorio(txtProyecto.getText());
-                            File[] archivosNuevos = new File[archivos.length];
                             String dimen[] = templete.getCodigo().split(",");
-                            Dimension dim = new Dimension(Integer.parseInt(dimen[0]), Integer.parseInt(dimen[1]));
-                            for (int i = 0; i < files.size(); i++) {
-                                archivosNuevos[i] = new File(convertirPdf(files.get(i), direccion, dim, 0));
-                            }
-                            archivos = archivosNuevos;
-                            for (int i = 0; i < archivos.length; i++) {
-                                archivos[i] = files.get(i);
-                                if (archivos[i].getName().toLowerCase().endsWith(".pdf")) {
-                                    // Procesar el archivo PDF aquí
-                                    String img = "";
-                                    String name = "";
-                                    botones[i] = new JButton();
-                                    String color = "";
-//                                    if (empresa.equals("align")) {
-//                                        img = "/Iconos/align_16.png";
-//                                        name = "align";
-//                                    } else if (empresa.equals("durol")) {
-//                                        img = "/Iconos/durol_16.png";
-//                                        name = "durol";
-//                                    } else if (empresa.equals("3i")) {
-//                                        //----------------------------------------------------SERVICIOS INDUSTRIALES 3I----------------------------------------------------------------
-//                                        img = "/Iconos/3i_16.png";
-//                                        name = "3i";
-//                                    } else {
-//                                        color = null;
-//                                    }
-                                    name = templete.getCliente();
-                                    crearBoton(botones[i], archivos[i].getName(), name);
-                                    if (color == null) {
-                                        botones[i].setForeground(new Color(210, 210, 210));
-                                    }
-//                                    verificarPlanoEnFila(archivos[i].getName().replace(".pdf", ""));
+                            technology.tabula.Rectangle dim = new technology.tabula.Rectangle(Integer.parseInt(dimen[0]), Integer.parseInt(dimen[1]),
+                                    Integer.parseInt(dimen[2]), Integer.parseInt(dimen[3]));
+                            int cont = 0;
+                            for (File file : files) {
+                                if (!file.getName().toLowerCase().endsWith(".pdf")) {
+                                    continue;
+                                }
+                                cont++;
+//                                int opc = JOptionPane.showConfirmDialog(f, "Si tu pdf contiene contiene BOM de materiales, presiona OK");
+//                                if (opc == JOptionPane.OK_OPTION) {
+//                                    SeleccionarUbicaciones sel = new SeleccionarUbicaciones(f, true);
+//                                    sel.setLocationRelativeTo(f);
+//                                    sel.lblCoordenadas1.setText("seleccionar BOM: [No. Parte] [Descripcion] [Cantidad]");
+//                                    sel.tabla = true;
+//                                    sel.agregarPanel(new File(file.getAbsolutePath()));
+//                                    sel.setVisible(true);
+//                                    listaBOM = sel.tablaBOM;
+//                                }
+                                List<String[]> tablas = obtenerTabla(file);
+                                listaBOM = tablas;
+                                if (listaBOM != null) {
+                                    btnBOM.setEnabled(true);
+                                    btnBOM.setText("Enviar BOM a requisiciones");
+                                }
+
+                                List<PlanoDetectado> planos = convertirPdf(file, direccion, dim);
+                                archivos = new File[planos.size()];
+                                botones = new JButton[planos.size()];
+                                int i = 0;
+                                for (PlanoDetectado plano : planos) {
+                                    File archivoGenerado = new File(plano.getArchivoGenerado());
+                                    archivos[i] = (archivoGenerado);
+                                    JButton boton = new JButton();
+                                    String name = plano.getNumeroParte() + " - " + i;
+                                    crearBoton(boton, plano.getId(), name);
+                                    boton.setForeground(new Color(0, 100, 255));
+                                    botones[i] = (boton);
                                     jPanel10.add(botones[i]);
-                                    revalidate();
-                                    repaint();
+                                    i++;
                                 }
                             }
-                            iniciar();
-                            dtde.dropComplete(true);
+
+                            jPanel10.revalidate();
+                            jPanel10.repaint();
+
+                            final List<String[]> tablas = listaBOM;
+                            Thread hilo = new Thread(() -> {
+                                iniciar();
+                                EditarTablaBOM edit = new EditarTablaBOM(f, true);
+                                cargarJTable(edit.jTable1, tablas);
+                                edit.setLocationRelativeTo(f);
+                                boolean avanzar = edit.getTabla();
+                                JTable tab = null;
+                                if (avanzar) {
+                                    tab = edit.jTable1;
+                                }
+
+                                dtde.dropComplete(true);
+                                if (tab != null && avanzar) {
+                                    dispose();
+                                    requisicionDeCompra req = new requisicionDeCompra(numEmpleado, "");
+                                    inicio.verFrame(req);
+                                    req.agregarElementosTabla(tab, txtProyecto.getText());
+                                }
+                            });
+                            hilo.start();
                         } else {
                             dtde.rejectDrop();
                         }
@@ -369,7 +557,6 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         jPanel10.removeAll();
         revalidate();
         repaint();
-
     }
 
     public String getDepa(String numEmpleado, Connection con) throws SQLException {
@@ -381,8 +568,59 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         }
         return null;
     }
+    
+    public static String calcular(String fechaInicio, String fechaFinal, String tiempoCronometro) {
+        DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime inicio = LocalDateTime.parse(fechaInicio, formatoFecha);
+        LocalDateTime fin = LocalDateTime.parse(fechaFinal, formatoFecha);
+        Duration diferencia = Duration.between(inicio, fin);
+        String[] partes = tiempoCronometro.split(":");
+        long horas = Long.parseLong(partes[0]);
+        long minutos = Long.parseLong(partes[1]);
+        long segundos = Long.parseLong(partes[2]);
+        Duration cronometro = Duration.ofHours(horas).plusMinutes(minutos).plusSeconds(segundos);
+        Duration total = diferencia.plus(cronometro);
+        long totalSegundos = total.getSeconds();
+        long h = totalSegundos / 3600;
+        long m = (totalSegundos % 3600) / 60;
+        long s = totalSegundos % 60;
+        return String.format("%02d:%02d:%02d", h, m, s);
+    }
 
-    public final void cerrarFechaCalendario(String proyecto, Connection con) throws SQLException { // si da el error que guarde
+    public String buscarFecha(Connection con, String proyecto, String fin) throws SQLException {
+        String sql = "select * from ordentrabajo where proyecto like '" + proyecto + "'";
+        Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery(sql);
+        String fechaInicio = "";
+        String tiempo = "";
+        while (rs.next()) {
+            fechaInicio = rs.getString("inicio");
+            tiempo = rs.getString("tiempo");
+        }
+        return calcular(fechaInicio, fin, tiempo);
+    }
+    
+    public String cerrarFechaTermino(String id, Connection con) throws SQLException {
+        String sql = "update ordentrabajo set termino = ?, estado = ?, tiempo = ? where proyecto = ? and responsable = ?";
+        PreparedStatement pst = con.prepareStatement(sql);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        
+        pst.setString(1, sdf.format(new Date()));
+        pst.setString(2, "Cerrado");
+        pst.setString(3, buscarFecha(con, id, sdf.format(new Date())));
+        pst.setString(4, id);
+        pst.setString(5, this.numEmpleado);
+
+        int n = pst.executeUpdate();
+
+        if (n < 0) {
+            JOptionPane.showMessageDialog(this, "Error al cerrar tiempo", "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+        return sdf.format(new Date());
+    }
+
+    public final void cerrarFechaCalendario(String proyecto, Connection con) throws SQLException {
         String depa = "DISEÑO";
         String sql = "update agenda set Estatus = ?, EmpleadoFin = ?, FechaTermino = ? where Proyecto = ? and Departamento = ?";
         PreparedStatement pst = con.prepareStatement(sql);
@@ -421,7 +659,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
             Connection con = new Conexion().getConnection();
             Statement st2 = con.createStatement();
 
-            String sql2 = "select Plano,Revision from Planos where Plano like '" + l.getText() + "'";
+            String sql2 = "select Plano,Revision from Planos where Plano like '" + txtParte.getText() + "'";
             ResultSet rs2 = st2.executeQuery(sql2);
             String plan = "";
             String revision = "";
@@ -435,7 +673,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                 if (plan.equals("")) {
                     band1 = true;
                 } else {
-                    if (revision == null ? k.getText() == null : revision.equals(k.getText())) {
+                    if (revision == null ? txtRevision.getText() == null : revision.equals(txtRevision.getText())) {
                         reem = JOptionPane.showConfirmDialog(this, "ESTE PLANO YA SE ENCUENTRA EN LA BD, ¿DESEAS REEMPLAZARLO?");
                         if (reem == 0) {
                             band1 = false;
@@ -462,7 +700,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
             }
             if (band1) {
                 //--------------------------------1        2          3     4           5           6           7         8     9    10      11           12         13        14          15        1 6       17       18        19         20                             
-                String sql = "insert into Planos (Plano, Proyecto, Estado, Prioridad, Cantidad, Integracion, Fresadora, Torno, Cnc, Mazak, Rectificado, Soldadura, Ensamble, Revision, Descripcion, Material, Dureza, Maquina, NoEnsamble, Tratamiento,Dimension) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                String sql = "insert into Planos (Plano, Proyecto, Estado, Prioridad, Cantidad, Revision, Descripcion, Material, Dureza, NoEnsamble, Tratamiento) values(?,?,?,?,?,?,?,?,?,?,?)";
 //                if (empresa.equals("align")) {
 //                    sql = "insert into Planos (Plano, Proyecto, Estado, Prioridad, Cantidad, Integracion, Fresadora, Torno, "
 //                            + "Cnc, Mazak, Rectificado, Soldadura, Ensamble, Revision, Descripcion, Material, Dureza, Maquina, "
@@ -473,32 +711,19 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                 String sql3 = "insert into pdfplanos (Plano, Pdf) values(?,?)";
                 PreparedStatement pst3 = con.prepareStatement(sql3);
 
-                pst.setString(1, l.getText());
+                pst.setString(1, txtParte.getText());
                 pst.setString(2, txtProyecto.getText());
                 pst.setString(3, "");
                 pst.setString(4, "0");
-                pst.setString(5, s.getText().trim());
-                pst.setString(6, c.getText());
-                pst.setString(7, d.getText());
-                pst.setString(8, e.getText());
-                pst.setString(9, f.getText());
-                pst.setString(10, g.getText());
-                pst.setString(11, h.getText());
-                pst.setString(12, i1.getText());
-                pst.setString(13, j.getText());
-                pst.setString(14, k.getText());
-                pst.setString(15, m.getText());
-                pst.setString(16, n.getText());
-                pst.setString(17, o.getText());
-                pst.setString(18, p.getText());
-                pst.setString(19, q.getText());
-                pst.setString(20, r.getText());
-                pst.setString(21, "");
-//                if (empresa.equals("align")) {
-//                    pst.setString(22, archivo.getName().replace(".pdf", ""));
-//                }
+                pst.setString(5, txtCantidad.getText().trim());
+                pst.setString(6, txtRevision.getText());
+                pst.setString(7, txtDescripcion.getText());
+                pst.setString(8, txtMaterial.getText());
+                pst.setString(9, txtDureza.getText());
+                pst.setString(10, txtEnsamble.getText());
+                pst.setString(11, txtTratamiento.getText());
 
-                pst3.setString(1, l.getText());
+                pst3.setString(1, txtParte.getText());
                 pst3.setBytes(2, pe);
 
                 int n1 = pst3.executeUpdate();
@@ -512,44 +737,34 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                     JOptionPane.showMessageDialog(this, "NO SE GUARDARON LOS DATOS");
                 } else {
                     revisarPlanos rev = new revisarPlanos();
-                    rev.actualizarPlanos(con, l.getText(), "CORTES");
+                    rev.actualizarPlanos(con, txtParte.getText(), "CORTES");
                 }
 
             } else {
-                String sql = "update Planos set Plano = ?, Proyecto = ?, Estado = ?, Cantidad = ?, Integracion = ?, Fresadora = ?, Torno = ?, Cnc = ?, "
-                        + "Mazak = ?, Rectificado = ?, Soldadura = ?, Ensamble = ?, Revision = ?, Descripcion = ?, Material = ?, Dureza = ?, "
-                        + "Maquina = ?, NoEnsamble = ?, Tratamiento = ?,Dimension = ? where Plano = ?";
+                String sql = "update Planos set Plano = ?, Proyecto = ?, Estado = ?, Cantidad = ?"
+                        + ", Revision = ?, Descripcion = ?, Material = ?, Dureza = ?, "
+                        + "NoEnsamble = ?, Tratamiento = ? where Plano = ?";
                 PreparedStatement pst = con.prepareStatement(sql);
 
                 String sql3 = "update pdfplanos set Pdf = ? where Plano = ?";
                 PreparedStatement pst3 = con.prepareStatement(sql3);
 
-                pst.setString(1, l.getText());
+                pst.setString(1, txtParte.getText());
                 pst.setString(2, txtProyecto.getText());
                 pst.setString(3, "CORTES");
-                pst.setString(4, s.getText());
-                pst.setString(5, c.getText());
-                pst.setString(6, d.getText());
-                pst.setString(7, e.getText());
-                pst.setString(8, f.getText());
-                pst.setString(9, g.getText());
-                pst.setString(10, h.getText());
-                pst.setString(11, i1.getText());
-                pst.setString(12, j.getText());
-                pst.setString(13, k.getText());
-                pst.setString(14, m.getText());
-                pst.setString(15, n.getText());
-                pst.setString(16, o.getText());
-                pst.setString(17, p.getText());
-                pst.setString(18, q.getText());
-                pst.setString(19, r.getText());
-                pst.setString(20, "");
-                pst.setString(21, l.getText());
+                pst.setString(4, txtCantidad.getText());
+                pst.setString(5, txtRevision.getText());
+                pst.setString(6, txtDescripcion.getText());
+                pst.setString(7, txtMaterial.getText());
+                pst.setString(8, txtDureza.getText());
+                pst.setString(9, txtEnsamble.getText());
+                pst.setString(10, txtTratamiento.getText());
+                pst.setString(11, txtParte.getText());
 
                 int n = pst.executeUpdate();
 
                 pst3.setBytes(1, pe);
-                pst3.setString(2, l.getText());
+                pst3.setString(2, txtParte.getText());
 
                 int n1 = pst3.executeUpdate();
 
@@ -557,7 +772,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                     JOptionPane.showMessageDialog(this, "EL PDF NO SE SUBIO CORRECTAMENTE", "ERROR", JOptionPane.ERROR_MESSAGE);
                 } else {
                     revisarPlanos rev = new revisarPlanos();
-                    rev.actualizarPlanos(con, l.getText(), "CORTES");
+                    rev.actualizarPlanos(con, txtParte.getText(), "CORTES");
                 }
             }
         } catch (SQLException e) {
@@ -580,47 +795,33 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                     }
                     botones[i].setForeground(new Color(0, 165, 255));
 
-//                    bandDatosHoras = true;
-//                    if (d.getText().equals("") || e.getText().equals("") || f.getText().equals("") || k.getText().equals("")) {
-//                        bandDatosHoras = false;
-//                    }
-//                    while (bandDatosHoras == false) {
-//                        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
-//                        datosHoras = new DatosHoras(f, true);
-//                        datosHoras.d.setText(d.getText());
-//                        datosHoras.e.setText(e.getText());
-//                        datosHoras.f.setText(this.f.getText());
-//                        datosHoras.k.setText(k.getText());
-//                        datosHoras.btnGuardar.addActionListener(this);
-//                        datosHoras.setVisible(true);
-//                    }
                     try {
-                        double cant = Double.parseDouble(s.getText().trim());
-                        botones[i].setForeground(new Color(210, 210, 210));
-                        subirPlanos(archivos[i]);
-                        cont++;
-                        c.setText("");
-                        d.setText("");
-                        this.e.setText("");
-                        f.setText("");
-                        g.setText("");
-                        h.setText("");
-                        i1.setText("");
-                        j.setText("");
-                        k.setText("");
-                        l.setText("");
-                        m.setText("");
-                        n.setText("");
-                        o.setText("");
-                        p.setText("");
-                        q.setText("");
-                        r.setText("");
-                        s.setText("");
-                        t.setText("");
+                        double cant = Double.parseDouble(txtCantidad.getText().trim());
                     } catch (Exception e) {
-                        opc = 1; 
-                        JOptionPane.showMessageDialog(this, "Cantidad erronea", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                        boolean band = true;
+                        do {
+                            JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+                            DatosHoras dat = new DatosHoras(f, true);
+                            dat.setLocationRelativeTo(f);
+                            String d = dat.getCantidad();
+                            if (!d.equals("")) {
+                                band = false;
+                                txtCantidad.setText(d);
+                            }
+                        } while (band);
                     }
+                    botones[i].setForeground(new Color(210, 210, 210));
+                    txtParte.setText(botones[i].getText());
+                    subirPlanos(archivos[i]);
+                    cont++;
+                    txtRevision.setText("");
+                    txtParte.setText("");
+                    txtDescripcion.setText("");
+                    txtMaterial.setText("");
+                    txtDureza.setText("");
+                    txtEnsamble.setText("");
+                    txtTratamiento.setText("");
+                    txtCantidad.setText("");
                 }
             }
         }
@@ -628,10 +829,12 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
             try {
                 Connection con = new Conexion().getConnection();
                 cerrarFechaCalendario(txtProyecto.getText(), con);
+                cerrarFechaTermino(txtProyecto.getText(), con);
             } catch (SQLException e) {
                 JOptionPane.showMessageDialog(this, "Error al subir fecha: " + e, "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
+
     }
 
     public JButton crearBoton(JButton boton, String texto, String name) {
@@ -726,286 +929,9 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         return empresa;
     }
 
-    public void subirDurol(File archivo) {
-
-        if (archivo != null) {
-            String FILENAME = archivo.getAbsolutePath();
-            int band = 0;
-            int band2 = 0;
-            int band3 = 0;
-
-            try {
-                PDDocument pd;
-
-                pd = PDDocument.load(new File(FILENAME));
-
-                int totalPages = pd.getNumberOfPages();
-
-                ObjectExtractor oe = new ObjectExtractor(pd);
-                SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-                Page page = oe.extract(1);
-                // extract text from the table after detecting
-                List<Table> table = null;
-                try {
-                    table = sea.extract(page);
-                } catch (Exception exx) {
-                    JOptionPane.showMessageDialog(this, "ERROR AL SELECCIONAR FORMATO DE PLANO " + archivo.getName(), "ERROR", JOptionPane.ERROR_MESSAGE);
-                }
-                int cont = 0;
-                if (table != null) {
-                    for (Table tables : table) {
-                        List<List<RectangularTextContainer>> rows = tables.getRows();
-                        for (int i = 0; i < rows.size(); i++) {
-
-                            List<RectangularTextContainer> cells = rows.get(i);
-
-                            for (int j = 0; j < cells.size(); j++) {
-                                String celda = cells.get(j).getText();
-                                String charsToRemove = "*";
-
-                                for (char c : charsToRemove.toCharArray()) {
-                                    celda = celda.replace(String.valueOf(c), "");
-                                }
-                                if (i == 2 && j == 1) {
-                                    c.setText(celda);
-                                }
-                                if (i == 3 && j == 1) {
-                                    d.setText(celda);
-                                }
-                                if (i == 4 && j == 1) {
-                                    e.setText(celda);
-                                }
-                                if (i == 5 && j == 1) {
-                                    f.setText(celda);
-                                }
-                                if (i == 6 && j == 1) {
-                                    g.setText(celda);
-                                }
-                                if (i == 7 && j == 1) {
-                                    h.setText(celda);
-                                }
-                                if (i == 8 && j == 1) {
-                                    i1.setText(celda);
-                                }
-                                if (i == 9 && j == 1) {
-                                    this.j.setText(celda);
-                                }
-                                if (i == 10 && j == 1) {
-                                    k.setText(celda);
-                                }
-                                if (i == 11 && j == 1) {
-                                    l.setText(celda);
-                                }
-                                if (i == 12 && j == 1) {
-                                    m.setText(celda);
-                                }
-                                if (i == 13 && j == 1) {
-                                    n.setText(celda);
-                                }
-                                if (i == 14 && j == 1) {
-                                    o.setText(celda);
-                                }
-                                if (i == 15 && j == 1) {
-                                    p.setText(celda);
-                                }
-                                if (i == 16 && j == 1) {
-                                    q.setText(celda);
-                                }
-                                if (i == 17 && j == 1) {
-                                    r.setText(celda);
-                                }
-                                if (i == 18 && j == 1) {
-                                    s.setText(celda);
-                                }
-                                if (i == 19 && j == 1) {
-                                    t.setText(celda);
-                                }
-
-                            }
-                        }
-
-                    }
-                }
-                pd.close();
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "ERROR AL SUBIR PLANO " + archivo.getName());
-                Logger.getLogger(Disenio1.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-    }
-
-    public void subirDurolV2(File archivo) {
-        try {
-            PDDocument document = PDDocument.load(archivo);
-            PDFTextStripperByArea textStripper = new PDFTextStripperByArea();
-            for (int i = 0; i < 18; i++) {
-                Rectangle rect = new Rectangle(48, 400 + (i * 11), 100, 11);
-                textStripper.addRegion("myRegion", rect);
-                PDPage page = document.getPage(0);
-                textStripper.extractRegions(page);
-                String extractedText = textStripper.getTextForRegion("myRegion");
-                String remplazo = extractedText.replace("*", "").replaceAll("\n", "");
-                switch (i) {
-                    case 1:
-                        c.setText("0");
-                        break;
-                    case 2:
-                        d.setText(remplazo);
-                        break;
-                    case 3:
-                        e.setText(remplazo);
-                        break;
-                    case 4:
-                        f.setText(remplazo);
-                        break;
-                    case 5:
-                        g.setText(remplazo);
-                        break;
-                    case 6:
-                        h.setText(remplazo);
-                        break;
-                    case 7:
-                        i1.setText(remplazo);
-                        break;
-                    case 8:
-                        j.setText(remplazo);
-                        break;
-                    case 9:
-                        k.setText(remplazo);
-                        break;
-                    case 10:
-                        remplazo = archivo.getName().replace(".pdf", "");
-                        l.setText(remplazo);
-                        break;
-                    case 11:
-                        m.setText(remplazo);
-                        break;
-                    case 12:
-                        n.setText(remplazo);
-                        break;
-                    case 13:
-                        o.setText(remplazo);
-                        break;
-                    case 14:
-                        p.setText(remplazo);
-                        break;
-                    case 15:
-                        q.setText(remplazo);
-                        break;
-                    case 16:
-                        r.setText(remplazo);
-                        break;
-                    case 17:
-                        s.setText(remplazo.replaceAll("[^0-9]", ""));
-                        break;
-                }
-            }
-            document.close();
-
-        } catch (IOException ex) {
-            Logger.getLogger(Disenio1.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    public void subirAlign(File archivo) {
-
-        if (archivo != null) {
-            String FILENAME = archivo.getAbsolutePath();
-            int band = 0;
-            int band2 = 0;
-            int band3 = 0;
-
-            try {
-                PDDocument pd;
-
-                pd = PDDocument.load(new File(FILENAME));
-
-                int totalPages = pd.getNumberOfPages();
-
-                ObjectExtractor oe = new ObjectExtractor(pd);
-                SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-                Page page = oe.extract(1);
-                // extract text from the table after detecting
-                List<Table> table = null;
-                try {
-                    table = sea.extract(page);
-                } catch (Exception exx) {
-                    JOptionPane.showMessageDialog(this, "ERROR AL SELECCIONAR FORMATO DE PLANO " + archivo.getName(), "ERROR", JOptionPane.ERROR_MESSAGE);
-                }
-                int cont = 0;
-                if (table != null) {
-                    for (Table tables : table) {
-                        List<List<RectangularTextContainer>> rows = tables.getRows();
-                        for (int i = 0; i < rows.size(); i++) {
-
-                            List<RectangularTextContainer> cells = rows.get(i);
-
-                            for (int j = 0; j < cells.size(); j++) {
-                                String celda = cells.get(j).getText();
-                                if (i == 6 && j == 1) {
-                                    if (celda.length() > 8) {
-                                        n.setText(celda.substring(8, celda.length()));
-                                    }
-                                }
-                                if (i == 7 && j == 0) {
-                                    if (celda.length() > 4) {
-                                        try {
-                                            int can = Integer.parseInt(celda.substring(4, celda.length()));
-                                            s.setText(celda.substring(4, celda.length()));
-                                        } catch (Exception e) {
-
-                                        }
-
-                                    }
-                                }
-                                if (i == 5 && j == 1) {
-                                    if (celda.length() > 9) {
-                                        l.setText(celda.substring(9, celda.length()));
-                                    }
-                                }
-                                if (i == 3 && j == 2) {
-                                    if (celda.length() > 12) {
-                                        m.setText(celda.substring(12, celda.length()));
-                                    }
-                                }
-
-                            }
-                        }
-
-                    }
-                }
-                pd.close();
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "ERROR AL SUBIR PLANO " + archivo.getName());
-//            Logger.getLogger(Tabla.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-    }
-
-    public int nomenclaturaAlign() {
-        try {
-            Connection con = new Conexion().getConnection();
-            Statement st = con.createStatement();
-            String sql = "select plano, proyecto, id from planos where Proyecto like '" + txtProyecto.getText() + "' order by id desc limit 1";
-            ResultSet rs = st.executeQuery(sql);
-            String ultimoPlano = null;
-            while (rs.next()) {
-                ultimoPlano = rs.getString("plano");
-            }
-            if (ultimoPlano == null) {
-                return 100;
-            } else {
-                return (Integer.parseInt(ultimoPlano.substring(ultimoPlano.lastIndexOf(" ") + 1)) + 1);
-            }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
-        }
-        return -1;
-    }
-
     public final void getTempletes(File archivo) {
         String valores[] = templete.getValores();
-        JTextField textos[] = {k, l, m, n, o, q, r, s};
+        JTextField textos[] = {txtRevision, txtParte, txtDescripcion, txtMaterial, txtDureza, txtEnsamble, txtTratamiento, txtCantidad};
         for (int i = 0; i < textos.length; i++) {
             if (!valores[i].equals("")) {
                 try {
@@ -1017,7 +943,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                         y = Integer.parseInt(val[1]);
                         h = Integer.parseInt(val[2]);
                         a = Integer.parseInt(val[3]);
-                        Rectangle rect = new Rectangle(x,y,h,a);
+                        Rectangle rect = new Rectangle(x, y, h, a);
                         textStripper.addRegion("myRegion" + i, rect);
                         PDPage page = doc.getPage(0);
                         textStripper.extractRegions(page);
@@ -1030,211 +956,6 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                 }
             }
         }
-    }
-
-    public void subirAlignV2(File archivo) {
-        try {
-            try (PDDocument doc = PDDocument.load(archivo)) {
-                //---------------------------CANTIDAD-------------------------
-                PDFTextStripperByArea textStripper = new PDFTextStripperByArea();
-                Rectangle rect = new Rectangle(598, 742, 48, 21);
-                textStripper.addRegion("myRegion", rect);
-                PDPage page = doc.getPage(0);
-                textStripper.extractRegions(page);
-                String extractedText = textStripper.getTextForRegion("myRegion");
-                String remplazo = extractedText.replace("*", "");
-                s.setText(remplazo);
-
-                //--------------------------MATERIAL-----------------------------
-                rect = new Rectangle(646, 728, 122, 16);
-                textStripper.addRegion("myRegion2", rect);
-                PDPage page2 = doc.getPage(0);
-                textStripper.extractRegions(page2);
-                extractedText = textStripper.getTextForRegion("myRegion2");
-                remplazo = extractedText.replace("\n", "").replace("*", "");
-                n.setText(remplazo);
-
-                //--------------------------DESCRIPCION-----------------------------
-                rect = new Rectangle(905, 699, 273, 16);
-                textStripper.addRegion("myRegion3", rect);
-                PDPage page3 = doc.getPage(0);
-                textStripper.extractRegions(page3);
-                extractedText = textStripper.getTextForRegion("myRegion3");
-                remplazo = extractedText.replace("\n", "").replace("*", "");
-                m.setText(remplazo);
-
-                //--------------------------PARTE-----------------------------
-                remplazo = txtProyecto.getText() + " " + String.format("%03d", nomenclaturaAlign());
-                l.setText(remplazo);
-
-                //--------------------------TRATAMIENTO-----------------------------
-                rect = new Rectangle(646, 750, 122, 13);
-                textStripper.addRegion("myRegion5", rect);
-                PDPage page5 = doc.getPage(0);
-                textStripper.extractRegions(page5);
-                extractedText = textStripper.getTextForRegion("myRegion5");
-                remplazo = extractedText.replace("\n", "").replace("*", "");
-                r.setText(remplazo);
-
-                //--------------------------REVISION-----------------------------
-                rect = new Rectangle(1151, 725, 26, 20);
-                textStripper.addRegion("myRegion6", rect);
-                PDPage page6 = doc.getPage(0);
-                textStripper.extractRegions(page6);
-                extractedText = textStripper.getTextForRegion("myRegion6");
-                remplazo = extractedText.replace("\n", "").replace("*", "");
-                k.setText(remplazo);
-
-                d.setText("0");
-                e.setText("0");
-                f.setText("0");
-                k.setText("0");
-                s.setText("1");
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(Disenio1.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
-    public void subir3i(File archivo) {
-        byte[] pe = null;
-        if (archivo == null) {
-
-        } else {
-            pe = new byte[(int) archivo.length()];
-            try {
-
-                InputStream input = new FileInputStream(archivo);
-                input.read(pe);
-            } catch (IOException e) {
-
-            }
-        }
-        PDFManager pdfManager = new PDFManager();
-        String vector[] = new String[30];
-        pdfManager.setFilePath(archivo.getAbsolutePath());
-        String text = "";
-
-        int aux1 = 0, aux2 = 0;
-        int aux = 0;
-
-        try {
-            text = pdfManager.toText();
-        } catch (IOException ex) {
-            Logger.getLogger(Disenio1.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        String buscar = "*";
-        boolean band = true;
-        char arreglo[] = text.toCharArray();
-        for (int j = 0; j < text.length(); j++) {
-            String letra = String.valueOf(arreglo[j]);
-            if (buscar.equalsIgnoreCase(letra)) {
-                aux = aux + 1;
-                if (aux == 1 && band == true) {
-                    aux1 = j;
-                } else {
-                    if (aux == 1 && band == false) {
-                        aux1 = aux2;
-                    } else {
-                        if (aux == 2) {
-                            aux2 = j;
-
-                            int cont = 0;
-
-                            String a = text.substring((aux1 + 1), aux2);
-                            String b = text.substring(aux1 - 1, aux1);
-                            switch (b) {
-                                case "A":
-                                    vector[0] = a;
-                                    break;
-                                case "B":
-                                    vector[1] = a;
-                                    break;
-                                case "C":
-                                    vector[2] = a;
-                                    break;
-                                case "D":
-                                    vector[3] = a;
-                                    break;
-                                case "E":
-                                    vector[4] = a;
-                                    break;
-                                case "F":
-                                    vector[5] = a;
-                                    break;
-                                case "G":
-                                    vector[6] = a;
-                                    break;
-                                case "H":
-                                    vector[7] = a;
-                                    break;
-                                case "I":
-                                    vector[8] = a;
-                                    break;
-                                case "J":
-                                    vector[9] = a;
-                                    break;
-                                case "K":
-                                    vector[10] = a;
-                                    break;
-                                case "L":
-                                    vector[11] = a;
-                                    break;
-                                case "M":
-                                    vector[12] = a;
-                                    break;
-                                case "N":
-                                    vector[13] = a;
-                                    break;
-                                case "O":
-                                    vector[14] = a;
-                                    break;
-                                case "P":
-                                    vector[15] = a;
-                                    break;
-                                case "Q":
-                                    vector[16] = a;
-                                    break;
-                                case "R":
-                                    vector[17] = a;
-                                    break;
-                                case "S":
-                                    vector[18] = a;
-                                    break;
-                                case "T":
-                                    vector[19] = a;
-                                    break;
-                                default:
-                                    break;
-                            }
-                            aux = 0;
-                            band = true;
-                            cont++;
-                        }
-                    }
-                }
-            }
-
-        }
-        c.setText(vector[2]);
-        d.setText(vector[3]);
-        e.setText(vector[4]);
-        f.setText(vector[5]);
-        g.setText(vector[6]);
-        h.setText(vector[7]);
-        i1.setText(vector[8]);
-        j.setText(vector[9]);
-        k.setText(vector[10]);
-        l.setText(vector[11]);
-        m.setText(vector[12]);
-        n.setText(vector[13]);
-        o.setText(vector[14]);
-        p.setText(vector[15]);
-        q.setText(vector[16]);
-        r.setText(vector[17]);
-        s.setText(vector[18]);
-        t.setText(vector[19]);
     }
 
     public void acomodar() {
@@ -1253,8 +974,8 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                 pi = ListaComponente.get(numImg);
                 break;
             }
-            totalp = ListaComponente.size();
-            this.img.setImagen(pi.getArchivos());
+            totalp = ListaComponente.size(); 
+           this.img.setImagen(pi.getArchivos());
             this.img.disminuir();
             this.img.disminuir();
             this.img.disminuir();
@@ -1311,7 +1032,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                 bs = null;
 
             } catch (IOException e) {
-                n = new File("C:\\Pruebas\\BD\\img\\new2.pdf");
+                n = new File("/Imagenes/new2.pdf");
                 try {
                     BufferedOutputStream bs = null;
                     FileOutputStream fs = new FileOutputStream(n);
@@ -1358,19 +1079,20 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
 
     public final void insertarImagen(String url, JLabel lbl) {
         ImageIcon icon = new ImageIcon(url);
-        Image imagen = icon.getImage();
-        Image imagenEscalada = imagen.getScaledInstance(60, 60, Image.SCALE_SMOOTH);
+        java.awt.Image imagen = icon.getImage();
+        java.awt.Image imagenEscalada = imagen.getScaledInstance(60, 60, java.awt.Image.SCALE_SMOOTH);
 
         lbl.setIcon(new ImageIcon(imagenEscalada));
     }
 
-    public Disenio1(TempleteDiseno templete, Inicio1 inicio, String url) {
+    public Disenio1(TempleteDiseno templete, Inicio1 inicio, String url, String numEmpleado) {
         initComponents();
         this.inicio = inicio;
         this.templete = templete;
         lblLogo.setIcon(frameIcon);
         insertarImagen(url, lblLogo);
         this.ruta = url;
+        this.numEmpleado = numEmpleado;
         addPro();
         setBorde();
         jScrollPane2.getVerticalScrollBar().setUnitIncrement(15);
@@ -1381,14 +1103,13 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         botonesPlanos = new javax.swing.JPopupMenu();
         btn3i = new javax.swing.JMenuItem();
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
-        jPanel8 = new javax.swing.JPanel();
-        btnImportar = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         jPanel10 = new javax.swing.JPanel();
         jPanel9 = new javax.swing.JPanel();
@@ -1397,50 +1118,30 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         img = new mivisorpdf.CuadroImagen();
         jPanel3 = new javax.swing.JPanel();
         jPanel11 = new javax.swing.JPanel();
-        jLabel3 = new javax.swing.JLabel();
-        jLabel7 = new javax.swing.JLabel();
-        jLabel8 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
-        jLabel10 = new javax.swing.JLabel();
-        jLabel11 = new javax.swing.JLabel();
-        jLabel12 = new javax.swing.JLabel();
-        jLabel13 = new javax.swing.JLabel();
-        jLabel14 = new javax.swing.JLabel();
-        jLabel15 = new javax.swing.JLabel();
-        jLabel16 = new javax.swing.JLabel();
-        jLabel18 = new javax.swing.JLabel();
-        jLabel17 = new javax.swing.JLabel();
-        jLabel20 = new javax.swing.JLabel();
-        jLabel19 = new javax.swing.JLabel();
-        jLabel22 = new javax.swing.JLabel();
-        jLabel21 = new javax.swing.JLabel();
-        jLabel24 = new javax.swing.JLabel();
-        jLabel25 = new javax.swing.JLabel();
-        jLabel23 = new javax.swing.JLabel();
         jPanel12 = new javax.swing.JPanel();
+        jLabel3 = new javax.swing.JLabel();
         txtProyecto = new javax.swing.JTextField();
-        c = new javax.swing.JTextField();
-        d = new javax.swing.JTextField();
-        e = new javax.swing.JTextField();
-        f = new javax.swing.JTextField();
-        g = new javax.swing.JTextField();
-        h = new javax.swing.JTextField();
-        i1 = new javax.swing.JTextField();
-        j = new javax.swing.JTextField();
-        k = new javax.swing.JTextField();
-        l = new javax.swing.JTextField();
-        m = new javax.swing.JTextField();
-        n = new javax.swing.JTextField();
-        o = new javax.swing.JTextField();
-        p = new javax.swing.JTextField();
-        q = new javax.swing.JTextField();
-        r = new javax.swing.JTextField();
-        s = new javax.swing.JTextField();
-        t = new javax.swing.JTextField();
-        txtTol = new javax.swing.JTextField();
+        jLabel15 = new javax.swing.JLabel();
+        txtRevision = new javax.swing.JTextField();
+        jLabel16 = new javax.swing.JLabel();
+        txtParte = new javax.swing.JTextField();
+        jLabel18 = new javax.swing.JLabel();
+        txtDescripcion = new javax.swing.JTextField();
+        jLabel17 = new javax.swing.JLabel();
+        txtMaterial = new javax.swing.JTextField();
+        jLabel20 = new javax.swing.JLabel();
+        txtDureza = new javax.swing.JTextField();
+        jLabel22 = new javax.swing.JLabel();
+        txtEnsamble = new javax.swing.JTextField();
+        jLabel21 = new javax.swing.JLabel();
+        txtTratamiento = new javax.swing.JTextField();
+        jLabel24 = new javax.swing.JLabel();
+        txtCantidad = new javax.swing.JTextField();
+        jPanel8 = new javax.swing.JPanel();
+        btnBOM = new javax.swing.JButton();
         jPanel13 = new javax.swing.JPanel();
-        rSButtonRiple2 = new rojeru_san.RSButtonRiple();
-        rSButtonRiple1 = new rojeru_san.RSButtonRiple();
+        jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
         jPanel6 = new javax.swing.JPanel();
         jLabel26 = new javax.swing.JLabel();
@@ -1478,33 +1179,9 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         jPanel4.setPreferredSize(new java.awt.Dimension(370, 80));
         jPanel4.setLayout(new java.awt.BorderLayout());
 
-        jPanel8.setBackground(new java.awt.Color(255, 255, 255));
-
-        btnImportar.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
-        btnImportar.setForeground(new java.awt.Color(0, 102, 255));
-        btnImportar.setText("Subir planos");
-        btnImportar.setBorder(null);
-        btnImportar.setContentAreaFilled(false);
-        btnImportar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnImportar.setFocusPainted(false);
-        btnImportar.setHorizontalAlignment(javax.swing.SwingConstants.LEADING);
-        btnImportar.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        btnImportar.setPressedIcon(new javax.swing.ImageIcon(getClass().getResource("/ImgAnimacion/pdf-file_48.png"))); // NOI18N
-        btnImportar.setRolloverIcon(new javax.swing.ImageIcon(getClass().getResource("/ImgAnimacion/pdf-file_64.png"))); // NOI18N
-        btnImportar.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        btnImportar.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        btnImportar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnImportarActionPerformed(evt);
-            }
-        });
-        jPanel8.add(btnImportar);
-
-        jPanel4.add(jPanel8, java.awt.BorderLayout.CENTER);
-
         jScrollPane1.setBorder(null);
         jScrollPane1.setMinimumSize(new java.awt.Dimension(14, 40));
-        jScrollPane1.setPreferredSize(new java.awt.Dimension(1345, 45));
+        jScrollPane1.setPreferredSize(new java.awt.Dimension(1345, 30));
 
         jPanel10.setBackground(new java.awt.Color(255, 255, 255));
         jPanel10.setMinimumSize(new java.awt.Dimension(10, 40));
@@ -1516,7 +1193,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         jPanel10.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 15, 5));
         jScrollPane1.setViewportView(jPanel10);
 
-        jPanel4.add(jScrollPane1, java.awt.BorderLayout.SOUTH);
+        jPanel4.add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
         jPanel2.add(jPanel4, java.awt.BorderLayout.PAGE_START);
 
@@ -1526,7 +1203,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         panelCard.setBackground(new java.awt.Color(255, 255, 255));
         panelCard.setLayout(new java.awt.BorderLayout());
 
-        jScrollPane2.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(0, 102, 255), 3, true));
+        jScrollPane2.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(51, 51, 51), 2, true));
 
         img.setBackground(new java.awt.Color(255, 255, 255));
         img.setName("img"); // NOI18N
@@ -1552,11 +1229,11 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         img.setLayout(imgLayout);
         imgLayout.setHorizontalGroup(
             imgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 626, Short.MAX_VALUE)
+            .addGap(0, 560, Short.MAX_VALUE)
         );
         imgLayout.setVerticalGroup(
             imgLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 590, Short.MAX_VALUE)
+            .addGap(0, 613, Short.MAX_VALUE)
         );
 
         jScrollPane2.setViewportView(img);
@@ -1570,115 +1247,25 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
 
         jPanel11.setBackground(new java.awt.Color(255, 255, 255));
         jPanel11.setLayout(new java.awt.GridLayout(20, 0, 0, 10));
-
-        jLabel3.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel3.setText("PROYECTO:  ");
-        jPanel11.add(jLabel3);
-
-        jLabel7.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel7.setText("INTEGRACION:  ");
-        jPanel11.add(jLabel7);
-
-        jLabel8.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel8.setText("FRESADORA:  ");
-        jPanel11.add(jLabel8);
-
-        jLabel9.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel9.setText("TORNO:  ");
-        jPanel11.add(jLabel9);
-
-        jLabel10.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel10.setText("CNC:  ");
-        jPanel11.add(jLabel10);
-
-        jLabel11.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel11.setText("MAZAK:  ");
-        jPanel11.add(jLabel11);
-
-        jLabel12.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel12.setText("RECTIFICADO:  ");
-        jPanel11.add(jLabel12);
-
-        jLabel13.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel13.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel13.setText("SOLDADURA:  ");
-        jPanel11.add(jLabel13);
-
-        jLabel14.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel14.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel14.setText("ENSAMBLE:  ");
-        jPanel11.add(jLabel14);
-
-        jLabel15.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel15.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel15.setText("REVISION:  ");
-        jPanel11.add(jLabel15);
-
-        jLabel16.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel16.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel16.setText("NO. PARTE:  ");
-        jPanel11.add(jLabel16);
-
-        jLabel18.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel18.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel18.setText("DESCRIPCION:  ");
-        jPanel11.add(jLabel18);
-
-        jLabel17.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel17.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel17.setText("MATERIAL:  ");
-        jPanel11.add(jLabel17);
-
-        jLabel20.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel20.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel20.setText("DUREZA:  ");
-        jPanel11.add(jLabel20);
-
-        jLabel19.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel19.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel19.setText("MAQUINA:  ");
-        jPanel11.add(jLabel19);
-
-        jLabel22.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel22.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel22.setText("NO. ENSAMBLE:  ");
-        jPanel11.add(jLabel22);
-
-        jLabel21.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel21.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel21.setText("TRATAMIENTO:  ");
-        jPanel11.add(jLabel21);
-
-        jLabel24.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel24.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel24.setText("CANTIDAD:  ");
-        jPanel11.add(jLabel24);
-
-        jLabel25.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel25.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel25.setText("DIMENSION:  ");
-        jPanel11.add(jLabel25);
-
-        jLabel23.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel23.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel23.setText("TOLERANCIA: ");
-        jPanel11.add(jLabel23);
-
         jPanel3.add(jPanel11, java.awt.BorderLayout.WEST);
 
         jPanel12.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel12.setLayout(new java.awt.GridLayout(20, 0, 0, 10));
+        java.awt.GridBagLayout jPanel12Layout = new java.awt.GridBagLayout();
+        jPanel12Layout.columnWeights = new double[] {0.0, 1.0};
+        jPanel12Layout.rowWeights = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+        jPanel12.setLayout(jPanel12Layout);
 
+        jLabel3.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel3.setText("Proyecto:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel3, gridBagConstraints);
+
+        txtProyecto.setBackground(new java.awt.Color(255, 255, 255));
         txtProyecto.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
         txtProyecto.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        txtProyecto.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
         txtProyecto.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 txtProyectoActionPerformed(evt);
@@ -1689,222 +1276,231 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
                 txtProyectoKeyTyped(evt);
             }
         });
-        jPanel12.add(txtProyecto);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtProyecto, gridBagConstraints);
 
-        c.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        c.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        c.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        c.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                cKeyTyped(evt);
-            }
-        });
-        jPanel12.add(c);
+        jLabel15.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel15.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel15.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel15.setText("Revision: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel15, gridBagConstraints);
 
-        d.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        d.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        d.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        d.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtRevision.setBackground(new java.awt.Color(255, 255, 255));
+        txtRevision.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtRevision.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtRevision.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                dKeyTyped(evt);
+                txtRevisionKeyTyped(evt);
             }
         });
-        jPanel12.add(d);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtRevision, gridBagConstraints);
 
-        e.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        e.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        e.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        e.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                eKeyTyped(evt);
-            }
-        });
-        jPanel12.add(e);
+        jLabel16.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel16.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel16.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel16.setText("No. Parte:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel16, gridBagConstraints);
 
-        f.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        f.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        f.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        f.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtParte.setBackground(new java.awt.Color(255, 255, 255));
+        txtParte.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtParte.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtParte.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                fKeyTyped(evt);
+                txtParteKeyTyped(evt);
             }
         });
-        jPanel12.add(f);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtParte, gridBagConstraints);
 
-        g.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        g.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        g.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        g.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                gKeyTyped(evt);
-            }
-        });
-        jPanel12.add(g);
+        jLabel18.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel18.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel18.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel18.setText("Descripcion: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel18, gridBagConstraints);
 
-        h.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        h.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        h.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        h.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtDescripcion.setBackground(new java.awt.Color(255, 255, 255));
+        txtDescripcion.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtDescripcion.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtDescripcion.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                hKeyTyped(evt);
+                txtDescripcionKeyTyped(evt);
             }
         });
-        jPanel12.add(h);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtDescripcion, gridBagConstraints);
 
-        i1.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        i1.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        i1.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        i1.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                i1KeyTyped(evt);
-            }
-        });
-        jPanel12.add(i1);
+        jLabel17.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel17.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel17.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel17.setText("Material: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel17, gridBagConstraints);
 
-        j.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        j.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        j.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        j.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtMaterial.setBackground(new java.awt.Color(255, 255, 255));
+        txtMaterial.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtMaterial.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtMaterial.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                jKeyTyped(evt);
+                txtMaterialKeyTyped(evt);
             }
         });
-        jPanel12.add(j);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtMaterial, gridBagConstraints);
 
-        k.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        k.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        k.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        k.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                kKeyTyped(evt);
-            }
-        });
-        jPanel12.add(k);
+        jLabel20.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel20.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel20.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel20.setText("Dureza: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel20, gridBagConstraints);
 
-        l.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        l.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        l.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        l.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtDureza.setBackground(new java.awt.Color(255, 255, 255));
+        txtDureza.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtDureza.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtDureza.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                lKeyTyped(evt);
+                txtDurezaKeyTyped(evt);
             }
         });
-        jPanel12.add(l);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtDureza, gridBagConstraints);
 
-        m.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        m.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        m.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        m.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                mKeyTyped(evt);
-            }
-        });
-        jPanel12.add(m);
+        jLabel22.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel22.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel22.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel22.setText("No. Ensamble: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel22, gridBagConstraints);
 
-        n.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        n.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        n.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        n.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtEnsamble.setBackground(new java.awt.Color(255, 255, 255));
+        txtEnsamble.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtEnsamble.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtEnsamble.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                nKeyTyped(evt);
+                txtEnsambleKeyTyped(evt);
             }
         });
-        jPanel12.add(n);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtEnsamble, gridBagConstraints);
 
-        o.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        o.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        o.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        o.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                oKeyTyped(evt);
-            }
-        });
-        jPanel12.add(o);
+        jLabel21.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel21.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel21.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel21.setText("Tratamiento:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 7;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel21, gridBagConstraints);
 
-        p.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        p.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        p.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        p.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                pActionPerformed(evt);
-            }
-        });
-        p.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtTratamiento.setBackground(new java.awt.Color(255, 255, 255));
+        txtTratamiento.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtTratamiento.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtTratamiento.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                pKeyTyped(evt);
+                txtTratamientoKeyTyped(evt);
             }
         });
-        jPanel12.add(p);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 7;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtTratamiento, gridBagConstraints);
 
-        q.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        q.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        q.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        q.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                qKeyTyped(evt);
-            }
-        });
-        jPanel12.add(q);
+        jLabel24.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel24.setForeground(new java.awt.Color(51, 51, 51));
+        jLabel24.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel24.setText("Cantidad: ");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        jPanel12.add(jLabel24, gridBagConstraints);
 
-        r.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        r.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        r.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        r.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtCantidad.setBackground(new java.awt.Color(255, 255, 255));
+        txtCantidad.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        txtCantidad.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtCantidad.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
-                rKeyTyped(evt);
+                txtCantidadKeyTyped(evt);
             }
         });
-        jPanel12.add(r);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 15, 4, 15);
+        jPanel12.add(txtCantidad, gridBagConstraints);
 
-        s.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        s.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        s.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        s.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                sKeyTyped(evt);
-            }
-        });
-        jPanel12.add(s);
+        jPanel8.setBackground(new java.awt.Color(255, 255, 255));
 
-        t.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        t.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        t.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        t.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                tKeyTyped(evt);
-            }
-        });
-        jPanel12.add(t);
+        btnBOM.setBackground(new java.awt.Color(255, 255, 255));
+        btnBOM.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        btnBOM.setForeground(new java.awt.Color(51, 51, 51));
+        btnBOM.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/BOM_16.png"))); // NOI18N
+        btnBOM.setText("BOM detectado");
+        btnBOM.setEnabled(false);
+        jPanel8.add(btnBOM);
 
-        txtTol.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        txtTol.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        txtTol.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        txtTol.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                txtTolKeyTyped(evt);
-            }
-        });
-        jPanel12.add(txtTol);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 9;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        jPanel12.add(jPanel8, gridBagConstraints);
 
         jPanel3.add(jPanel12, java.awt.BorderLayout.CENTER);
 
         jPanel13.setBackground(new java.awt.Color(255, 255, 255));
 
-        rSButtonRiple2.setText("Cancelar Plano");
-        rSButtonRiple2.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                rSButtonRiple2ActionPerformed(evt);
-            }
-        });
-        jPanel13.add(rSButtonRiple2);
+        jButton1.setBackground(new java.awt.Color(0, 102, 204));
+        jButton1.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jButton1.setForeground(new java.awt.Color(255, 255, 255));
+        jButton1.setText("Cancelar plano");
+        jPanel13.add(jButton1);
 
-        rSButtonRiple1.setText("Subir");
-        rSButtonRiple1.addActionListener(new java.awt.event.ActionListener() {
+        jButton2.setBackground(new java.awt.Color(0, 102, 204));
+        jButton2.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jButton2.setForeground(new java.awt.Color(255, 255, 255));
+        jButton2.setText("Subir");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                rSButtonRiple1ActionPerformed(evt);
+                jButton2ActionPerformed(evt);
             }
         });
-        jPanel13.add(rSButtonRiple1);
+        jPanel13.add(jButton2);
 
         jPanel3.add(jPanel13, java.awt.BorderLayout.SOUTH);
 
@@ -1918,9 +1514,10 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         jPanel5.setLayout(new java.awt.BorderLayout());
 
         jPanel6.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
 
-        jLabel26.setFont(new java.awt.Font("Roboto", 1, 40)); // NOI18N
-        jLabel26.setForeground(new java.awt.Color(0, 165, 252));
+        jLabel26.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel26.setForeground(new java.awt.Color(0, 102, 204));
         jLabel26.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel26.setText("Diseño");
         jPanel6.add(jLabel26);
@@ -2035,80 +1632,38 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void dKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_dKeyTyped
+
+    private void txtRevisionKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtRevisionKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_dKeyTyped
+    }//GEN-LAST:event_txtRevisionKeyTyped
 
-    private void eKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_eKeyTyped
+    private void txtParteKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtParteKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_eKeyTyped
+    }//GEN-LAST:event_txtParteKeyTyped
 
-    private void fKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_fKeyTyped
+    private void txtMaterialKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtMaterialKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_fKeyTyped
+    }//GEN-LAST:event_txtMaterialKeyTyped
 
-    private void gKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_gKeyTyped
+    private void txtDescripcionKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDescripcionKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_gKeyTyped
+    }//GEN-LAST:event_txtDescripcionKeyTyped
 
-    private void hKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_hKeyTyped
+    private void txtDurezaKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtDurezaKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_hKeyTyped
+    }//GEN-LAST:event_txtDurezaKeyTyped
 
-    private void i1KeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_i1KeyTyped
+    private void txtEnsambleKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtEnsambleKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_i1KeyTyped
+    }//GEN-LAST:event_txtEnsambleKeyTyped
 
-    private void jKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jKeyTyped
+    private void txtTratamientoKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtTratamientoKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_jKeyTyped
+    }//GEN-LAST:event_txtTratamientoKeyTyped
 
-    private void btnImportarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImportarActionPerformed
-        importarDocs();
-    }//GEN-LAST:event_btnImportarActionPerformed
-
-
-    private void cKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_cKeyTyped
-        char c = evt.getKeyChar();
-        if (c < '0' || c > '9')
-            evt.consume();
-    }//GEN-LAST:event_cKeyTyped
-
-    private void kKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_kKeyTyped
+    private void txtCantidadKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtCantidadKeyTyped
         // TODO add your handling code here:
-    }//GEN-LAST:event_kKeyTyped
-
-    private void lKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_lKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_lKeyTyped
-
-    private void nKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_nKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_nKeyTyped
-
-    private void mKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_mKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_mKeyTyped
-
-    private void oKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_oKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_oKeyTyped
-
-    private void pKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_pKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_pKeyTyped
-
-    private void qKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_qKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_qKeyTyped
-
-    private void rKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_rKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_rKeyTyped
-
-    private void sKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_sKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_sKeyTyped
+    }//GEN-LAST:event_txtCantidadKeyTyped
 
     private void lblXMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblXMouseClicked
         dispose();
@@ -2124,18 +1679,10 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         lblX.setForeground(Color.black);
     }//GEN-LAST:event_lblXMouseExited
 
-    private void tKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tKeyTyped
-
     private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
         dis dis = new dis();
         dis.setVisible(true);
     }//GEN-LAST:event_jMenuItem1ActionPerformed
-
-    private void txtTolKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtTolKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtTolKeyTyped
 
     private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
 
@@ -2144,18 +1691,6 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
     private void imgMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_imgMouseClicked
         img.aumentar();
     }//GEN-LAST:event_imgMouseClicked
-
-    private void rSButtonRiple1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rSButtonRiple1ActionPerformed
-        iniciar();
-    }//GEN-LAST:event_rSButtonRiple1ActionPerformed
-
-    private void pActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_pActionPerformed
-
-    private void rSButtonRiple2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rSButtonRiple2ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_rSButtonRiple2ActionPerformed
 
     private void imgMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_imgMouseEntered
 
@@ -2195,7 +1730,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
     }//GEN-LAST:event_jPanel10MouseExited
 
     private void lblAtrasMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblAtrasMouseClicked
-        InicioDiseño c = new InicioDiseño(inicio);
+        InicioDiseño c = new InicioDiseño(inicio, inicio.lblId.getText());
         inicio.jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(inicio.jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, inicio.jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
@@ -2216,43 +1751,30 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         // TODO add your handling code here:
     }//GEN-LAST:event_lblAtrasMouseExited
 
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        iniciar();
+    }//GEN-LAST:event_jButton2ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPopupMenu botonesPlanos;
     private javax.swing.JMenuItem btn3i;
-    public javax.swing.JButton btnImportar;
+    private javax.swing.JButton btnBOM;
     private javax.swing.JPanel btnSalir;
     private javax.swing.JPanel btnSalir1;
-    private javax.swing.JTextField c;
-    private javax.swing.JTextField d;
-    private javax.swing.JTextField e;
-    private javax.swing.JTextField f;
-    private javax.swing.JTextField g;
-    private javax.swing.JTextField h;
-    private javax.swing.JTextField i1;
     private mivisorpdf.CuadroImagen img;
-    private javax.swing.JTextField j;
-    private javax.swing.JLabel jLabel10;
-    private javax.swing.JLabel jLabel11;
-    private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel13;
-    private javax.swing.JLabel jLabel14;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel18;
-    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel22;
-    private javax.swing.JLabel jLabel23;
     private javax.swing.JLabel jLabel24;
-    private javax.swing.JLabel jLabel25;
     private javax.swing.JLabel jLabel26;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel7;
-    private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
@@ -2276,52 +1798,44 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
     private javax.swing.JPanel jPanel9;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTextField k;
-    private javax.swing.JTextField l;
     private javax.swing.JLabel lblAtras;
     public javax.swing.JLabel lblLogo;
     private javax.swing.JLabel lblX;
-    private javax.swing.JTextField m;
-    private javax.swing.JTextField n;
-    private javax.swing.JTextField o;
-    private javax.swing.JTextField p;
     private javax.swing.JPanel panel3i;
     private javax.swing.JPanel panelCard;
-    private javax.swing.JTextField q;
-    private javax.swing.JTextField r;
-    private rojeru_san.RSButtonRiple rSButtonRiple1;
-    private rojeru_san.RSButtonRiple rSButtonRiple2;
-    private javax.swing.JTextField s;
-    private javax.swing.JTextField t;
+    private javax.swing.JTextField txtCantidad;
+    private javax.swing.JTextField txtDescripcion;
+    private javax.swing.JTextField txtDureza;
+    private javax.swing.JTextField txtEnsamble;
+    private javax.swing.JTextField txtMaterial;
+    private javax.swing.JTextField txtParte;
     private javax.swing.JTextField txtProyecto;
-    private javax.swing.JTextField txtTol;
+    private javax.swing.JTextField txtRevision;
+    private javax.swing.JTextField txtTratamiento;
     // End of variables declaration//GEN-END:variables
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (datosHoras != null) {
-            if (e.getSource() == datosHoras.btnGuardar) {
-                if (datosHoras.d.getText().equals("")) {
-                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Fresadora");
-                } else if (datosHoras.e.getText().equals("")) {
-                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Torno");
-                } else if (datosHoras.f.getText().equals("")) {
-                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Cnc");
-                } else if (datosHoras.s.getText().equals("")) {
-                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Cantidad");
-                } else if (datosHoras.k.getText().equals("")) {
-                    JOptionPane.showMessageDialog(this, "Debes llenar la Revision");
-                } else {
-                    bandDatosHoras = true;
-                    d.setText(datosHoras.d.getText());
-                    this.e.setText(datosHoras.e.getText());
-                    f.setText(datosHoras.f.getText());
-                    s.setText(datosHoras.s.getText());
-                    k.setText(datosHoras.k.getText());
-                    datosHoras.dispose();
-                }
-            }
-        }
+//        if (datosHoras != null) {
+//            if (e.getSource() == datosHoras.btnGuardar) {
+//                if (datosHoras.d.getText().equals("")) {
+//                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Fresadora");
+//                } else if (datosHoras.e.getText().equals("")) {
+//                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Torno");
+//                } else if (datosHoras.f.getText().equals("")) {
+//                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Cnc");
+//                } else if (datosHoras.s.getText().equals("")) {
+//                    JOptionPane.showMessageDialog(this, "Debes llenar horas de Cantidad");
+//                } else if (datosHoras.k.getText().equals("")) {
+//                    JOptionPane.showMessageDialog(this, "Debes llenar la Revision");
+//                } else {
+//                    bandDatosHoras = true;
+//                    txtCantidad.setText(datosHoras.s.getText());
+//                    txtRevision.setText(datosHoras.k.getText());
+//                    datosHoras.dispose();
+//                }
+//            }
+//        }
     }
 
     @Override
@@ -2333,60 +1847,29 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
             }
             if (e.getSource() == botones[i]) {
                 if (!botones[i].getForeground().equals(new Color(210, 210, 210))) {
-                    c.setText("");
-                    d.setText("");
-                    this.e.setText("");
-                    f.setText("");
-                    g.setText("");
-                    h.setText("");
-                    i1.setText("");
-                    j.setText("");
-                    k.setText("");
-                    l.setText("");
-                    m.setText("");
-                    n.setText("");
-                    o.setText("");
-                    p.setText("");
-                    q.setText("");
-                    r.setText("");
-                    s.setText("");
-                    t.setText("");
+                    txtRevision.setText("");
+                    txtParte.setText("");
+                    txtDescripcion.setText("");
+                    txtMaterial.setText("");
+                    txtDureza.setText("");
+                    txtEnsamble.setText("");
+                    txtTratamiento.setText("");
+                    txtCantidad.setText("");
                     botones[i].setForeground(new Color(0, 165, 255));
                     seleccionado = i;
                     verPlano(archivos[i]);
-                    if (botones[i].getName().equals("align")) {
-                        subirAlignV2(archivos[i]);
-                    } else if (botones[i].getName().equals("durol")) {
-                        subirDurolV2(archivos[i]);
-                    } else if (botones[i].getName().equals("3i")) {
-                        subir3i(archivos[i]);
-                    } else {
-                        botones[i].setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/3i_16.png"))); // NOI18N
-                        subir3i(archivos[i]);
-                    }
                 } else {
-                    c.setText("");
-                    d.setText("");
-                    this.e.setText("");
-                    f.setText("");
-                    g.setText("");
-                    h.setText("");
-                    i1.setText("");
-                    j.setText("");
-                    k.setText("");
-                    l.setText("");
-                    m.setText("");
-                    n.setText("");
-                    o.setText("");
-                    p.setText("");
-                    q.setText("");
-                    r.setText("");
-                    s.setText("");
-                    t.setText("");
+                    txtRevision.setText("");
+                    txtParte.setText("");
+                    txtDescripcion.setText("");
+                    txtMaterial.setText("");
+                    txtDureza.setText("");
+                    txtEnsamble.setText("");
+                    txtTratamiento.setText("");
+                    txtCantidad.setText("");
                     botones[i].setForeground(new Color(0, 165, 255));
                     seleccionado = i;
                     verPlano(archivos[i]);
-                    subir3i(archivos[i]);
                 }
             }
         }

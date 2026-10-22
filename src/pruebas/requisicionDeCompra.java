@@ -23,8 +23,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -103,54 +107,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         return comprobar;
     }
 
-    public boolean buscarTornillos() {
-        boolean ban = false;
-        String cadenaDondeBuscar;
-        String pal = "";
-        try {
-
-            Connection con;
-            ConexionChat con1 = new ConexionChat();
-            con = con1.getConnection();
-            Statement st = con.createStatement();
-            String sql = "select * from palabras";
-            ResultSet rs = st.executeQuery(sql);
-            while (rs.next()) {
-                cadenaDondeBuscar = rs.getString("palabra");
-                String loQueQuieroBuscar = txtDescripcion.getText().toUpperCase();
-                String[] palabras = loQueQuieroBuscar.split("\\W+");
-                for (String palabra : palabras) {
-                    if (cadenaDondeBuscar.equals(palabra)) {
-                        ban = true;
-                        pal = cadenaDondeBuscar;
-
-                    }
-                }
-            }
-            Conexion c = new Conexion();
-            Connection con2 = c.getConnection();
-            String sql2 = "select * from registroempleados where NumEmpleado like '" + numEmpleado + "'";
-            Statement st2 = con2.createStatement();
-            ResultSet rs2 = st2.executeQuery(sql2);
-            String numero = "";
-            while (rs2.next()) {
-                numero = rs2.getString("Almacen");
-            }
-            if (numero.equals("SI")) {
-                ban = false;
-            }
-            if (ban == true) {
-                JOptionPane.showMessageDialog(this, "EL ARTICULO '" + pal + "' ESTA BLOQUEADO", "ADVERTENCIA", JOptionPane.ERROR_MESSAGE);
-            }
-        } catch (SQLException e) {
-            System.out.println("ERROR: " + e);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(requisicionDeCompra.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        return ban;
-    }
-
     public void empleado(String numEmpleado) {
         try {
             Connection con = null;
@@ -182,9 +138,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     public void autoCompletarProyecto() {
         ac1 = new TextAutoCompleter(txtProyecto);
         try {
-            Connection con = null;
-            Conexion con1 = new Conexion();
-            con = con1.getConnection();
+            Connection con = new Conexion().getConnection();
             Statement st = con.createStatement();
             String sql = "select Proyecto from proyectos";
             String datos[] = new String[10];
@@ -267,7 +221,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         }
         return 0;
     }
-    
+
     public void limpiarTabla() {
         Tabla1.setModel(new javax.swing.table.DefaultTableModel(
                 new Object[][]{},
@@ -328,7 +282,159 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         cant += cantTabla;
         tabla.setValueAt(cant, fila, 1);
     }
-    
+
+    public int buscarColumna(JTable tabla, String nombreColumna) {
+        for (int i = 0; i < tabla.getColumnCount(); i++) {
+            if (tabla.getColumnName(i).toUpperCase().contains(nombreColumna.toUpperCase())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public final void agregarElementosTabla(JTable lista, String proyecto) {
+        validarProyecto(proyecto);
+        fecha.setVisible(false);
+        for (int i = 0; i < lista.getRowCount(); i++) {
+            String uma = "Pza";
+            int d = buscarColumna(lista, "desc");
+            int c = buscarColumna(lista, "cant");
+            int p = buscarColumna(lista, "piez");
+            String desc = lista.getValueAt(i, d).toString();
+            String cant = lista.getValueAt(i, c).toString();
+            String part = lista.getValueAt(i, p).toString();
+            if (desc.isEmpty() || cant.isEmpty() || part.isEmpty()) {
+                JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+                EditarArticuloRequisicion editar = new EditarArticuloRequisicion(f, true, ac1);
+                editar.setLocationRelativeTo(f);
+                editar.txtCantidad.setText(cant);
+                editar.txtCodigo.setText(part);
+                editar.txtDescripcion.setText(desc);
+                editar.txtProyecto.setText(proyecto);
+                editar.txtUM.setText("Pza");
+                editar.txtProveedor.setText("");
+                editar.txtFecha.setDatoFecha(null);
+                String edit[] = editar.getEdit();
+                if (edit != null) {
+                    cant = edit[1];//cantidad
+                    part = edit[2];//codigo
+                    desc = edit[3];//descripcion
+                    uma = edit[5];//UM
+                }
+            }
+            agregarItem(part, cant, desc, uma);
+        }
+        fecha.setVisible(true);
+    }
+
+    public final void validarProyecto(String proyecto) {
+        try {
+            Connection con = new Conexion().getConnection();
+            Statement st = con.createStatement();
+            String sql = "select * from Proyectos where Proyecto like '" + proyecto + "'";
+            ResultSet rs = st.executeQuery(sql);
+            String datos[] = new String[10];
+            while (rs.next()) {
+                datos[0] = rs.getString("Proyecto");
+            }
+            if (proyecto.equals(datos[0]) || proyecto.equals("MATERIAL DE OFICINA") || proyecto.equals("MATERIAL DE LIMPIEZA") || proyecto.equals("MATERIAL DE MANTENIMIENTO") || proyecto.equals("HERRAMIENTAS") || proyecto.equals("SEGURIDAD") || proyecto.equals("VENTAS")) {
+                txtProyecto.setText(proyecto);
+                txtProyecto.setEditable(false);
+                txtProyecto.setForeground(java.awt.Color.blue);
+                btnX2.setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(this, "ESTE PROYECTO NO ESTA EN LA BASE DE DATOS");
+                txtProyecto.setText("");
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "ERROR: " + e);
+        }
+    }
+
+    public final void agregarItem(String codigo, String cantidad, String descripcion, String um) {
+        boolean band = false;
+        for (int i = 0; i < Tabla1.getRowCount(); i++) {
+            if (codigo.equals(Tabla1.getValueAt(i, 2).toString())) {
+                band = true;
+                agregarArticulo(Tabla1, cantidad, i);
+            }
+        }
+        if (!band) {
+            if (fecha.isVisible() && fecha.getDate() == null) {
+                JOptionPane.showMessageDialog(this, "Debes seleccionar la fecha esperada", "Advertencia", JOptionPane.ERROR_MESSAGE);
+            } else if (codigo.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debes ingresar codigo", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+            } else if (descripcion.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debes ingresar descripcion", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+            } else if (!btnX2.isVisible()) {
+                JOptionPane.showMessageDialog(this, "Debes ingresar el proyecto", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+            } else if (cantidad.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debes ingresar la cantidad", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+            } else if (um.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Debes ingresar la unidad de medida", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
+            } else {
+                String datos[] = new String[20];
+                DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
+                DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+                datos[0] = "";
+                datos[1] = cantidad;
+                datos[2] = codigo;
+                datos[3] = descripcion;
+                datos[4] = txtProyecto.getText();
+                datos[5] = um;
+                datos[6] = "";
+                datos[7] = "";
+                if (fecha.isVisible()) {
+                    datos[8] = df.format(fecha.getDate());
+                } else {
+                    datos[8] = null;
+                }
+                try {
+                    Connection con;
+                    Conexion con1 = new Conexion();
+                    con = con1.getConnection();
+                    Statement st = con.createStatement();
+                    String sql = "select * from inventario where NumeroDeParte like '" + codigo + "'";
+                    ResultSet rs = st.executeQuery(sql);
+                    String datos1[] = new String[10];
+                    while (rs.next()) {
+                        datos1[1] = rs.getString("NumeroDeParte");
+                        datos1[2] = rs.getString("proveedor");
+                        datos1[3] = rs.getString("um");
+                    }
+                    datos[5] = datos1[3];
+                    datos[6] = datos1[2];
+                    if (!codigo.equals(datos1[1])) {
+
+                        String sql1 = "insert into inventario (NumeroDeParte, Descripcion, Cantidad) values (?,?,?)";
+                        PreparedStatement pst = con.prepareStatement(sql1);
+
+                        pst.setString(1, codigo);
+                        pst.setString(2, descripcion);
+                        pst.setString(3, "0");
+
+                        pst.executeUpdate();
+                    }
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this, "ERROR: " + e);
+                }
+                miModelo.addRow(datos);
+                txtCantidad.setText("");
+                txtDescripcion.setText("");
+                parte = "";
+                txtCodigo.setText("");
+                fecha.setDate(null);
+            }
+        } else {
+            txtCantidad.setText("");
+            txtDescripcion.setText("");
+            parte = "";
+            txtCodigo.setText("");
+            fecha.setDate(null);
+        }
+    }
+
     public requisicionDeCompra(String numero, String nombre) {
         initComponents();
         Date fechaIn = new Date();
@@ -357,6 +463,14 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
 
         jScrollPane2.getViewport().setBackground(new Color(255, 255, 255));
         jScrollPane2.setVerticalScrollBar(new ScrollBarCustom(new Color(0, 165, 255)));
+
+//        List<String[]> listaBOM = new ArrayList<>();
+//        listaBOM.add(new String[]{"TSM10x5", "tornillo socket milimetrico", "4"});
+//        listaBOM.add(new String[]{"TSM10x10", "tornillo socket milimetrico", "4"});
+//        listaBOM.add(new String[]{"TSM10x15", "tornillo socket milimetrico", "4"});
+//        listaBOM.add(new String[]{"TSM10x20", "tornillo socket milimetrico", "4"});
+//        listaBOM.add(new String[]{"TSM10x25", "tornillo socket milimetrico", "4"});
+//        agregarElementosTabla(listaBOM, "1788 051026");
     }
 
     @SuppressWarnings("unchecked")
@@ -412,7 +526,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         jPanel24 = new javax.swing.JPanel();
         rbFecha = new javax.swing.JRadioButton();
         jLabel1 = new javax.swing.JLabel();
-        fecha = new rojeru_san.rsdate.RSDateChooser();
+        fecha = new com.github.lgooddatepicker.components.DatePicker();
         jPanel25 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         txtDescripcion = new javax.swing.JTextArea();
@@ -427,8 +541,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         jPanel13 = new javax.swing.JPanel();
         jPanel20 = new javax.swing.JPanel();
         btnAgregar = new javax.swing.JButton();
-        jPanel23 = new javax.swing.JPanel();
-        btnAgregar1 = new javax.swing.JButton();
         jLabel16 = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
         panelTabla = new javax.swing.JPanel();
@@ -440,9 +552,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         btnEliminar = new javax.swing.JButton();
         btnEditar = new javax.swing.JButton();
         jMenuBar1 = new javax.swing.JMenuBar();
-        jMenu1 = new javax.swing.JMenu();
-        jMenu2 = new javax.swing.JMenu();
-        importarExcel = new javax.swing.JMenuItem();
 
         Editar.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
         Editar.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Imagenes/edit.png"))); // NOI18N
@@ -467,7 +576,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
 
         panelSalir.setBackground(new java.awt.Color(255, 255, 255));
 
-        lblSalir.setFont(new java.awt.Font("Roboto", 1, 18)); // NOI18N
+        lblSalir.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
         lblSalir.setText(" X ");
         lblSalir.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         lblSalir.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -491,11 +600,12 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         jPanel2.setLayout(new java.awt.BorderLayout());
 
         jPanel21.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel21.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
 
         jPanel22.setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel17.setFont(new java.awt.Font("Roboto", 1, 48)); // NOI18N
-        jLabel17.setForeground(new java.awt.Color(0, 165, 252));
+        jLabel17.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        jLabel17.setForeground(new java.awt.Color(0, 102, 204));
         jLabel17.setText("Requisicion");
         jPanel22.add(jLabel17);
 
@@ -736,11 +846,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel1.setText("Fecha esperada");
         jPanel24.add(jLabel1, java.awt.BorderLayout.CENTER);
-
-        fecha.setFormatoFecha("dd-MM-yyyy");
-        fecha.setFuente(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        fecha.setPreferredSize(new java.awt.Dimension(130, 40));
-        jPanel24.add(fecha, java.awt.BorderLayout.PAGE_END);
+        jPanel24.add(fecha, java.awt.BorderLayout.SOUTH);
 
         jPanel10.add(jPanel24, java.awt.BorderLayout.EAST);
 
@@ -824,7 +930,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         jPanel13.setLayout(new java.awt.BorderLayout());
 
         jPanel20.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel20.setLayout(new javax.swing.BoxLayout(jPanel20, javax.swing.BoxLayout.LINE_AXIS));
+        jPanel20.setLayout(new java.awt.GridBagLayout());
 
         btnAgregar.setBackground(new java.awt.Color(255, 255, 255));
         btnAgregar.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
@@ -839,29 +945,9 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
                 btnAgregarActionPerformed(evt);
             }
         });
-        jPanel20.add(btnAgregar);
+        jPanel20.add(btnAgregar, new java.awt.GridBagConstraints());
 
-        jPanel13.add(jPanel20, java.awt.BorderLayout.WEST);
-
-        jPanel23.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel23.setLayout(new javax.swing.BoxLayout(jPanel23, javax.swing.BoxLayout.LINE_AXIS));
-
-        btnAgregar1.setBackground(new java.awt.Color(255, 255, 255));
-        btnAgregar1.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
-        btnAgregar1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/agregar.png"))); // NOI18N
-        btnAgregar1.setToolTipText("Agregar con varios proyectos");
-        btnAgregar1.setBorder(null);
-        btnAgregar1.setBorderPainted(false);
-        btnAgregar1.setContentAreaFilled(false);
-        btnAgregar1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnAgregar1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnAgregar1ActionPerformed(evt);
-            }
-        });
-        jPanel23.add(btnAgregar1);
-
-        jPanel13.add(jPanel23, java.awt.BorderLayout.CENTER);
+        jPanel13.add(jPanel20, java.awt.BorderLayout.CENTER);
 
         jPanel14.add(jPanel13);
 
@@ -1006,23 +1092,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         jPanel16.add(jPanel17, java.awt.BorderLayout.CENTER);
 
         getContentPane().add(jPanel16, java.awt.BorderLayout.CENTER);
-
-        jMenu1.setText("Arcvhivo");
-        jMenuBar1.add(jMenu1);
-
-        jMenu2.setText("Opciones");
-
-        importarExcel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/excel_1.png"))); // NOI18N
-        importarExcel.setText("Importar Excel");
-        importarExcel.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                importarExcelActionPerformed(evt);
-            }
-        });
-        jMenu2.add(importarExcel);
-
-        jMenuBar1.add(jMenu2);
-
         setJMenuBar(jMenuBar1);
 
         pack();
@@ -1069,94 +1138,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     }//GEN-LAST:event_txtNumeroEmpleadoActionPerformed
 
     private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
-        boolean band = false;
-        if (buscarTornillos() == false) {
-            for (int i = 0; i < TablaReal.getRowCount(); i++) {
-                if (txtCodigo.getText().equals(TablaReal.getValueAt(i, 2).toString())) {
-                    band = true;
-                    agregarArticulo(TablaReal, txtCantidad.getText(), i);
-                }
-            }
-            for (int i = 0; i < Tabla1.getRowCount(); i++) {
-                if (txtCodigo.getText().equals(Tabla1.getValueAt(i, 2).toString())) {
-                    band = true;
-                    agregarArticulo(Tabla1, txtCantidad.getText(), i);
-                }
-            }
-            
-            if (!band) {
-                if (fecha.isVisible() && fecha.getDatoFecha() == null) {
-                    JOptionPane.showConfirmDialog(this, "Debes seleccionar la fecha esperada", "Error", JOptionPane.ERROR_MESSAGE);
-                } else if (txtCodigo.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE CODIGO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-                } else if (txtDescripcion.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE DESCRIPCION", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-                } else if (!btnX2.isVisible()) {
-                    JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE PROYECTYO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-                } else if (txtCantidad.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE CANTIDAD", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-                } else if (txtUM.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE UM", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-                } else {
-                    String datos[] = new String[20];
-                    DefaultTableModel miModelo = (DefaultTableModel) Tabla1.getModel();
-                    DefaultTableModel Modelo = (DefaultTableModel) TablaReal.getModel();
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-
-                    datos[0] = parte;
-                    datos[1] = txtCantidad.getText();
-                    datos[2] = txtCodigo.getText();
-                    datos[3] = txtDescripcion.getText();
-                    datos[4] = txtProyecto.getText();
-                    datos[5] = txtUM.getText();
-                    datos[6] = proveedor;
-                    datos[7] = "";
-                    if (fecha.isVisible()) {
-                        datos[8] = sdf.format(fecha.getDatoFecha());
-                    } else {
-                        datos[8] = null;
-                    }
-                    try {
-                        Connection con;
-                        Conexion con1 = new Conexion();
-                        con = con1.getConnection();
-                        Statement st = con.createStatement();
-                        String sql = "select * from inventario where NumeroDeParte like '" + txtCodigo.getText() + "'";
-                        ResultSet rs = st.executeQuery(sql);
-                        String datos1[] = new String[10];
-                        while (rs.next()) {
-                            datos1[1] = rs.getString("NumeroDeParte");
-                        }
-                        if (!txtCodigo.getText().equals(datos1[1])) {
-
-                            String sql1 = "insert into inventario (NumeroDeParte, Descripcion, Cantidad) values (?,?,?)";
-                            PreparedStatement pst = con.prepareStatement(sql1);
-
-                            pst.setString(1, txtCodigo.getText());
-                            pst.setString(2, txtDescripcion.getText());
-                            pst.setString(3, "0");
-
-                            pst.executeUpdate();
-                        }
-                    } catch (SQLException e) {
-                        JOptionPane.showMessageDialog(this, "ERROR: " + e);
-                    }
-                    miModelo.addRow(datos);
-                    Modelo.addRow(datos);
-                    txtCantidad.setText("");
-                    txtDescripcion.setText("");
-                    parte = "";
-                    txtCodigo.setText("");
-                    fecha.setDatoFecha(null);
-                }
-            } else {
-                txtCantidad.setText("");
-                txtDescripcion.setText("");
-                parte = "";
-                txtCodigo.setText("");
-                fecha.setDatoFecha(null);
-            }
-        }
+        agregarItem(txtCodigo.getText(), txtCantidad.getText(), txtDescripcion.getText(), txtUM.getText());
     }//GEN-LAST:event_btnAgregarActionPerformed
 
     private void btnLimpiarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLimpiarActionPerformed
@@ -1229,12 +1211,12 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
                         }
 
                         String coti;
-                        if(pe == null){
+                        if (pe == null) {
                             coti = null;
-                        }else{
+                        } else {
                             coti = archivo.getName();
                         }
-                        
+
                         pst1.setString(1, numeroEmpleado);
                         pst1.setString(2, "PEDIDO");
                         pst1.setString(3, estado);
@@ -1258,8 +1240,8 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
                                 datos[1] = rs.getString("Id");
                             }
                             String id = datos[1];
-                            
-                            if(archivo != null){
+
+                            if (archivo != null) {
                                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                                 Date d = new Date();
                                 pst4.setString(1, id);
@@ -1269,7 +1251,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
 
                                 pst4.executeUpdate();
                             }
-                            
+
                             int n = 0;
                             int n2 = 0;
 
@@ -1424,28 +1406,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     }//GEN-LAST:event_btnGuardarActionPerformed
 
     private void txtProyectoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtProyectoActionPerformed
-        try {
-            Connection con = null;
-            Conexion con1 = new Conexion();
-            con = con1.getConnection();
-            Statement st = con.createStatement();
-            String sql = "select * from Proyectos where Proyecto like '" + txtProyecto.getText() + "'";
-            ResultSet rs = st.executeQuery(sql);
-            String datos[] = new String[10];
-            while (rs.next()) {
-                datos[0] = rs.getString("Proyecto");
-            }
-            if (txtProyecto.getText().equals(datos[0]) || txtProyecto.getText().equals("MATERIAL DE OFICINA") || txtProyecto.getText().equals("MATERIAL DE LIMPIEZA") || txtProyecto.getText().equals("MATERIAL DE MANTENIMIENTO") || txtProyecto.getText().equals("HERRAMIENTAS") || txtProyecto.getText().equals("SEGURIDAD") || txtProyecto.getText().equals("VENTAS")) {
-                txtProyecto.setEditable(false);
-                txtProyecto.setForeground(java.awt.Color.blue);
-                btnX2.setVisible(true);
-            } else {
-                JOptionPane.showMessageDialog(this, "ESTE PROYECTO NO ESTA EN LA BASE DE DATOS");
-                txtProyecto.setText("");
-            }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "ERROR: " + e);
-        }
+        validarProyecto(txtProyecto.getText());
     }//GEN-LAST:event_txtProyectoActionPerformed
 
     private void btnX2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnX2ActionPerformed
@@ -1500,135 +1461,11 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
         // TODO add your handling code here:
     }//GEN-LAST:event_txtSubirActionPerformed
 
-    private void importarExcelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_importarExcelActionPerformed
-         if (txtProyecto.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR EL CAMPO DE PROYECTO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-        } else {
-            archivoExcel = new JFileChooser();
-            archivoEx = null;
-            Workbook book = null;
-            DefaultTableModel modelo = (DefaultTableModel) Tabla1.getModel();
-            archivoExcel.setFileFilter(new FileNameExtensionFilter("Excel (*.xlsx)", "xlsx"));
-            if (archivoExcel.showDialog(null, "Abrir") == JFileChooser.APPROVE_OPTION) {
-                archivoEx = archivoExcel.getSelectedFile();
-                String arch = archivoEx.getAbsolutePath();
-                try {
-                    book = WorkbookFactory.create(new FileInputStream(arch));
-                    Sheet hoja = book.getSheetAt(0);
-                    Iterator FilaIterator = hoja.rowIterator();
-                    int IndiceFila = -1;
-                    int cont = -1;
-                    while (FilaIterator.hasNext()) {
-                        IndiceFila++;
-                        Row fila = (Row) FilaIterator.next();
-                        if (IndiceFila > 0) {
-
-                            cont++;
-                            Iterator ColumnaIterator = fila.cellIterator();
-                            Object[] ListaColumna = new Object[9999];
-
-                            modelo.addRow(ListaColumna);
-                            int IndiceColumna = -1;
-                            while (ColumnaIterator.hasNext()) {
-                                IndiceColumna++;
-                                Cell celda = (Cell) ColumnaIterator.next();
-                                if (IndiceColumna >= 0 && IndiceColumna < 4) {
-                                    String a = "";
-
-                                    switch (celda.getCellType()) {
-                                        case NUMERIC:
-                                            ListaColumna[IndiceColumna] = (celda.getNumericCellValue());
-                                            break;
-                                        case STRING:
-                                            ListaColumna[IndiceColumna] = celda.getStringCellValue();
-                                            break;
-                                        case BOOLEAN:
-                                            ListaColumna[IndiceColumna] = celda.getBooleanCellValue();
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                    System.out.println(IndiceColumna + ", " + ListaColumna[IndiceColumna]);
-                                    switch (IndiceColumna) {
-                                        case 0:
-                                            //CODIGO
-                                            Tabla1.setValueAt(ListaColumna[IndiceColumna], cont, 2);
-                                            break;
-                                        case 1:
-                                            //DESCRIPCION
-                                            Tabla1.setValueAt(ListaColumna[IndiceColumna], cont, 3);
-                                            break;
-                                        case 2:
-                                            //CANTIDAD
-                                            Tabla1.setValueAt(ListaColumna[IndiceColumna], cont, 1);
-                                            break;
-                                        case 4:
-                                            //PROVEEDOR
-                                            Tabla1.setValueAt(ListaColumna[IndiceColumna], cont, 6);
-                                            break;
-                                        case 3:
-                                            //PROVEEDOR
-                                            Tabla1.setValueAt(ListaColumna[IndiceColumna], cont, 5);
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-
-                    book.close();
-                } catch (Exception e) {
-                    JOptionPane.showMessageDialog(this, "ERROR AL CREAR LIBRO" + e, "ERROR", JOptionPane.ERROR_MESSAGE);
-                    Logger.getLogger(OrdenDeCompra.class.getName()).log(Level.SEVERE, null, e);
-
-                }
-
-            }
-
-        }
-        for (int i = 0; i < Tabla1.getRowCount(); i++) {
-            Tabla1.setValueAt(txtProyecto.getText(), i, 4);
-        }
-    }//GEN-LAST:event_importarExcelActionPerformed
-
     private void txtCantidadKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtCantidadKeyTyped
         char c = evt.getKeyChar();
         if (c < '0' || c > '9')
             evt.consume();
     }//GEN-LAST:event_txtCantidadKeyTyped
-
-    private void btnAgregar1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregar1ActionPerformed
-        boolean band = false;
-        for (int i = 0; i < TablaReal.getRowCount(); i++) {
-            if (txtCodigo.getText().equals(TablaReal.getValueAt(i, 2).toString())) {
-                band = true;
-            }
-        }
-        for (int i = 0; i < Tabla1.getRowCount(); i++) {
-            if (txtCodigo.getText().equals(TablaReal.getValueAt(i, 2).toString())) {
-                band = true;
-            }
-        }
-
-        if (band == true) {
-            JOptionPane.showMessageDialog(this, "ESTE NUMERO DE PARTE YA ESTA INCLUIDO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-            txtCodigo.setText("");
-            txtDescripcion.setText("");
-            txtCantidad.setText("");
-        } else if (txtCodigo.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES SELECCIONAR UN ARTICULO", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-        } else if (txtDescripcion.getText().equals("")) {
-            JOptionPane.showMessageDialog(this, "DEBES LLENAR LA DESCRIPCION", "ADVERTENCIA", JOptionPane.WARNING_MESSAGE);
-        } else {
-            JFrame frame = (JFrame) JOptionPane.getFrameForComponent(this);
-            esc = new Escoger(frame, true, txtCodigo.getText());
-            esc.btnGuardar.addActionListener(this);
-            esc.setVisible(true);
-        }
-    }//GEN-LAST:event_btnAgregar1ActionPerformed
 
     private void txtUMKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtUMKeyTyped
         // TODO add your handling code here:
@@ -1738,7 +1575,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     private javax.swing.JMenuItem Eliminar;
     private javax.swing.JTable Tabla1;
     private javax.swing.JButton btnAgregar;
-    private javax.swing.JButton btnAgregar1;
     private javax.swing.JButton btnEditar;
     private javax.swing.JButton btnEliminar;
     private javax.swing.JButton btnGuardar;
@@ -1747,8 +1583,7 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     private javax.swing.JButton btnX2;
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.ButtonGroup buttonGroup2;
-    private rojeru_san.rsdate.RSDateChooser fecha;
-    private javax.swing.JMenuItem importarExcel;
+    private com.github.lgooddatepicker.components.DatePicker fecha;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
@@ -1760,8 +1595,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
-    private javax.swing.JMenu jMenu1;
-    private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel10;
@@ -1778,7 +1611,6 @@ public class requisicionDeCompra extends javax.swing.JInternalFrame implements A
     private javax.swing.JPanel jPanel20;
     private javax.swing.JPanel jPanel21;
     private javax.swing.JPanel jPanel22;
-    private javax.swing.JPanel jPanel23;
     private javax.swing.JPanel jPanel24;
     private javax.swing.JPanel jPanel25;
     private javax.swing.JPanel jPanel3;

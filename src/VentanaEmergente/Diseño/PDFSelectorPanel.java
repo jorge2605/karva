@@ -12,21 +12,33 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.table.DefaultTableModel;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
 import pruebas.Disenio1;
+import technology.tabula.ObjectExtractor;
+import technology.tabula.Page;
+import technology.tabula.PageIterator;
+import technology.tabula.RectangularTextContainer;
+import technology.tabula.Ruling;
+import technology.tabula.Table;
+import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
 
 public class PDFSelectorPanel extends JPanel {
 
     private BufferedImage imagen;
     private float pdfWidth;
     private float pdfHeight;
-    private double zoom = 1.0;
+    public double zoom = 0.4;
     private Point inicio;
     private Point fin;
     private Rectangle seleccionPantalla;
@@ -37,6 +49,39 @@ public class PDFSelectorPanel extends JPanel {
     private int pdfAlto;
     public JLabel lbl;
     public JLabel coordenadas;
+    public boolean tabla = false;
+    public List<String[]> tablaBOM;
+
+    private List<String[]> obtenerTabla(File file, Rectangle rect) {
+        List<String[]> tabla = new ArrayList<>();
+        try (PDDocument document = PDDocument.load(file)) {
+            ObjectExtractor extractor = new ObjectExtractor(document);
+            PageIterator pages = extractor.extract();
+            Page page = pages.next();
+            technology.tabula.Rectangle area = new technology.tabula.Rectangle(rect.y, rect.x, rect.width, rect.height);
+            System.out.println(area);
+            Page pageArea = page.getArea(area);
+            SpreadsheetExtractionAlgorithm algorithm = new SpreadsheetExtractionAlgorithm();
+            List<Table> tables = algorithm.extract(pageArea);
+            for (Table table : tables) {
+                for (List<RectangularTextContainer> row : table.getRows()) {
+                    List<String> columnas = new ArrayList<>();
+                    for (RectangularTextContainer cell : row) {
+                        String texto = cell.getText().replace("\r", " ").replace("\n", " ").trim();
+                        columnas.add(texto);
+                    }
+                    if (!columnas.isEmpty()) {
+                        tabla.add(columnas.toArray(new String[0]));
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error al obtener tabla: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        return tabla;
+    }
 
     public PDFSelectorPanel(File file) {
         setBackground(Color.DARK_GRAY);
@@ -72,7 +117,11 @@ public class PDFSelectorPanel extends JPanel {
                     textStripper.extractRegions(page);
                     String extractedText = textStripper.getTextForRegion("myRegion");
                     String remplazo = extractedText.replace("*", "");
-                    lbl.setText(remplazo);
+                    if (tabla) {
+                        tablaBOM = obtenerTabla(file, rect);
+                    } else {
+                        lbl.setText(remplazo);
+                    }
                 } catch (IOException ex) {
                     Logger.getLogger(Disenio1.class.getName()).log(Level.SEVERE, null, ex);
                 }

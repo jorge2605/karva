@@ -9,6 +9,14 @@ import javax.swing.text.DocumentFilter;
 
 public final class DatosHoras extends javax.swing.JDialog {
 
+    public String cantidad = "";
+    
+    public String getCantidad() {
+        setVisible(true);
+        cantidad = s.getText();
+        return cantidad;
+    }
+    
     public JTextField soloNumeros(JTextField textField){
         ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
             @Override
@@ -17,7 +25,6 @@ public final class DatosHoras extends javax.swing.JDialog {
                 if (newText.matches("^[0-9]*$")) {
                     super.replace(fb, offset, length, text, attrs);
                 } else {
-                    // No se permite ingresar caracteres que no sean números
                     Toolkit.getDefaultToolkit().beep();
                 }
             }
@@ -28,35 +35,30 @@ public final class DatosHoras extends javax.swing.JDialog {
     public DatosHoras(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         initComponents();
-        soloNumeros(d);
-        soloNumeros(e);
-        soloNumeros(f);
+        soloNumeros(s);
     }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
-        jLabel8 = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
-        jLabel10 = new javax.swing.JLabel();
-        jLabel11 = new javax.swing.JLabel();
-        jLabel12 = new javax.swing.JLabel();
         jPanel4 = new javax.swing.JPanel();
-        d = new javax.swing.JTextField();
-        e = new javax.swing.JTextField();
-        f = new javax.swing.JTextField();
+        jLabel11 = new javax.swing.JLabel();
         s = new javax.swing.JTextField();
-        k = new javax.swing.JTextField();
         jPanel5 = new javax.swing.JPanel();
-        btnGuardar = new RSMaterialComponent.RSButtonMaterialRipple();
+        btnGuardar = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(580, 300));
+        setPreferredSize(new java.awt.Dimension(539, 150));
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
         jPanel1.setLayout(new java.awt.BorderLayout());
@@ -68,73 +70,33 @@ public final class DatosHoras extends javax.swing.JDialog {
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
         jPanel2.setLayout(new java.awt.BorderLayout());
 
-        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel3.setLayout(new java.awt.GridLayout(5, 0));
-
-        jLabel8.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel8.setText("FRESADORA:  ");
-        jPanel3.add(jLabel8);
-
-        jLabel9.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel9.setText("TORNO:  ");
-        jPanel3.add(jLabel9);
-
-        jLabel10.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel10.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel10.setText("CNC:  ");
-        jPanel3.add(jLabel10);
-
-        jLabel11.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel11.setText("CANTIDAD:");
-        jPanel3.add(jLabel11);
-
-        jLabel12.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
-        jLabel12.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        jLabel12.setText("REVISION: ");
-        jPanel3.add(jLabel12);
-
-        jPanel2.add(jPanel3, java.awt.BorderLayout.LINE_START);
-
         jPanel4.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel4.setLayout(new java.awt.GridLayout(5, 0));
+        java.awt.GridBagLayout jPanel4Layout = new java.awt.GridBagLayout();
+        jPanel4Layout.columnWeights = new double[] {0.0, 1.0};
+        jPanel4.setLayout(jPanel4Layout);
 
-        d.setBackground(new java.awt.Color(255, 255, 255));
-        d.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        d.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        d.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        jPanel4.add(d);
-
-        e.setBackground(new java.awt.Color(255, 255, 255));
-        e.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        e.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        e.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        jPanel4.add(e);
-
-        f.setBackground(new java.awt.Color(255, 255, 255));
-        f.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        f.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        f.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        jPanel4.add(f);
+        jLabel11.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
+        jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        jLabel11.setText("Ingresar cantidad");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 3;
+        jPanel4.add(jLabel11, gridBagConstraints);
 
         s.setBackground(new java.awt.Color(255, 255, 255));
-        s.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
+        s.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
         s.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        s.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        jPanel4.add(s);
-
-        k.setBackground(new java.awt.Color(255, 255, 255));
-        k.setFont(new java.awt.Font("Roboto", 0, 14)); // NOI18N
-        k.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-        k.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(204, 204, 204)));
-        k.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyTyped(java.awt.event.KeyEvent evt) {
-                kKeyTyped(evt);
+        s.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                sActionPerformed(evt);
             }
         });
-        jPanel4.add(k);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(4, 10, 4, 10);
+        jPanel4.add(s, gridBagConstraints);
 
         jPanel2.add(jPanel4, java.awt.BorderLayout.CENTER);
 
@@ -142,6 +104,9 @@ public final class DatosHoras extends javax.swing.JDialog {
 
         jPanel5.setBackground(new java.awt.Color(255, 255, 255));
 
+        btnGuardar.setBackground(new java.awt.Color(0, 102, 204));
+        btnGuardar.setFont(new java.awt.Font("Roboto", 1, 14)); // NOI18N
+        btnGuardar.setForeground(new java.awt.Color(255, 255, 255));
         btnGuardar.setText("Guardar");
         btnGuardar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -158,42 +123,19 @@ public final class DatosHoras extends javax.swing.JDialog {
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void kKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_kKeyTyped
-        // TODO add your handling code here:
-    }//GEN-LAST:event_kKeyTyped
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        s.setText("");
+    }//GEN-LAST:event_formWindowClosing
 
     private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
-        // TODO add your handling code here:
+        dispose();
     }//GEN-LAST:event_btnGuardarActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(DatosHoras.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(DatosHoras.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(DatosHoras.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(DatosHoras.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
+    private void sActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sActionPerformed
+        dispose();
+    }//GEN-LAST:event_sActionPerformed
 
-        /* Create and display the dialog */
+    public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 DatosHoras dialog = new DatosHoras(new javax.swing.JFrame(), true);
@@ -209,22 +151,13 @@ public final class DatosHoras extends javax.swing.JDialog {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    public RSMaterialComponent.RSButtonMaterialRipple btnGuardar;
-    public javax.swing.JTextField d;
-    public javax.swing.JTextField e;
-    public javax.swing.JTextField f;
+    private javax.swing.JButton btnGuardar;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel10;
-    private javax.swing.JLabel jLabel11;
-    private javax.swing.JLabel jLabel12;
-    private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
+    public javax.swing.JLabel jLabel11;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
-    public javax.swing.JTextField k;
     public javax.swing.JTextField s;
     // End of variables declaration//GEN-END:variables
 }

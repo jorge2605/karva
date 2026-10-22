@@ -3,6 +3,7 @@ package pruebas;
 import Conexiones.Conexion;
 import VentanaEmergente.Cotizacion.AgregarCotizacion;
 import VentanaEmergente.Cotizacion.ConfUsuario;
+import VentanaEmergente.Cotizacion.ConfiguracionCodigos;
 import VentanaEmergente.Cotizacion.TablaCoti;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import java.awt.Color;
@@ -131,19 +132,35 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
         });
     }
 
-    public InicioCotizacion(String numEmpleado, Inicio1 inicio1) {
-        initComponents();
+    public final void verificarAdministrador (String numEmpleado) {
         try {
-            UIManager.setLookAndFeel(new FlatMacLightLaf());
-        } catch (Exception e) {
-            e.printStackTrace();
+            Connection con = new Conexion().getConnection();
+            String sql = "select * from empleadoscheck where numEmpleado like '" + numEmpleado + "'";
+            ResultSet rs = con.createStatement().executeQuery(sql);
+            boolean admin = false;
+            while (rs.next()) {
+                admin = rs.getBoolean("Administrador");
+            }
+            if (admin) {
+                btnConfig.setVisible(true);
+                btnConfig1.setVisible(true);
+            } else {
+                btnConfig.setVisible(false);
+                btnConfig1.setVisible(false);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al verificar identidad: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    public InicioCotizacion(String numEmpleado, Inicio1 inicio1) {
         initComponents();
         ((javax.swing.plaf.basic.BasicInternalFrameUI) this.getUI()).setNorthPane(null);
         limpiarTabla();
         buscarDatos();
         this.inicio1 = inicio1;
         this.numEmpleado = numEmpleado;
+        verificarAdministrador(numEmpleado);
     }
 
     @SuppressWarnings("unchecked")
@@ -170,6 +187,7 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
         jPanel7 = new javax.swing.JPanel();
         btnAgregar = new javax.swing.JButton();
         btnConfig = new javax.swing.JButton();
+        btnConfig1 = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
         jPanel8 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -273,6 +291,18 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
         });
         jPanel7.add(btnConfig);
 
+        btnConfig1.setBackground(new java.awt.Color(51, 51, 51));
+        btnConfig1.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
+        btnConfig1.setForeground(new java.awt.Color(255, 255, 255));
+        btnConfig1.setText("Configuracion cotizaciones");
+        btnConfig1.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnConfig1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnConfig1ActionPerformed(evt);
+            }
+        });
+        jPanel7.add(btnConfig1);
+
         jPanel6.add(jPanel7, java.awt.BorderLayout.CENTER);
 
         jLabel2.setFont(new java.awt.Font("Trebuchet MS", 1, 12)); // NOI18N
@@ -361,11 +391,19 @@ public class InicioCotizacion extends javax.swing.JInternalFrame {
         verCotizacion();
     }//GEN-LAST:event_jMenuItem1ActionPerformed
 
+    private void btnConfig1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnConfig1ActionPerformed
+        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+        ConfiguracionCodigos conf = new ConfiguracionCodigos(f, true);
+        conf.setLocationRelativeTo(f);
+        conf.setVisible(true);
+    }//GEN-LAST:event_btnConfig1ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTable Tabla1;
     private javax.swing.JButton btnAgregar;
     private javax.swing.JButton btnConfig;
+    private javax.swing.JButton btnConfig1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel2;

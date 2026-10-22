@@ -2,20 +2,16 @@ package pruebas;
 
 import Conexiones.Conexion;
 import Conexiones.ConexionChat;
-import VentanaEmergente.CalidadNew.inicioCalidad;
 import VentanaEmergente.Costos.Costeo;
-import VentanaEmergente.Cotizacion.AgregarCotizacion;
 import VentanaEmergente.Diseño.InicioDiseño;
+import VentanaEmergente.Inicio1.AgregarMenu;
 import VentanaEmergente.Inicio1.Backups;
 import VentanaEmergente.Inicio1.Configuracion;
 import VentanaEmergente.Inicio1.InicioAlmacen;
 import VentanaEmergente.Inicio1.InicioCostos;
 import VentanaEmergente.Inicio1.Mensajes;
-import VentanaEmergente.Inicio1.ModificacionesTowi;
 import VentanaEmergente.Inicio1.Notificaciones;
-import VentanaEmergente.Inicio1.ReporteError;
 import VentanaEmergente.Inicio1.precioDolar;
-import VentanaEmergente.Inicio1.verErrores;
 import com.app.sockets.chat.Servidor;
 import java.awt.Color;
 import java.awt.Frame;
@@ -51,17 +47,22 @@ import javax.swing.JInternalFrame;
 import javax.swing.SwingUtilities;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.DriverManager;
+import java.sql.ResultSetMetaData;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Stack;
 import java.util.function.Supplier;
 import javax.swing.JButton;
-import javax.swing.JDesktopPane;
 import javax.swing.SwingConstants;
 import scrollPane.PanelRound;
 
@@ -82,6 +83,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     public Backups backup;
     private boolean activarNombres = true;
     private PanelRound menuSeleccionado = null;
+    private Stack<AgregarMenu> agregarMenus;
 
     private final Color COLOR_NORMAL = Color.WHITE;
     private final Color COLOR_HOVER = new Color(234, 244, 255);
@@ -440,7 +442,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         }
     }
 
-    public final void agregarMenuProduccion(String depa, int y, String ruta, Supplier<JInternalFrame> frameSupplier) {
+    public final void agregarMenuProduccion(AgregarMenu add, int y) {
         GridBagConstraints gbc = new GridBagConstraints();
 
         PanelRound pnlBoton = new PanelRound();
@@ -457,38 +459,42 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         btnDepartamento.setFont(new Font("Roboto", Font.PLAIN, 12));
         btnDepartamento.setForeground(new Color(50, 50, 50));
 
-        btnDepartamento.setText(activarNombres ? depa : "      ");
+        btnDepartamento.setText(activarNombres ? add.getTitulo() : "      ");
 
         btnDepartamento.setHorizontalAlignment(SwingConstants.LEFT);
         btnDepartamento.setBorder(null);
-        btnDepartamento.setIcon(new ImageIcon(getClass().getResource(ruta)));
         btnDepartamento.setBorderPainted(false);
         btnDepartamento.setContentAreaFilled(false);
         btnDepartamento.setFocusPainted(false);
+        btnDepartamento.setIcon(new ImageIcon(getClass().getResource(add.getUrlImagen())));
 
-        btnDepartamento.addActionListener(e -> {
-            if (menuSeleccionado != null) {
-                menuSeleccionado.setBackground(COLOR_NORMAL);
-            }
-            menuSeleccionado = pnlBoton;
-            menuSeleccionado.setBackground(COLOR_SELECCIONADO);
-            verFrame(frameSupplier.get());
-        });
-
-        btnDepartamento.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent evt) {
-                pnlBoton.setBackground(COLOR_HOVER);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent evt) {
-                if (menuSeleccionado != pnlBoton) {
-                    pnlBoton.setBackground(COLOR_NORMAL);
+        if (add.getFrame() != null) {
+            btnDepartamento.addActionListener(e -> {
+                if (menuSeleccionado != null) {
+                    menuSeleccionado.setBackground(COLOR_NORMAL);
                 }
-            }
-        });
+                menuSeleccionado = pnlBoton;
+                menuSeleccionado.setBackground(COLOR_SELECCIONADO);
+                verFrame(add.getFrame().get());
+            });
+            btnDepartamento.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent evt) {
+                    pnlBoton.setBackground(COLOR_HOVER);
+                }
 
+                @Override
+                public void mouseExited(MouseEvent evt) {
+                    if (menuSeleccionado != pnlBoton) {
+                        pnlBoton.setBackground(COLOR_NORMAL);
+                    } else {
+                        menuSeleccionado.setBackground(COLOR_SELECCIONADO);
+                    }
+                }
+            });
+        } else {
+            btnDepartamento.setFont(new Font("Roboto", Font.BOLD, 12));
+        }
         pnlBoton.add(btnDepartamento, BorderLayout.CENTER);
 
         gbc.gridy = y;
@@ -513,54 +519,126 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         jScrollPane1.getViewport().repaint();
     }
 
-    public final void agregarLabel(String depa, int i) {
-        javax.swing.JLabel lbl = new javax.swing.JLabel();
-        lbl.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        lbl.setForeground(new java.awt.Color(204, 204, 204));
-        lbl.setText(depa);
-        java.awt.GridBagConstraints gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = i;
-        gridBagConstraints.insets = new Insets(3, 5, 3, 0);
-        jPanel2.add(lbl, gridBagConstraints);
+    public Map<String, Boolean> obtenerPermisosEmpleado(String numEmpleado) {
+        Map<String, Boolean> permisos = new HashMap<>();
+
+        String sql = "SELECT Dashboard, Diseño, Cambio, Carga, Reportes, "
+                + "Cortes, Fresa, Cnc, Torno, Rectificado, "
+                + "Estampado, Envios, Ensamble, Calidad, OrdenTrabajo, Orden, "
+                + "Requisiciones, VerRequisiciones, Aprobacion, "
+                + "Evaluacion, Cotizacion, Ventas, Remisiones, "
+                + "CXP, CrearEmpleado, Costos, ProyectMan, RH, "
+                + "Checador, Inventario, Recibo, Prestamo, "
+                + "Pedidos, Entrega, Liberacion "
+                + "FROM registroempleados "
+                + "WHERE NumEmpleado = ?";
+
+        try {
+            Connection con = new Conexion().getConnection();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, numEmpleado);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    ResultSetMetaData meta = rs.getMetaData();
+
+                    for (int i = 1; i <= meta.getColumnCount(); i++) {
+                        String columna = meta.getColumnLabel(i);
+                        permisos.put(columna, rs.getBoolean(i));
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error al consultar los permisos: " + e.getMessage());
+        }
+
+        return permisos;
+    }
+
+    private void agregarDepartamento(String nombre, AgregarMenu... menus) {
+        if (menus.length == 0) {
+            return;
+        }
+        agregarMenus.add(new AgregarMenu(nombre, "/Img/departamentos_16.png", null));
+        for (AgregarMenu menu : menus) {
+            agregarMenus.add(menu);
+        }
+    }
+
+    private AgregarMenu crearMenuSiTienePermiso(Map<String, Boolean> permisos, String columna, String nombre, String icono, Supplier<JInternalFrame> accion) {
+        if (!Boolean.TRUE.equals(permisos.get(columna))) {
+            return null;
+        }
+
+        return new AgregarMenu(nombre, icono, accion);
+    }
+
+    private AgregarMenu[] filtrarMenus(AgregarMenu... menus) {
+        return Arrays.stream(menus).filter(Objects::nonNull).toArray(AgregarMenu[]::new);
+    }
+
+    public final void agregarMenus() {
+        agregarMenus = new Stack<>();
+        Map<String, Boolean> permisos = obtenerPermisosEmpleado(lblId.getText());
+        agregarDepartamento("Produccion",
+                filtrarMenus(
+                        crearMenuSiTienePermiso(permisos, "Dashboard", "Dashboard", "/Img/dashboard_16.png",() -> new Live(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Diseño", "Diseno", "/Img/diseno_16.png",() -> new InicioDiseño(this, lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Cambio", "Proyectos", "/Img/estados_16.png", () -> new CambiarEstado(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Carga", "Carga de trabajo", "/Img/carga_16.png", () -> new CargaTrabajo(this)),
+                        crearMenuSiTienePermiso(permisos, "Reportes", "Reportes", "/Img/reportes_16.png", () -> new Reportes(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Cortes", "Cortes", "/Img/cortes_16.png", () -> new Cortes(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Fresa", "Maquinados", "/Img/maquinado_16.png", () -> new MaquinadosNew(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Ensamble", "Ensamble", "/Img/ensamble_16.png", () -> new Ensamble()),
+                        crearMenuSiTienePermiso(permisos, "Calidad", "Calidad", "/Img/calidad_16.png", () -> new CalidadDebug(lblNombre.getText(), lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "OrdenTrabajo", "Orden de trabajo", "/Img/ot_16.png", () -> new OrdenTrabajo(lblId.getText()))
+                )
+        );
+        agregarDepartamento("Compras",
+                filtrarMenus(
+                        crearMenuSiTienePermiso(permisos, "Orden", "Compras", "/Img/compras_16.png", () -> new OrdenDeCompra(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Requisiciones", "Requisiciones", "/Img/requisiciones_16.png", () -> new requisicionDeCompra(lblId.getText(), lblNombre.getText())),
+                        crearMenuSiTienePermiso(permisos, "VerRequisiciones", "Estado requisiciones", "/Img/ver_requi_16.png", () -> new VerRequisiciones(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Aprobacion", "Aprobacion", "/Img/aprobacion_16.png", () -> new Aprobacion(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Evaluacion", "Evaluacion", "/Img/evaluacion_16.png", () -> new Evaluacion(lblId.getText()))
+                )
+        );
+        agregarDepartamento("Ventas",
+                filtrarMenus(
+                        crearMenuSiTienePermiso(permisos, "Cotizacion", "Cotizaciones", "/Img/cotizacion_16.png", () -> new InicioCotizacion(lblId.getText(), this)),
+                        crearMenuSiTienePermiso(permisos, "Ventas", "Ventas", "/Img/ventas_16.png", () -> new Ventas(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Remisiones", "Remisiones", "/Img/remisiones_16.png", () -> new Remisiones(lblId.getText()))
+                )
+        );
+        agregarDepartamento("Administracion",
+                filtrarMenus(
+                        crearMenuSiTienePermiso(permisos, "CXP", "CXP", "/Img/cxp_16.png", () -> new cxp()),
+                        crearMenuSiTienePermiso(permisos, "Costos", "Costos", "/Img/costos_16.png", () -> new Costos(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "RH", "RH", "/Img/rh_16.png", () -> new RH(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "CrearEmpleado", "Nuevo empleado", "/Img/agregar_empleado_16.png", () -> new NuevoUsuario()),
+                        crearMenuSiTienePermiso(permisos, "ProyectMan", "Project manager", "/Img/proyect_16.png", () -> new ProyectManager(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Checador", "Checador", "/Img/huella_16.png", () -> new Checador(lblId.getText()))
+                )
+        );
+        agregarDepartamento("Almacen",
+                filtrarMenus(
+                        crearMenuSiTienePermiso(permisos, "Inventario", "Inventario", "/Img/inventario_16.png", () -> new InventarioNew(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Recibo", "Recibos", "/Img/recibos_16.png", () -> new Recibos(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Prestamo", "Prestamos", "/Img/prestamos_16.png", () -> new Prestamo(lblId.getText(), this)),
+                        crearMenuSiTienePermiso(permisos, "Pedidos", "Pedidos", "/Img/pedidos_16.png", () -> new Pedidos(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Entrega", "Entregas", "/Img/entregas_16.png", () -> new EntregaRequisicion(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Liberacion", "Liberacion", "/Img/liberacion_16.png", () -> new Almacen(lblId.getText()))
+                )
+        );
     }
 
     public final void agregarMenu() {
         limpiarPanel();
-        agregarLabel("Produccion", 0);
-        agregarMenuProduccion("Dashboard", 1, "/Img/dashboard_16.png", () -> new Live(lblId.getText()));
-        agregarMenuProduccion("Diseno", 2, "/Img/diseno_16.png", () -> new InicioDiseño(this));
-        agregarMenuProduccion("Proyectos", 3, "/Img/estados_16.png", () -> new CambiarEstado(lblId.getText()));
-        agregarMenuProduccion("Carga de trabajo", 4, "/Img/carga_16.png", () -> new CargaTrabajo(this));
-        agregarMenuProduccion("Reportes", 5, "/Img/reportes_16.png", () -> new Reportes(lblId.getText()));
-        agregarMenuProduccion("Cortes", 6, "/Img/cortes_16.png", () -> new Cortes(lblId.getText()));
-        agregarMenuProduccion("Maquinados", 7, "/Img/maquinado_16.png", () -> new MaquinadosNew(lblId.getText()));
-        agregarMenuProduccion("Ensamble", 8, "/Img/ensamble_16.png", () -> new Ensamble());
-        agregarMenuProduccion("Calidad", 9, "/Img/calidad_16.png", () -> new CalidadDebug(lblNombre.getText(), lblId.getText()));
-        agregarLabel("Compras", 10);
-        agregarMenuProduccion("Requisiciones", 11, "/Img/requisiciones_16.png", () -> new requisicionDeCompra(lblId.getText(), lblNombre.getText()));
-        agregarMenuProduccion("Compras", 12, "/Img/compras_16.png", () -> new OrdenDeCompra(lblId.getText()));
-        agregarMenuProduccion("Estado requisiciones", 13, "/Img/ver_requi_16.png", () -> new VerRequisiciones(lblId.getText()));
-        agregarMenuProduccion("Aprobacion", 14, "/Img/aprobacion_16.png", () -> new Aprobacion(lblId.getText()));
-        agregarMenuProduccion("Evaluacion", 15, "/Img/evaluacion_16.png", () -> new Evaluacion(lblId.getText()));
-        agregarLabel("Administracion", 16);
-        agregarMenuProduccion("Cotizaciones", 17, "/Img/cotizacion_16.png", () -> new InicioCotizacion(lblId.getText(), this));
-        agregarMenuProduccion("Ventas", 18, "/Img/ventas_16.png", () -> new Ventas());
-        agregarMenuProduccion("Remisiones", 19, "/Img/remisiones_16.png", () -> new Remisiones(lblId.getText()));
-        agregarMenuProduccion("CXP", 20, "/Img/cxp_16.png", () -> new cxp());
-        agregarMenuProduccion("Costos", 21, "/Img/costos_16.png", () -> new Costos(lblId.getText()));
-        agregarMenuProduccion("RH", 22, "/Img/rh_16.png", () -> new RH(lblId.getText()));
-        agregarMenuProduccion("Agregar empleado", 23, "/Img/agregar_empleado_16.png", () -> new AgregarEmpleado());
-        agregarMenuProduccion("Project manager", 24, "/Img/proyect_16.png", () -> new ProyectManager(lblId.getText()));
-        agregarMenuProduccion("Checador", 25, "/Img/huella_16.png", () -> new Checador(lblId.getText()));
-        agregarLabel("Almacen", 26);
-//      Pendiente  
-//      agregarMenuProduccion("Almacen", 26, "/Img/.png", () -> new InicioAlmacen(this, true));
-        agregarMenuProduccion("Inventario", 28, "/Img/inventario_16.png", () -> new InventarioNew(lblId.getText()));
-        agregarMenuProduccion("Recibos", 29, "/Img/recibos_16.png", () -> new Recibos(lblId.getText()));
-        agregarMenuProduccion("Prestamos", 30, "/Img/prestamos_16.png", () -> new Prestamo(lblId.getText(), this));
-        agregarMenuProduccion("Pedidos", 31, "/Img/pedidos_16.png", () -> new Pedidos(lblId.getText()));
-        agregarMenuProduccion("Entregas", 32, "/Img/entregas_16.png", () -> new EntregaRequisicion(lblId.getText()));
-        agregarMenuProduccion("Liberacion", 33, "/Img/liberacion_16.png", () -> new Almacen(lblId.getText()));
+        agregarMenus();
+        for (int i = 0; i < agregarMenus.size(); i++) {
+            agregarMenuProduccion(agregarMenus.get(i), i);
+        }
     }
 
     public final void verFrame(javax.swing.JInternalFrame c) {
@@ -634,7 +712,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         lblCont = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
         btnModificar1 = new javax.swing.JButton();
-        jButton1 = new javax.swing.JButton();
         jDesktopPane1 = new javax.swing.JDesktopPane();
         jPanel3 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
@@ -785,9 +862,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         jLabel12 = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
         jPanel2 = new javax.swing.JPanel();
-        jLabel9 = new javax.swing.JLabel();
-        jLabel10 = new javax.swing.JLabel();
-        jLabel11 = new javax.swing.JLabel();
 
         miReporte.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/excel_1.png"))); // NOI18N
         miReporte.setText("REPORTES DE CALIDAD");
@@ -913,13 +987,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             }
         });
 
-        jButton1.setText("jButton1");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
-
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -929,9 +996,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
                 .addComponent(jPanel37, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jButton4)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGap(97, 97, 97)
                 .addComponent(lblId1, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(lblId, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -951,14 +1016,12 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jButton4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton4, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 27, Short.MAX_VALUE)
                     .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblId, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblId2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(lblNombre, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(lblId1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton1))
+                    .addComponent(lblId1)
                     .addComponent(jPanel37, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButton5, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btnModificar1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -2616,26 +2679,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
         jPanel2.setLayout(new java.awt.GridBagLayout());
-
-        jLabel9.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        jLabel9.setForeground(new java.awt.Color(204, 204, 204));
-        jLabel9.setText("Produccion");
-        jPanel2.add(jLabel9, new java.awt.GridBagConstraints());
-
-        jLabel10.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        jLabel10.setForeground(new java.awt.Color(204, 204, 204));
-        jLabel10.setText("Compras");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 10;
-        jPanel2.add(jLabel10, gridBagConstraints);
-
-        jLabel11.setFont(new java.awt.Font("Roboto", 1, 12)); // NOI18N
-        jLabel11.setForeground(new java.awt.Color(204, 204, 204));
-        jLabel11.setText("Administracion");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 15;
-        jPanel2.add(jLabel11, gridBagConstraints);
-
         jScrollPane1.setViewportView(jPanel2);
 
         getContentPane().add(jScrollPane1, java.awt.BorderLayout.WEST);
@@ -2710,11 +2753,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
             JOptionPane.showMessageDialog(this, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_btnModificar1ActionPerformed
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        activarNombres = !activarNombres;
-        agregarMenu();
-    }//GEN-LAST:event_jButton1ActionPerformed
 
     private void btnCalendarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCalendarioActionPerformed
         Calendario c = new Calendario(lblId.getText(), this);
@@ -3299,7 +3337,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     }//GEN-LAST:event_btnEstado5MouseEntered
 
     private void btnEstado3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEstado3ActionPerformed
-        Ventas c = new Ventas();
+        Ventas c = new Ventas(lblId.getText());
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
@@ -3404,7 +3442,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     }//GEN-LAST:event_btnEstadoMouseEntered
 
     private void btnDisenioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDisenioActionPerformed
-        InicioDiseño c = new InicioDiseño(this);
+        InicioDiseño c = new InicioDiseño(this, "");
         jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
@@ -3473,15 +3511,12 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     public javax.swing.JButton btnRequisicion;
     public javax.swing.JButton btnTrata;
     public javax.swing.JButton btnVer;
-    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
     public javax.swing.JDesktopPane jDesktopPane1;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel10;
-    private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel12;
     private javax.swing.JLabel jLabel13;
     private javax.swing.JLabel jLabel14;
@@ -3516,7 +3551,6 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel20;

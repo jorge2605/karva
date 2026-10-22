@@ -14,6 +14,11 @@ public class TempleteDiseno {
     public String tratamiento;
     public String cantidad;
     public String codigo;
+    public String bom;
+
+    public String getBom() {
+        return bom;
+    }
 
     public String getCodigo() {
         return codigo;
@@ -80,7 +85,8 @@ public class TempleteDiseno {
     };
 }
 
-    public TempleteDiseno(String empresa, String disenador, String cliente, String revision, String parte, String descripcion, String material, String dureza, String ensamle, String tratamiento, String cantidad, String codigo) {
+    public TempleteDiseno(String empresa, String disenador, String cliente, String revision, String parte, String descripcion, String material,
+            String dureza, String ensamle, String tratamiento, String cantidad, String codigo, String bom) {
         this.empresa = empresa;
         this.disenador = disenador;
         this.cliente = cliente;
@@ -93,6 +99,7 @@ public class TempleteDiseno {
         this.tratamiento = tratamiento;
         this.cantidad = cantidad;
         this.codigo = codigo;
+        this.bom = bom;
     }
 
     @Override

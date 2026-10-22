@@ -187,10 +187,10 @@
                       <Table columnCount="6" rowCount="4">
                         <Column editable="false" title="Numero de parte" type="java.lang.Object"/>
                         <Column editable="false" title="Proyecto" type="java.lang.Object"/>
-                        <Column editable="false" title="Fecha de requerimiento" type="java.lang.Object"/>
+                        <Column editable="false" title="Ubicacion" type="java.lang.Object"/>
                         <Column editable="false" title="Fecha de aprobacion" type="java.lang.Object"/>
                         <Column editable="false" title="Fecha de entrega" type="java.lang.Object"/>
-                        <Column editable="false" title="Dias restantes" type="java.lang.Object"/>
+                        <Column editable="false" title="Dias restantes" type="java.lang.Integer"/>
                       </Table>
                     </Property>
                     <Property name="columnModel" type="javax.swing.table.TableColumnModel" editor="org.netbeans.modules.form.editors2.TableColumnModelEditor">
@@ -216,12 +216,12 @@
                           <Renderer/>
                         </Column>
                         <Column maxWidth="-1" minWidth="-1" prefWidth="-1" resizable="true">
-                          <Title value="Fecha de entrega"/>
+                          <Title/>
                           <Editor/>
                           <Renderer/>
                         </Column>
                         <Column maxWidth="-1" minWidth="-1" prefWidth="-1" resizable="true">
-                          <Title value="Dias restantes"/>
+                          <Title/>
                           <Editor/>
                           <Renderer/>
                         </Column>
