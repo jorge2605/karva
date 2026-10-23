@@ -88,6 +88,9 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     private final Color COLOR_NORMAL = Color.WHITE;
     private final Color COLOR_HOVER = new Color(234, 244, 255);
     private final Color COLOR_SELECCIONADO = new Color(123, 192, 255);
+    // Guarda una sola instancia por cada nombre de área
+    private final java.util.Map<String, TiemposAreas> mapaModulosTiempos = new java.util.HashMap<>();
+    
 
     public void activar() {
         Thread hilo = new Thread() {
@@ -588,10 +591,15 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
                         crearMenuSiTienePermiso(permisos, "Cambio", "Proyectos", "/Img/estados_16.png", () -> new CambiarEstado(lblId.getText())),
                         crearMenuSiTienePermiso(permisos, "Carga", "Carga de trabajo", "/Img/carga_16.png", () -> new CargaTrabajo(this)),
                         crearMenuSiTienePermiso(permisos, "Reportes", "Reportes", "/Img/reportes_16.png", () -> new Reportes(lblId.getText())),
-                        crearMenuSiTienePermiso(permisos, "Cortes", "Cortes", "/Img/cortes_16.png", () -> new Cortes(lblId.getText())),
-                        crearMenuSiTienePermiso(permisos, "Fresa", "Maquinados", "/Img/maquinado_16.png", () -> new MaquinadosNew(lblId.getText())),
-                        crearMenuSiTienePermiso(permisos, "Ensamble", "Ensamble", "/Img/ensamble_16.png", () -> new Ensamble()),
-                        crearMenuSiTienePermiso(permisos, "Calidad", "Calidad", "/Img/calidad_16.png", () -> new CalidadDebug(lblNombre.getText(), lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Cortes", "Cortes", "/Img/cortes_16.png", () -> getModuloTiempos("Corte")),
+                        crearMenuSiTienePermiso(permisos, "Cnc", "Cnc", "/Img/maquinado_16.png", () -> getModuloTiempos("Maquinado CNC")),
+                        crearMenuSiTienePermiso(permisos, "Fresa", "Fresadora", "/Img/fresa_16.png", () -> getModuloTiempos("Fresadora")),
+                        crearMenuSiTienePermiso(permisos, "Torno", "Torno", "/Img/torno_16.png", () -> getModuloTiempos("Torno")),
+                        crearMenuSiTienePermiso(permisos, "Rectificado", "Rectificado", "/Img/rectificado_16.png", () -> getModuloTiempos("Rectificado")),
+                        crearMenuSiTienePermiso(permisos, "Calidad", "Calidad", "/Img/calidad_16.png", () -> getModuloCalidadConPestañas()),
+                        crearMenuSiTienePermiso(permisos, "Ensamble", "Ensamble", "/Img/ensamble_16.png", () -> getModuloTiempos("Ensamble")),
+                        crearMenuSiTienePermiso(permisos, "Estampado", "Estampado", "/Img/estampado_16.png", () -> getModuloTiempos("Estampado")),
+                        crearMenuSiTienePermiso(permisos, "Envios", "Envios", "/Img/envios_16.png", () -> getModuloTiempos("Envios")),
                         crearMenuSiTienePermiso(permisos, "OrdenTrabajo", "Orden de trabajo", "/Img/ot_16.png", () -> new OrdenTrabajo(lblId.getText()))
                 )
         );
@@ -635,10 +643,96 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
 
     public final void agregarMenu() {
         limpiarPanel();
+//<<<<<<< HEAD
         agregarMenus();
         for (int i = 0; i < agregarMenus.size(); i++) {
             agregarMenuProduccion(agregarMenus.get(i), i);
         }
+//=======
+//        agregarLabel("Produccion", 0);
+//        agregarMenuProduccion("Dashboard", 1, "/Img/dashboard_16.png", () -> new Live(lblId.getText()));
+//        agregarMenuProduccion("Diseno", 2, "/Img/diseno_16.png", () -> new InicioDiseño(this));
+//        agregarMenuProduccion("Proyectos", 3, "/Img/estados_16.png", () -> new CambiarEstado(lblId.getText()));
+//        agregarMenuProduccion("Carga de trabajo", 4, "/Img/carga_16.png", () -> new CargaTrabajo(this));
+//        agregarMenuProduccion("Reportes", 5, "/Img/reportes_16.png", () -> new Reportes(lblId.getText()));
+//        agregarMenuProduccion("Cortes", 6, "/Img/cortes_16.png", () -> new Cortes(lblId.getText()));
+//        agregarMenuProduccion("Maquinados", 7, "/Img/maquinado_16.png", () -> new MaquinadosNew(lblId.getText()));
+//        agregarMenuProduccion("Ensamble", 8, "/Img/ensamble_16.png", () -> new Ensamble());
+//        agregarMenuProduccion("Calidad", 9, "/Img/calidad_16.png", () -> new CalidadDebug(lblNombre.getText(), lblId.getText()));
+//        agregarLabel("Compras", 10);
+//        agregarMenuProduccion("Requisiciones", 11, "/Img/requisiciones_16.png", () -> new requisicionDeCompra(lblId.getText(), lblNombre.getText()));
+//        agregarMenuProduccion("Compras", 12, "/Img/compras_16.png", () -> new OrdenDeCompra(lblId.getText()));
+//        agregarMenuProduccion("Estado requisiciones", 13, "/Img/ver_requi_16.png", () -> new VerRequisiciones(lblId.getText()));
+//        agregarMenuProduccion("Aprobacion", 14, "/Img/aprobacion_16.png", () -> new Aprobacion(lblId.getText()));
+//        agregarMenuProduccion("Evaluacion", 15, "/Img/evaluacion_16.png", () -> new Evaluacion(lblId.getText()));
+//        agregarLabel("Administracion", 16);
+//        agregarMenuProduccion("Cotizaciones", 17, "/Img/cotizacion_16.png", () -> new InicioCotizacion(lblId.getText(), this));
+//        agregarMenuProduccion("Ventas", 18, "/Img/ventas_16.png", () -> new Ventas());
+//        agregarMenuProduccion("Remisiones", 19, "/Img/remisiones_16.png", () -> new Remisiones(lblId.getText()));
+//        agregarMenuProduccion("CXP", 20, "/Img/cxp_16.png", () -> new cxp());
+//        agregarMenuProduccion("Costos", 21, "/Img/costos_16.png", () -> new Costos(lblId.getText()));
+//        agregarMenuProduccion("RH", 22, "/Img/rh_16.png", () -> new RH(lblId.getText()));
+//        agregarMenuProduccion("Agregar empleado", 23, "/Img/agregar_empleado_16.png", () -> new AgregarEmpleado());
+//        agregarMenuProduccion("Project manager", 24, "/Img/proyect_16.png", () -> new ProyectManager(lblId.getText()));
+//        agregarMenuProduccion("Checador", 25, "/Img/huella_16.png", () -> new Checador(lblId.getText()));
+//        agregarLabel("Almacen", 26);
+////      Pendiente  
+////      agregarMenuProduccion("Almacen", 26, "/Img/.png", () -> new InicioAlmacen(this, true));
+//        agregarMenuProduccion("Inventario", 28, "/Img/inventario_16.png", () -> new InventarioNew(lblId.getText()));
+//        agregarMenuProduccion("Recibos", 29, "/Img/recibos_16.png", () -> new Recibos(lblId.getText()));
+//        agregarMenuProduccion("Prestamos", 30, "/Img/prestamos_16.png", () -> new Prestamo(lblId.getText(), this));
+//        agregarMenuProduccion("Pedidos", 31, "/Img/pedidos_16.png", () -> new Pedidos(lblId.getText()));
+//        agregarMenuProduccion("Entregas", 32, "/Img/entregas_16.png", () -> new EntregaRequisicion(lblId.getText()));
+//        agregarMenuProduccion("Liberacion", 33, "/Img/liberacion_16.png", () -> new Almacen(lblId.getText()));
+//
+//        // Procesos de corte y maquinado
+//        agregarMenuProduccion("Corte", 34, "/Img/liberacion_16.png", () -> getModuloTiempos("Corte"));
+//        agregarMenuProduccion("Maquinado CNC", 35, "/Img/liberacion_16.png", () -> getModuloTiempos("Maquinado CNC"));
+//        agregarMenuProduccion("Fresadora", 36, "/Img/liberacion_16.png", () -> getModuloTiempos("Fresadora"));
+//        agregarMenuProduccion("Torno", 37, "/Img/liberacion_16.png", () -> getModuloTiempos("Torno"));
+//        agregarMenuProduccion("Rectificado", 38, "/Img/liberacion_16.png", () -> getModuloTiempos("Rectificado"));
+//
+//        // Calidad unificado en un solo botón
+//        agregarMenuProduccion("Calidad", 39, "/Img/liberacion_16.png", () -> getModuloCalidadConPestañas());
+//
+//        // Resto del flujo
+//        agregarMenuProduccion("Ensamble", 40, "/Img/liberacion_16.png", () -> getModuloTiempos("Ensamble"));
+//        agregarMenuProduccion("Estampado", 41, "/Img/liberacion_16.png", () -> getModuloTiempos("Estampado"));
+//        agregarMenuProduccion("Envíos", 42, "/Img/liberacion_16.png", () -> getModuloTiempos("Envios"));
+    }
+    
+    private TiemposAreas getModuloTiempos(String area) {
+        // Si la ventana del área aún no se ha creado, la instanciamos
+//        if (!mapaModulosTiempos.containsKey(area)) {
+//            TiemposAreas nuevaVentana = new TiemposAreas(lblId.getText(), area);
+            return new TiemposAreas(lblId.getText(), area);
+//            mapaModulosTiempos.put(area, nuevaVentana);
+//        } else {
+//            // Si ya existe, recargamos los datos activos sin volver a crear componentes Swing
+//            mapaModulosTiempos.get(area).cargarPlanosActivos();
+//        }
+//        return mapaModulosTiempos.get(area);
+    }
+    
+    private javax.swing.JInternalFrame getModuloCalidadConPestañas() {
+        javax.swing.JInternalFrame frameContenedor = new javax.swing.JInternalFrame("Módulo de Calidad", true, true, true, true);
+        
+        ((javax.swing.plaf.basic.BasicInternalFrameUI) frameContenedor.getUI()).setNorthPane(null);
+
+        javax.swing.JTabbedPane tabbedPane = new javax.swing.JTabbedPane();
+        tabbedPane.setFont(new java.awt.Font("Roboto", java.awt.Font.BOLD, 14));
+
+        // Instancia 1: Calidad Proceso
+        TiemposAreas calidadProceso = new TiemposAreas(num, "Calidad Proceso");
+        // Instancia 2: Calidad Final
+        TiemposAreas calidadFinal = new TiemposAreas(num, "Calidad Final");
+
+        // Extraemos el contenido principal de cada JInternalFrame para meterlo como pestaña
+        tabbedPane.addTab("Calidad en Proceso", calidadProceso.getContentPane());
+        tabbedPane.addTab("Calidad Final", calidadFinal.getContentPane());
+
+        frameContenedor.add(tabbedPane);
+        return frameContenedor;
     }
 
     public final void verFrame(javax.swing.JInternalFrame c) {
