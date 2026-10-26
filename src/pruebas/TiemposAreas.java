@@ -1,7 +1,11 @@
 package pruebas;
 
+import Conexiones.Conexion;
 import VentanaEmergente.Maquinados.NuevoPlano;
 import java.awt.Color;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -205,75 +209,94 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
         repaint();
     }
 
+    public String validarEmpleado (String numEmpleado) {
+        try {
+            Connection con = new Conexion().getConnection();
+            String sql = "select numempleado, nombre, apellido from registroempleados where numempleado like '" + numEmpleado + "'";
+            ResultSet rs = con.createStatement().executeQuery(sql);
+            while (rs.next()) {
+                return rs.getString("Nombre") + " " + rs.getString("Apellido");
+            }
+            return null;
+        } catch (SQLException e) { 
+            return null;
+        }
+    }
+    
     public void registrarOTransferirPlano(String plano, String nombreEstadoActual, String planoClean) {
-
         int idEstadoNuevo = obtenerIdEstado(nombreEstadoActual);
-
         if (idEstadoNuevo == -1) {
-            JOptionPane.showMessageDialog(this, "Estado no encontrado: " + nombreEstadoActual, "Error",javax.swing.JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Estado no encontrado: " + nombreEstadoActual, "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        try (java.sql.Connection con = new Conexiones.Conexion().getConnection()) {
-            con.setAutoCommit(false);
-            try {
-                String sqlCerrarPrevio
-                        = "UPDATE TiemposAreas "
-                        + "SET FechaFinal = CURDATE(), "
-                        + "    HoraFinal = CURTIME(), "
-                        + "    Cronometro = TIMEDIFF(NOW(), TIMESTAMP(FechaInicio, HoraInicio)) "
-                        + "WHERE Plano = ? AND FechaFinal IS NULL";
+        JFrame f = (JFrame) JOptionPane.getFrameForComponent(this);
+        NuevoPlano nuevo = new NuevoPlano(f, true);
+        nuevo.setLocationRelativeTo(f);
+        String empleado = nuevo.getNumero();
+        String nombre = validarEmpleado(empleado.replace("\n", ""));
+        if (empleado != null && nombre != null) {
+            try (java.sql.Connection con = new Conexiones.Conexion().getConnection()) {
+                con.setAutoCommit(false);
+                try {
+                    String sqlCerrarPrevio
+                            = "UPDATE TiemposAreas "
+                            + "SET FechaFinal = CURDATE(), "
+                            + "    HoraFinal = CURTIME(), "
+                            + "    Cronometro = TIMEDIFF(NOW(), TIMESTAMP(FechaInicio, HoraInicio)),"
+                            + "    NumEmpleado = ? "
+                            + "WHERE Plano = ? AND FechaFinal IS NULL";
 
-                int registrosCerrados;
+                    int registrosCerrados;
 
-                try (java.sql.PreparedStatement psCerrar
-                        = con.prepareStatement(sqlCerrarPrevio)) {
+                    try (java.sql.PreparedStatement psCerrar
+                            = con.prepareStatement(sqlCerrarPrevio)) {
 
-                    psCerrar.setString(1, plano);
-                    registrosCerrados = psCerrar.executeUpdate();
-                    if (mapPlanos.get(plano) != null) {
-                        int indice = mapPlanos.get(plano);
-                        if (indice >= 0) {
-                            pausarCronometro(mapPlanos.get(plano));
+                        psCerrar.setString(1, empleado);
+                        psCerrar.setString(2, plano);
+                        registrosCerrados = psCerrar.executeUpdate();
+                        if (mapPlanos.get(plano) != null) {
+                            int indice = mapPlanos.get(plano);
+                            if (indice >= 0) {
+                                pausarCronometro(mapPlanos.get(plano));
+                            }
                         }
                     }
-                }
-                
-                if (registrosCerrados == 0) {
 
-                    String sqlInsertar
-                            = "INSERT INTO TiemposAreas "
-                            + "(Plano, FechaInicio, HoraInicio, idEstado) "
-                            + "VALUES (?, CURDATE(), CURTIME(), ?)";
+                    if (registrosCerrados == 0) {
 
-                    try (java.sql.PreparedStatement psInsertar
-                            = con.prepareStatement(sqlInsertar)) {
+                        String sqlInsertar
+                                = "INSERT INTO TiemposAreas "
+                                + "(Plano, FechaInicio, HoraInicio, idEstado, NumEmpleado) "
+                                + "VALUES (?, CURDATE(), CURTIME(), ?, ?)";
 
-                        psInsertar.setString(1, plano);
-                        psInsertar.setInt(2, idEstadoNuevo);
+                        try (java.sql.PreparedStatement psInsertar
+                                = con.prepareStatement(sqlInsertar)) {
 
-                        psInsertar.executeUpdate();
+                            psInsertar.setString(1, plano);
+                            psInsertar.setInt(2, idEstadoNuevo);
+                            psInsertar.setString(3, empleado);
+
+                            psInsertar.executeUpdate();
+                        }
+                        int nuevoIndice = pilaCronos.size();
+                        crearPanelTiempo(nombre, planoClean, this.area, "00:00:00", nuevoIndice);
+                        iniciarCronometro(nuevoIndice);
                     }
-                    int nuevoIndice = pilaCronos.size();
-                    crearPanelTiempo(this.numEmpleado, planoClean, this.area, "00:00:00", nuevoIndice);
-                    iniciarCronometro(nuevoIndice);
-                }
 
-                con.commit();
+                    con.commit();
+
+                } catch (java.sql.SQLException e) {
+                    con.rollback();
+                    throw e;
+                }
 
             } catch (java.sql.SQLException e) {
-                con.rollback();
-                throw e;
+                javax.swing.JOptionPane.showMessageDialog(this, "Error al registrar/transferir plano: " + e.getMessage(),
+                        "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
             }
-
-        } catch (java.sql.SQLException e) {
-
-            javax.swing.JOptionPane.showMessageDialog(
-                    this,
-                    "Error al registrar/transferir plano: " + e.getMessage(),
-                    "Error",
-                    javax.swing.JOptionPane.ERROR_MESSAGE
-            );
+        } else {
+            JOptionPane.showMessageDialog(this, "Empleado incorrecto", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -304,9 +327,10 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
                 java.util.List<Object[]> listaPlanos = new java.util.ArrayList<>();
 
                 // Consultamos FechaInicio y HoraInicio por separado
-                String sql = "SELECT t.Plano, t.FechaInicio, t.HoraInicio "
+                String sql = "SELECT t.Plano, t.FechaInicio, t.HoraInicio, r.nombre, r.apellido "
                         + "FROM TiemposAreas t "
                         + "INNER JOIN Estados e ON t.idEstado = e.id "
+                        + "inner join registroempleados as r on r.numempleado = t.numempleado "
                         + "WHERE e.nombre = ? AND t.FechaFinal IS NULL";
 
                 try (java.sql.Connection con = new Conexiones.Conexion().getConnection(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
@@ -317,12 +341,13 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
                             String plano = rs.getString("Plano");
                             java.sql.Date fecha = rs.getDate("FechaInicio");
                             java.sql.Time hora = rs.getTime("HoraInicio");
+                            String empleado = rs.getString("nombre") + " " + rs.getString("apellido");
 
                             // Unimos fecha y hora para calcular los milisegundos transcurridos
                             long inicioMillis = java.sql.Timestamp.valueOf(fecha.toString() + " " + hora.toString()).getTime();
                             long transcurrido = System.currentTimeMillis() - inicioMillis;
 
-                            listaPlanos.add(new Object[]{plano, transcurrido});
+                            listaPlanos.add(new Object[]{plano, transcurrido, empleado});
                         }
                     }
                 }
@@ -338,7 +363,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
                         String plano = (String) fila[0];
                         long tiempoTranscurrido = (long) fila[1];
 
-                        crearPanelTiempo(numEmpleado, plano, area, formatearTiempo(tiempoTranscurrido), index);
+                        crearPanelTiempo(fila[2].toString(), plano, area, formatearTiempo(tiempoTranscurrido), index);
                         acumulado.set(index, tiempoTranscurrido);
                         iniciarCronometro(index);
                         index++;
@@ -434,10 +459,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
             return;
         }
 
-        // 1. Guardar/Transferir en la BD (cierra el anterior y abre el nuevo)
         registrarOTransferirPlano(planoClean, this.area, planoClean);
-
-        // 2. Renderizar la tarjeta en pantalla e iniciar el cronómetro visual
     }
 
     @SuppressWarnings("unchecked")
@@ -899,7 +921,7 @@ public class TiemposAreas extends javax.swing.JInternalFrame {
     private void txtEscanerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtEscanerActionPerformed
         String codigo = txtEscaner.getText();
         procesarEscaneo(codigo);
-        txtEscaner.setText(""); // Limpia para el siguiente escaneo
+        txtEscaner.setText("");
     }//GEN-LAST:event_txtEscanerActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed

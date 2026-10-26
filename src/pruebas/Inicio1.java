@@ -525,7 +525,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
     public Map<String, Boolean> obtenerPermisosEmpleado(String numEmpleado) {
         Map<String, Boolean> permisos = new HashMap<>();
 
-        String sql = "SELECT Dashboard, Diseño, Cambio, Carga, Reportes, "
+        String sql = "SELECT Dashboard, Diseño, Cambio, Carga, Reportes, Rutas, "
                 + "Cortes, Fresa, Cnc, Torno, Rectificado, "
                 + "Estampado, Envios, Ensamble, Calidad, OrdenTrabajo, Orden, "
                 + "Requisiciones, VerRequisiciones, Aprobacion, "
@@ -591,6 +591,7 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
                         crearMenuSiTienePermiso(permisos, "Cambio", "Proyectos", "/Img/estados_16.png", () -> new CambiarEstado(lblId.getText())),
                         crearMenuSiTienePermiso(permisos, "Carga", "Carga de trabajo", "/Img/carga_16.png", () -> new CargaTrabajo(this)),
                         crearMenuSiTienePermiso(permisos, "Reportes", "Reportes", "/Img/reportes_16.png", () -> new Reportes(lblId.getText())),
+                        crearMenuSiTienePermiso(permisos, "Rutas", "Rutas", "/Img/rutas_16.png", () -> new ControlRuta()),
                         crearMenuSiTienePermiso(permisos, "Cortes", "Cortes", "/Img/cortes_16.png", () -> getModuloTiempos("Corte")),
                         crearMenuSiTienePermiso(permisos, "Cnc", "Cnc", "/Img/maquinado_16.png", () -> getModuloTiempos("Maquinado CNC")),
                         crearMenuSiTienePermiso(permisos, "Fresa", "Fresadora", "/Img/fresa_16.png", () -> getModuloTiempos("Fresadora")),
@@ -764,8 +765,8 @@ public final class Inicio1 extends javax.swing.JFrame implements Observer, Actio
         num = numero;
         lblNombre.setText(nombre);
         setLocationRelativeTo(null);
-        setTitle("Servicios Industriales 3i");
-        this.setIconImage(new ImageIcon(getClass().getResource("/Img/Icono Towi.png")).getImage());
+        setTitle("Karva");
+        this.setIconImage(new ImageIcon(getClass().getResource("/Img/karva.png")).getImage());
         btnCalidad.setComponentPopupMenu(jPopupMenu1);
         pedido = false;
         cargarUbicacionVentana(this);

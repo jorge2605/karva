@@ -318,28 +318,28 @@ public class InicioSesion extends javax.swing.JFrame {
         }
     }
 
-    public void intermitente() {
-        Thread hilo = new Thread(() -> {
-            try {
-                while (true) {
-                    sleep(500);
-                    if (panelVersion.isVisible()) {
-                        panelVersion.setVisible(false);
-                    } else {
-                        panelVersion.setVisible(true);
-                    }
-                }
-            } catch (InterruptedException ex) {
-                Logger.getLogger(InicioSesion.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });
-        hilo.start();
-    }
+//    public void intermitente() {
+//        Thread hilo = new Thread(() -> {
+//            try {
+//                while (true) {
+//                    sleep(500);
+//                    if (panelVersion.isVisible()) {
+//                        panelVersion.setVisible(false);
+//                    } else {
+//                        panelVersion.setVisible(true);
+//                    }
+//                }
+//            } catch (InterruptedException ex) {
+//                Logger.getLogger(InicioSesion.class.getName()).log(Level.SEVERE, null, ex);
+//            }
+//        });
+//        hilo.start();
+//    }
 
-    public final void verificarVersion() {
-        Thread hilo = new Thread(new Runnable() {
-            public void run() {
-                boolean band = false;
+//    public final void verificarVersion() {
+//        Thread hilo = new Thread(new Runnable() {
+//            public void run() {
+//                boolean band = false;
 //                try {
 //                    Connection con;
 //                    ConexionChat con1 = new ConexionChat();
@@ -365,19 +365,19 @@ public class InicioSesion extends javax.swing.JFrame {
 //                    ERROR_AL_CONECTARSE = 1;
 //                    Logger.getLogger(InicioSesion.class.getName()).log(Level.SEVERE, null, ex);
 //                }
-                if (ERROR_AL_CONECTARSE != 1) {
-                    if (band == false) {
-                        panelVersion.setVisible(true);
-                        panelVersion.setBackground(new Color(0, 0, 0, 0));
-                        intermitente();
-                    } else {
-                        panelVersion.setVisible(false);
-                    }
-                }
-            }
-        });
-        hilo.start();
-    }
+//                if (ERROR_AL_CONECTARSE != 1) {
+//                    if (band == false) {
+//                        panelVersion.setVisible(true);
+//                        panelVersion.setBackground(new Color(0, 0, 0, 0));
+//                        intermitente();
+//                    } else {
+//                        panelVersion.setVisible(false);
+//                    }
+//                }
+//            }
+//        });
+//        hilo.start();
+//    }
 
     public void animarArriba(Component cb, Component cm) {
         try {
@@ -430,17 +430,12 @@ public class InicioSesion extends javax.swing.JFrame {
 
     public InicioSesion() {
         initComponents();
-        this.setTitle("SERVICIOS INDUSTRIALES 3i");
-        this.setIconImage(new ImageIcon(getClass().getResource("/Img/Icono Towi.png")).getImage());
+        this.setTitle("Karva");
+        this.setIconImage(new ImageIcon(getClass().getResource("/Img/karva.png")).getImage());
         this.setBackground(new Color(0, 0, 0, 0));
         Usuario.setBackground(new Color(0, 0, 0, 0));
         Contra.setBackground(new Color(0, 0, 0, 0));
-        panelVersion.setBackground(new Color(0, 0, 0, 0));
-        try {
-            verificarVersion();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error al conectarse a al base de datos");
-        }
+//        panelVersion.setBackground(new Color(0, 0, 0, 0));
     }
 
     @SuppressWarnings("unchecked")
@@ -453,7 +448,6 @@ public class InicioSesion extends javax.swing.JFrame {
         lblVersion = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
-        panelVersion = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
         btnEntrar = new javax.swing.JPanel();
         lblEntrar = new javax.swing.JLabel();
@@ -483,8 +477,8 @@ public class InicioSesion extends javax.swing.JFrame {
         panelP.add(lblVersion1, new org.netbeans.lib.awtextra.AbsoluteConstraints(790, 420, -1, -1));
 
         jLabel7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/karva-logo.png"))); // NOI18N
-        panelP.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 360, 170, 70));
+        jLabel7.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/karva.png"))); // NOI18N
+        panelP.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 390, 50, 50));
 
         lblVersion.setBackground(new java.awt.Color(204, 204, 204));
         lblVersion.setFont(new java.awt.Font("Roboto", 0, 12)); // NOI18N
@@ -506,28 +500,6 @@ public class InicioSesion extends javax.swing.JFrame {
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/syms-solo.png"))); // NOI18N
         panelP.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 0, 300, 450));
-
-        panelVersion.setBackground(new java.awt.Color(255, 255, 255));
-        panelVersion.setBorder(javax.swing.BorderFactory.createMatteBorder(4, 4, 4, 4, new java.awt.Color(102, 0, 0)));
-        panelVersion.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        panelVersion.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                panelVersionMouseClicked(evt);
-            }
-        });
-
-        javax.swing.GroupLayout panelVersionLayout = new javax.swing.GroupLayout(panelVersion);
-        panelVersion.setLayout(panelVersionLayout);
-        panelVersionLayout.setHorizontalGroup(
-            panelVersionLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 62, Short.MAX_VALUE)
-        );
-        panelVersionLayout.setVerticalGroup(
-            panelVersionLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 22, Short.MAX_VALUE)
-        );
-
-        panelP.add(panelVersion, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 410, 70, 30));
 
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/fondo_1.png"))); // NOI18N
         panelP.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 0, 300, 450));
@@ -735,23 +707,6 @@ public class InicioSesion extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_lblVersionMouseClicked
 
-    private void panelVersionMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_panelVersionMouseClicked
-        if (ERROR_AL_CONECTARSE != 1) {
-            int opc = JOptionPane.showConfirmDialog(this, "Towi se cerrara completamente, ¿Esta de acuerdo?");
-            if (opc == 0) {
-                try {
-                    String jarPath = "C:\\Pruebas\\BD\\Actualizar\\Descarga.jar";
-
-                    // Ejecutar el JAR usando Runtime
-                    Runtime.getRuntime().exec("java -jar " + jarPath);
-                    System.exit(0);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }//GEN-LAST:event_panelVersionMouseClicked
-
     private void UsuarioFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_UsuarioFocusGained
         Usuario.setBorder(javax.swing.BorderFactory.createMatteBorder(2, 2, 2, 2, new java.awt.Color(0, 153, 255)));
         if (Usuario.getText().equals("")) {
@@ -857,6 +812,5 @@ public class InicioSesion extends javax.swing.JFrame {
     private javax.swing.JLabel lblVersion1;
     private scrollPane.PanelRound panelM;
     private scrollPane.PanelRound panelP;
-    private javax.swing.JPanel panelVersion;
     // End of variables declaration//GEN-END:variables
 }
