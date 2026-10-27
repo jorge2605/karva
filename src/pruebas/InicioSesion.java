@@ -31,6 +31,23 @@ public class InicioSesion extends javax.swing.JFrame {
     boolean avanzar = true;
     public int ERROR_AL_CONECTARSE = 0;
 
+    public String convertirNombre(String nombre) {
+    if (nombre == null || nombre.trim().isEmpty()) {
+        return nombre;
+    }
+
+    String[] palabras = nombre.trim().toLowerCase().split("\\s+");
+    StringBuilder resultado = new StringBuilder();
+
+    for (String palabra : palabras) {
+        resultado.append(Character.toUpperCase(palabra.charAt(0)))
+                 .append(palabra.substring(1))
+                 .append(" ");
+    }
+
+    return resultado.toString().trim();
+}
+    
     public void Acceso() throws ClassNotFoundException {
         if (ERROR_AL_CONECTARSE == 1) {
             JOptionPane.showMessageDialog(this, "Error al conectarse a la base de datos", "Error", JOptionPane.ERROR_MESSAGE);
@@ -114,7 +131,11 @@ public class InicioSesion extends javax.swing.JFrame {
 
                         espera.band = false;
                         espera.dispose();
-                        Inicio1 i = new Inicio1(datos[0], datos[1] + " " + datos[29], puesto);
+                        String nombreConv = convertirNombre(datos[1] + " " + datos[29]);
+                        String nombre = "<html>"
+                                + "<p style = width:100px; text-align: center;>"
+                                + "" + nombreConv;
+                        Inicio1 i = new Inicio1(datos[0], nombre, puesto);
 
                         try {
                             i.iniciarServidor();
@@ -498,7 +519,7 @@ public class InicioSesion extends javax.swing.JFrame {
         panelP.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 70, 290, 40));
 
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/syms-solo.png"))); // NOI18N
+        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Img/Recurso 1.png"))); // NOI18N
         panelP.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 0, 300, 450));
 
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Iconos/fondo_1.png"))); // NOI18N

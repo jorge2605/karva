@@ -629,7 +629,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
         String fecha = sdf.format(new Date());
 
         pst.setString(1, "Terminado");
-        pst.setString(2, inicio.lblId.getText());
+        pst.setString(2, numEmpleado);
         pst.setString(3, fecha);
         pst.setString(4, txtProyecto.getText());
         pst.setString(5, depa);
@@ -641,7 +641,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
             pst = con.prepareStatement(sql);
 
             pst.setString(1, "Terminado");
-            pst.setString(2, inicio.lblId.getText());
+            pst.setString(2, numEmpleado);
             pst.setString(3, fecha);
             pst.setString(4, txtProyecto.getText());
             pst.setString(5, depa);
@@ -1730,7 +1730,7 @@ public final class Disenio1 extends InternalFrameImagen implements ActionListene
     }//GEN-LAST:event_jPanel10MouseExited
 
     private void lblAtrasMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblAtrasMouseClicked
-        InicioDiseño c = new InicioDiseño(inicio, inicio.lblId.getText());
+        InicioDiseño c = new InicioDiseño(inicio, numEmpleado);
         inicio.jDesktopPane1.add(c);
         c.toFront();
         c.setLocation(inicio.jDesktopPane1.getWidth() / 2 - c.getWidth() / 2, inicio.jDesktopPane1.getHeight() / 2 - c.getHeight() / 2);
